@@ -1,0 +1,51 @@
+# FlowOps - Roles Dictionary
+# 組織内の役割定義
+
+sales:
+  id: sales
+  name: 営業担当
+  description: 顧客対応、受注処理を担当する営業部門スタッフ
+  department: 営業部
+  contact: sales@example.com
+
+warehouse:
+  id: warehouse
+  name: 倉庫担当
+  description: 在庫管理、ピッキング、梱包を担当する物流部門スタッフ
+  department: 物流部
+  contact: warehouse@example.com
+
+purchasing:
+  id: purchasing
+  name: 購買担当
+  description: 仕入れ、発注業務を担当する購買部門スタッフ
+  department: 購買部
+  contact: purchasing@example.com
+
+support:
+  id: support
+  name: カスタマーサポート
+  description: 顧客からの問い合わせに対応するサポートスタッフ
+  department: カスタマーサポート部
+  contact: support@example.com
+
+tech-support:
+  id: tech-support
+  name: 技術サポート
+  description: 技術的な問い合わせに対応する専門スタッフ
+  department: 技術サポート部
+  contact: tech-support@example.com
+
+supervisor:
+  id: supervisor
+  name: 管理者
+  description: エスカレーション対応を行う管理職
+  department: 管理部門
+  contact: manager@example.com
+
+accounting:
+  id: accounting
+  name: 経理担当
+  description: 請求、入金確認を担当する経理部門スタッフ
+  department: 経理部
+  contact: accounting@example.com

@@ -1,0 +1,69 @@
+# FlowOps - Systems Dictionary
+# 使用システム定義
+
+order-system:
+  id: order-system
+  name: 受注管理システム
+  description: 受注の登録・管理を行うシステム
+  type: internal
+  owner: IT部
+  url: https://orders.internal.example.com
+
+inventory-system:
+  id: inventory-system
+  name: 在庫管理システム
+  description: 在庫数の管理と在庫確認を行うシステム
+  type: internal
+  owner: IT部
+  url: https://inventory.internal.example.com
+
+wms:
+  id: wms
+  name: 倉庫管理システム (WMS)
+  description: 倉庫のピッキング、梱包、出荷を管理するシステム
+  type: internal
+  owner: IT部
+  url: https://wms.internal.example.com
+
+shipping-system:
+  id: shipping-system
+  name: 配送管理システム
+  description: 送り状発行、配送状況追跡を行うシステム
+  type: external
+  vendor: 運送会社
+  url: https://shipping.example.com
+
+procurement-system:
+  id: procurement-system
+  name: 購買管理システム
+  description: 発注、仕入れ管理を行うシステム
+  type: internal
+  owner: IT部
+  url: https://procurement.internal.example.com
+
+notification-system:
+  id: notification-system
+  name: 通知システム
+  description: メール、SMS、プッシュ通知を送信するシステム
+  type: internal
+  owner: IT部
+  channels:
+    - email
+    - sms
+    - push
+
+crm:
+  id: crm
+  name: 顧客管理システム (CRM)
+  description: 顧客情報、問い合わせ履歴を管理するシステム
+  type: internal
+  owner: IT部
+  url: https://crm.internal.example.com
+
+erp:
+  id: erp
+  name: 基幹システム (ERP)
+  description: 財務・会計・人事等の基幹業務を統合管理するシステム
+  type: internal
+  owner: IT部
+  url: https://erp.internal.example.com

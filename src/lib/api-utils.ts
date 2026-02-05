@@ -1,0 +1,82 @@
+/**
+ * FlowOps - API Utilities
+ * 
+ * API Route用のユーティリティ関数
+ */
+
+import { NextResponse } from 'next/server';
+import { ZodError, ZodSchema } from 'zod';
+import { ApiResponse, API_ERROR_CODES, ApiErrorCode } from '@/core/types/api';
+
+/**
+ * 成功レスポンスを生成
+ */
+export function successResponse<T>(data: T, status = 200): NextResponse<ApiResponse<T>> {
+  return NextResponse.json({ ok: true, data }, { status });
+}
+
+/**
+ * エラーレスポンスを生成
+ */
+export function errorResponse(
+  errorCode: ApiErrorCode,
+  details?: string,
+  status = 400
+): NextResponse<ApiResponse<never>> {
+  return NextResponse.json({ ok: false, errorCode, details }, { status });
+}
+
+/**
+ * 404 Not Foundレスポンス
+ */
+export function notFoundResponse(resource = 'Resource'): NextResponse<ApiResponse<never>> {
+  return errorResponse(API_ERROR_CODES.NOT_FOUND, `${resource} not found`, 404);
+}
+
+/**
+ * 500 Internal Errorレスポンス
+ */
+export function internalErrorResponse(error: unknown): NextResponse<ApiResponse<never>> {
+  console.error('[API Error]', error);
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  return errorResponse(API_ERROR_CODES.INTERNAL_ERROR, message, 500);
+}
+
+/**
+ * Zodバリデーションエラーレスポンス
+ */
+export function validationErrorResponse(error: ZodError): NextResponse<ApiResponse<never>> {
+  const details = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+  return errorResponse(API_ERROR_CODES.VALIDATION_ERROR, details, 400);
+}
+
+/**
+ * リクエストボディをパース＆バリデーション
+ */
+export async function parseBody<T>(
+  request: Request,
+  schema: ZodSchema<T>
+): Promise<{ data: T; error: null } | { data: null; error: NextResponse<ApiResponse<never>> }> {
+  try {
+    const body = await request.json();
+    const result = schema.safeParse(body);
+    
+    if (!result.success) {
+      return { data: null, error: validationErrorResponse(result.error) };
+    }
+    
+    return { data: result.data, error: null };
+  } catch (e) {
+    return {
+      data: null,
+      error: errorResponse(API_ERROR_CODES.VALIDATION_ERROR, 'Invalid JSON body', 400),
+    };
+  }
+}
+
+/**
+ * URLパラメータからIDを取得
+ */
+export function getIdParam(params: { id?: string }): string | null {
+  return params.id || null;
+}

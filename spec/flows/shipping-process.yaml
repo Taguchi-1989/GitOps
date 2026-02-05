@@ -1,0 +1,122 @@
+# FlowOps - Shipping Process Flow
+# Layer: L1 (業務プロセス)
+
+id: shipping-process
+title: 出荷処理フロー
+layer: L1
+updatedAt: '2026-02-05T12:00:00+09:00'
+
+nodes:
+  receive_instruction:
+    id: receive_instruction
+    type: start
+    label: 出荷指示受付
+    role: warehouse
+    system: wms
+    meta:
+      description: 受注システムから出荷指示を受け取る
+
+  pick_items:
+    id: pick_items
+    type: process
+    label: ピッキング
+    role: warehouse
+    system: wms
+    meta:
+      description: 商品を棚から集める
+      sla: 2時間以内
+
+  check_items:
+    id: check_items
+    type: decision
+    label: 商品検品
+    role: warehouse
+    meta:
+      description: 商品の数量と品質を確認
+
+  pack_items:
+    id: pack_items
+    type: process
+    label: 梱包作業
+    role: warehouse
+    meta:
+      description: 商品を適切な梱包材で梱包
+
+  recount:
+    id: recount
+    type: process
+    label: 再カウント
+    role: warehouse
+    system: wms
+    meta:
+      description: 検品エラー時の再確認
+
+  create_shipping_label:
+    id: create_shipping_label
+    type: process
+    label: 送り状発行
+    role: warehouse
+    system: shipping-system
+    meta:
+      description: 送り状を発行し梱包に貼付
+
+  handover_carrier:
+    id: handover_carrier
+    type: process
+    label: 運送業者引渡
+    role: warehouse
+    system: shipping-system
+    meta:
+      description: 運送業者に荷物を引き渡す
+
+  complete:
+    id: complete
+    type: end
+    label: 出荷完了
+    meta:
+      description: 出荷処理完了
+
+edges:
+  e1:
+    id: e1
+    from: receive_instruction
+    to: pick_items
+
+  e2:
+    id: e2
+    from: pick_items
+    to: check_items
+
+  e3:
+    id: e3
+    from: check_items
+    to: pack_items
+    label: OK
+    condition: check_result == "ok"
+
+  e4:
+    id: e4
+    from: check_items
+    to: recount
+    label: NG
+    condition: check_result == "ng"
+
+  e5:
+    id: e5
+    from: recount
+    to: check_items
+
+  e6:
+    id: e6
+    from: pack_items
+    to: create_shipping_label
+
+  e7:
+    id: e7
+    from: create_shipping_label
+    to: handover_carrier
+
+  e8:
+    id: e8
+    from: handover_carrier
+    to: complete

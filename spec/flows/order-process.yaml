@@ -1,0 +1,80 @@
+# FlowOps - Sample Order Process Flow
+
+id: order-process
+title: 受注処理フロー
+layer: L1
+updatedAt: "2026-02-05T00:00:00Z"
+
+nodes:
+  start_node:
+    id: start_node
+    type: start
+    label: 受注開始
+
+  receive_order:
+    id: receive_order
+    type: process
+    label: 受注受付
+    role: 営業
+    system: CRM
+
+  check_stock:
+    id: check_stock
+    type: decision
+    label: 在庫確認
+    role: 倉庫
+    system: WMS
+
+  process_order:
+    id: process_order
+    type: process
+    label: 受注処理
+    role: 営業
+    system: 基幹システム
+
+  notify_customer:
+    id: notify_customer
+    type: process
+    label: 顧客通知
+    role: 営業
+    system: メール
+
+  end_node:
+    id: end_node
+    type: end
+    label: 完了
+
+edges:
+  e1:
+    id: e1
+    from: start_node
+    to: receive_order
+
+  e2:
+    id: e2
+    from: receive_order
+    to: check_stock
+
+  e3:
+    id: e3
+    from: check_stock
+    to: process_order
+    label: 在庫あり
+    condition: stock > 0
+
+  e4:
+    id: e4
+    from: check_stock
+    to: notify_customer
+    label: 在庫なし
+    condition: stock == 0
+
+  e5:
+    id: e5
+    from: process_order
+    to: notify_customer
+
+  e6:
+    id: e6
+    from: notify_customer
+    to: end_node

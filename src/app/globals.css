@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ======================================
+   FlowOps - Global Styles
+   ====================================== */
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 249, 250, 251;
+  --background-end-rgb: 249, 250, 251;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 17, 24, 39;
+    --background-end-rgb: 17, 24, 39;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* ======================================
+   Typography
+   ====================================== */
+
+.prose {
+  @apply text-gray-700;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  @apply text-gray-900 font-semibold;
+}
+
+.prose code {
+  @apply bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+.prose pre {
+  @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto;
+}
+
+/* ======================================
+   Animations
+   ====================================== */
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* ======================================
+   Diff Styles
+   ====================================== */
+
+.diff {
+  @apply font-mono text-sm;
+}
+
+.diff-add {
+  @apply bg-green-50 border-l-4 border-green-500 pl-3 py-1 my-1;
+}
+
+.diff-remove {
+  @apply bg-red-50 border-l-4 border-red-500 pl-3 py-1 my-1;
+}
+
+.diff-modify {
+  @apply bg-yellow-50 border-l-4 border-yellow-500 pl-3 py-1 my-1;
+}
+
+.diff-path {
+  @apply font-semibold text-gray-700;
+}
+
+.diff-value pre {
+  @apply mt-1 text-xs bg-white/50 p-2 rounded;
+}
+
+.diff-old pre {
+  @apply text-red-700;
+}
+
+.diff-new pre {
+  @apply text-green-700;
+}
+
+/* ======================================
+   Mermaid Customizations
+   ====================================== */
+
+.mermaid {
+  @apply flex items-center justify-center;
+}
+
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node polygon {
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.mermaid .node:hover rect,
+.mermaid .node:hover circle,
+.mermaid .node:hover polygon {
+  filter: brightness(1.1);
+}
+
+.mermaid .edgeLabel {
+  @apply bg-white px-2 py-0.5 rounded text-xs;
+}
+
+/* ======================================
+   Scrollbar Styles
+   ====================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded hover:bg-gray-400;
+}
+
+/* ======================================
+   Focus Styles
+   ====================================== */
+
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+/* ======================================
+   Line Clamp
+   ====================================== */
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

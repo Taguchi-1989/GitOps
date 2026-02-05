@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------------------------------------------
+// Issue Management
+// --------------------------------------------------------
+model Issue {
+  id          String   @id @default(cuid())
+  humanId     String   @unique // 表示用ID (例: ISS-001)
+  title       String
+  description String
+
+  // Status Management (enum化)
+  // values: 'new', 'triage', 'in-progress', 'proposed', 'merged', 'rejected', 'merged-duplicate'
+  status String @default("new")
+
+  // Target Identification (YAMLとの紐付け)
+  targetFlowId String? // 対象ファイル名 (例: order-process.yaml)
+  targetNodeId String? // 対象ノードID (例: node_123)
+
+  // Duplicate Handling logic (重複統合ロジック)
+  canonicalId    String? // 統合先の親Issue ID
+  canonicalIssue Issue?  @relation("Duplicates", fields: [canonicalId], references: [id])
+  duplicates     Issue[] @relation("Duplicates")
+
+  // Git Operations
+  branchName String? // 作業用ブランチ (例: cr/ISS-001-fix-typo)
+
+  // Relationships
+  proposals Proposal[]
+  evidences Evidence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes for better query performance
+  @@index([status])
+  @@index([targetFlowId])
+  @@index([canonicalId])
+}
+
+// --------------------------------------------------------
+// Change Proposals (LLM or Manual)
+// --------------------------------------------------------
+model Proposal {
+  id      String @id @default(cuid())
+  issueId String
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  intent      String // 変更意図の要約
+  jsonPatch   String // JSON Patch形式の差分データ (JSON文字列として保存)
+  diffPreview String? // 表示用のDiff（テキストまたはHTML）
+
+  // baseHash for staleness detection (陳腐化検知)
+  baseHash     String? // 提案生成時点の対象YAMLのハッシュ
+  targetFlowId String? // 対象フローID
+
+  isApplied Boolean   @default(false) // 適用済みフラグ
+  appliedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([issueId])
+  @@index([isApplied])
+}
+
+// --------------------------------------------------------
+// Evidences
+// --------------------------------------------------------
+model Evidence {
+  id      String @id @default(cuid())
+  issueId String
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  type String // 'screenshot', 'link', 'text_log'
+  url  String // ファイルパスまたはURL
+  note String?
+
+  createdAt DateTime @default(now())
+
+  @@index([issueId])
+}
+
+// --------------------------------------------------------
+// Audit Log (監査ログ)
+// --------------------------------------------------------
+model AuditLog {
+  id String @id @default(cuid())
+
+  actor  String @default("you") // MVP: 固定
+  action String // ISSUE_CREATE, PROPOSAL_GENERATE, PATCH_APPLY, MERGE_CLOSE, DUPLICATE_MERGE, etc.
+
+  entityType String // Issue, Proposal, Flow
+  entityId   String
+
+  payload String? // 差分や理由など (JSON文字列として保存)
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+}

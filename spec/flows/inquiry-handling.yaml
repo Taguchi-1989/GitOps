@@ -1,0 +1,136 @@
+# FlowOps - Customer Inquiry Flow
+# Layer: L1 (業務プロセス)
+
+id: inquiry-handling
+title: 問い合わせ対応フロー
+layer: L1
+updatedAt: '2026-02-05T12:00:00+09:00'
+
+nodes:
+  receive_inquiry:
+    id: receive_inquiry
+    type: start
+    label: 問い合わせ受付
+    role: support
+    system: crm
+    meta:
+      description: 顧客からの問い合わせを受け付ける
+      channels:
+        - 電話
+        - メール
+        - チャット
+
+  categorize:
+    id: categorize
+    type: decision
+    label: 問い合わせ分類
+    role: support
+    system: crm
+    meta:
+      description: 問い合わせ内容を分類
+
+  handle_general:
+    id: handle_general
+    type: process
+    label: 一般対応
+    role: support
+    system: crm
+    meta:
+      description: 一般的な問い合わせに対応
+      sla: 当日中
+
+  escalate_technical:
+    id: escalate_technical
+    type: process
+    label: 技術エスカレーション
+    role: tech-support
+    system: crm
+    meta:
+      description: 技術的な問い合わせを専門チームに転送
+      sla: 24時間以内
+
+  escalate_complaint:
+    id: escalate_complaint
+    type: process
+    label: クレームエスカレーション
+    role: supervisor
+    system: crm
+    meta:
+      description: クレームを上位者に転送
+      priority: high
+      sla: 4時間以内
+
+  resolve:
+    id: resolve
+    type: process
+    label: 解決処理
+    role: support
+    system: crm
+    meta:
+      description: 問い合わせを解決済みにする
+
+  follow_up:
+    id: follow_up
+    type: process
+    label: フォローアップ
+    role: support
+    system: crm
+    meta:
+      description: 解決後のフォローアップ連絡
+
+  complete:
+    id: complete
+    type: end
+    label: 対応完了
+
+edges:
+  e1:
+    id: e1
+    from: receive_inquiry
+    to: categorize
+
+  e2:
+    id: e2
+    from: categorize
+    to: handle_general
+    label: 一般
+    condition: category == "general"
+
+  e3:
+    id: e3
+    from: categorize
+    to: escalate_technical
+    label: 技術
+    condition: category == "technical"
+
+  e4:
+    id: e4
+    from: categorize
+    to: escalate_complaint
+    label: クレーム
+    condition: category == "complaint"
+
+  e5:
+    id: e5
+    from: handle_general
+    to: resolve
+
+  e6:
+    id: e6
+    from: escalate_technical
+    to: resolve
+
+  e7:
+    id: e7
+    from: escalate_complaint
+    to: resolve
+
+  e8:
+    id: e8
+    from: resolve
+    to: follow_up
+
+  e9:
+    id: e9
+    from: follow_up
+    to: complete

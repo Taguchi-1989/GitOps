@@ -1,0 +1,92 @@
+/**
+ * FlowOps - Status Badge Component
+ * 
+ * Issueステータスを色分けして表示
+ */
+
+import React from 'react';
+import { IssueStatus } from '@/core/issue';
+
+interface StatusBadgeProps {
+  status: IssueStatus;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+const statusConfig: Record<IssueStatus, { label: string; color: string; bg: string; emoji: string }> = {
+  'new': {
+    label: 'New',
+    color: 'text-red-700',
+    bg: 'bg-red-100',
+    emoji: '🔴',
+  },
+  'triage': {
+    label: 'Triage',
+    color: 'text-orange-700',
+    bg: 'bg-orange-100',
+    emoji: '🟠',
+  },
+  'in-progress': {
+    label: 'In Progress',
+    color: 'text-blue-700',
+    bg: 'bg-blue-100',
+    emoji: '🔵',
+  },
+  'proposed': {
+    label: 'Proposed',
+    color: 'text-yellow-700',
+    bg: 'bg-yellow-100',
+    emoji: '🟡',
+  },
+  'merged': {
+    label: 'Merged',
+    color: 'text-green-700',
+    bg: 'bg-green-100',
+    emoji: '🟢',
+  },
+  'rejected': {
+    label: 'Rejected',
+    color: 'text-gray-700',
+    bg: 'bg-gray-100',
+    emoji: '⚫',
+  },
+  'merged-duplicate': {
+    label: 'Duplicate',
+    color: 'text-purple-700',
+    bg: 'bg-purple-100',
+    emoji: '🟣',
+  },
+};
+
+const sizeClasses = {
+  sm: 'px-2 py-0.5 text-xs',
+  md: 'px-2.5 py-1 text-sm',
+  lg: 'px-3 py-1.5 text-base',
+};
+
+export function StatusBadge({ status, size = 'md', className = '' }: StatusBadgeProps) {
+  const config = statusConfig[status];
+  
+  return (
+    <span
+      className={`
+        inline-flex items-center gap-1 rounded-full font-medium
+        ${config.bg} ${config.color} ${sizeClasses[size]} ${className}
+      `}
+    >
+      <span>{config.emoji}</span>
+      <span>{config.label}</span>
+    </span>
+  );
+}
+
+export function StatusDot({ status, className = '' }: { status: IssueStatus; className?: string }) {
+  const config = statusConfig[status];
+  
+  return (
+    <span
+      className={`inline-block w-2 h-2 rounded-full ${config.bg.replace('100', '500')} ${className}`}
+      title={config.label}
+    />
+  );
+}

@@ -1,0 +1,21 @@
+# FlowOps - Sample Systems Dictionary
+
+基幹システム:
+  id: erp
+  name: 基幹システム
+  description: 受注・在庫・会計を統合管理
+
+CRM:
+  id: crm
+  name: 顧客管理システム
+  description: 顧客情報と商談履歴を管理
+
+WMS:
+  id: wms
+  name: 倉庫管理システム
+  description: 在庫・入出庫を管理
+
+メール:
+  id: email
+  name: メールシステム
+  description: 通知・連絡用
