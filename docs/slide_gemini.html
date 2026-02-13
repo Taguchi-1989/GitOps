@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowOps - GitOps for Business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  /* ── Base Variables & Reset ── */
+  :root {
+    --accent-blue: #3b82f6;
+    --accent-indigo: #6366f1;
+    --accent-cyan: #06b6d4;
+    --accent-teal: #14b8a6;
+    
+    --bg-dark: #0f172a;
+    --bg-card: rgba(255, 255, 255, 0.7);
+    --bg-card-border: rgba(255, 255, 255, 0.8);
+    
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    
+    --font-base: 'Noto Sans JP', sans-serif;
+    --font-code: 'JetBrains Mono', monospace;
+    
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+    --shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-base);
+    background: #000;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Slide Container & Responsive Logic ── */
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #e2e8f0; /* Fallback */
+    background: radial-gradient(circle at center, #f1f5f9 0%, #cbd5e1 100%);
+  }
+
+  .slide {
+    position: absolute;
+    /* Aspect Ratio 16:9 Logic */
+    width: min(90vw, 1280px);
+    aspect-ratio: 16 / 9;
+    height: auto;
+    max-height: 90vh;
+    
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 24px;
+    box-shadow: var(--shadow-float);
+    padding: clamp(32px, 4vw, 64px);
+    
+    display: flex;
+    flex-direction: column;
+    
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.95) translateY(20px);
+    transition: 
+      opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
+      transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0.5s;
+    
+    overflow: hidden; /* Contains content */
+  }
+
+  /* For very wide screens, cap height */
+  @media (min-aspect-ratio: 16/9) {
+    .slide {
+      height: min(90vh, 720px);
+      width: auto;
+    }
+  }
+
+  .slide.active {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1) translateY(0);
+    z-index: 10;
+    pointer-events: auto;
+  }
+
+  /* ── Background Aesthetics ── */
+  .slide::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      radial-gradient(circle at 100% 0%, rgba(59,130,246,0.08) 0%, transparent 40%),
+      radial-gradient(circle at 0% 100%, rgba(20,184,166,0.08) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* ── Typography Scale ── */
+  h1 {
+    font-size: clamp(32px, 4.5vw, 56px);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.2em;
+  }
+  
+  h2 {
+    font-size: clamp(24px, 3vw, 36px);
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: clamp(16px, 3vh, 32px);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  h3 {
+    font-size: clamp(16px, 1.5vw, 20px);
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 8px;
+  }
+
+  p, li {
+    font-size: clamp(14px, 1.4vw, 18px); /* Responsive font size */
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .slide-tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-blue);
+    background: rgba(59,130,246,0.1);
+    padding: 4px 12px;
+    border-radius: 99px;
+    margin-bottom: 16px;
+    align-self: flex-start;
+  }
+
+  /* ── Layout Utilities ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 48px); height: 100%; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .flex-col { display: flex; flex-direction: column; gap: 16px; }
+  .h-full { height: 100%; }
+  .mt-auto { margin-top: auto; }
+  .content-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+
+  /* ── Staggered Animations ── */
+  .stagger-in {
+    opacity: 0;
+    transform: translateY(15px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .slide.active .stagger-in { opacity: 1; transform: translateY(0); }
+  .slide.active .delay-1 { transition-delay: 0.1s; }
+  .slide.active .delay-2 { transition-delay: 0.2s; }
+  .slide.active .delay-3 { transition-delay: 0.3s; }
+  .slide.active .delay-4 { transition-delay: 0.4s; }
+  .slide.active .delay-5 { transition-delay: 0.5s; }
+
+  /* ── Components: Cards ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(8px);
+    transition: transform 0.2s;
+  }
+  
+  .card-highlight {
+    background: linear-gradient(135deg, rgba(239,246,255,0.8), rgba(255,255,255,0.4));
+    border-left: 4px solid var(--accent-blue);
+  }
+
+  .icon-box {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  /* ── Specific Slide Styles ── */
+
+  /* Title Slide */
+  .slide-title {
+    background: #0f172a;
+    color: white;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    overflow: hidden;
+  }
+  /* Dynamic Background for Title */
+  .slide-title .bg-anim {
+    position: absolute;
+    width: 80%; height: 80%;
+    background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 60%);
+    border-radius: 50%;
+    animation: float 10s infinite alternate ease-in-out;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .slide-title .bg-anim.one { top: -20%; left: -10%; animation-delay: 0s; }
+  .slide-title .bg-anim.two { bottom: -20%; right: -10%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 60%); animation-delay: -5s; }
+  
+  @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(20px, 40px) scale(1.1); } }
+
+  .slide-title h1 {
+    background: linear-gradient(to right, #60a5fa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: clamp(48px, 6vw, 80px);
+    margin-bottom: 24px;
+    position: relative; z-index: 1;
+  }
+  .slide-title p { color: #94a3b8; font-size: clamp(18px, 2vw, 24px); position: relative; z-index: 1; }
+  .badge {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #e2e8f0;
+    padding: 8px 20px;
+    border-radius: 99px;
+    font-size: 14px;
+    margin-bottom: 24px;
+    display: inline-block;
+    position: relative; z-index: 1;
+  }
+
+  /* Code Block (VS Code Style) */
+  .code-window {
+    background: #1e1e1e;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #333;
+    font-family: var(--font-code);
+    font-size: 13px;
+    line-height: 1.6;
+    color: #d4d4d4;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+  .code-header { font-size: 11px; color: #888; margin-bottom: 12px; display: flex; gap: 8px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  .token-prop { color: #9cdcfe; }
+  .token-str { color: #ce9178; }
+  .token-val { color: #b5cea8; }
+  .token-comment { color: #6a9955; }
+
+  /* Workflow Timeline (Optimized) */
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .timeline::before {
+    content: ''; position: absolute; left: 11px; top: 8px; bottom: 20px;
+    width: 2px; background: #e2e8f0;
+  }
+  .t-item { position: relative; padding-bottom: 20px; }
+  .t-item:last-child { padding-bottom: 0; }
+  .t-dot {
+    position: absolute; left: -32px; top: 0;
+    width: 24px; height: 24px; border-radius: 50%;
+    color: white; font-weight: bold; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 4px #fff;
+    z-index: 1;
+  }
+  .t-content h4 { margin-bottom: 2px; font-size: 15px; color: #1e293b; }
+  .t-content p { font-size: 13px; margin: 0; color: #64748b; }
+
+  /* Architecture Diagram */
+  .arch-layer {
+    padding: 16px; border-radius: 12px; text-align: center;
+    font-weight: 700; font-size: 14px; position: relative;
+    margin-bottom: 24px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4);
+  }
+  .arch-layer::after {
+    content: '↓'; position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%);
+    color: #94a3b8; font-size: 18px;
+  }
+  .arch-layer:last-child { margin-bottom: 0; }
+  .arch-layer:last-child::after { display: none; }
+  .chip-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
+  .chip { font-size: 10px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.6); font-weight: 500; }
+
+  /* Security Shields (Compact Grid) */
+  .shield-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .shield-card {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 16px; border-radius: 12px;
+    background: #f8fafc; border: 1px solid #e2e8f0;
+  }
+  .shield-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .shield-card p { font-size: 11px; margin: 0; line-height: 1.4; }
+
+  /* Cost Bars */
+  .cost-item { display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+  .cost-label { width: 120px; font-size: 13px; font-weight: 600; }
+  .bar-bg { flex: 1; height: 6px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; }
+  .cost-val { width: 80px; text-align: right; font-size: 13px; font-weight: 700; }
+
+  /* End Slide */
+  .slide-end { background: #0f172a; color: #fff; text-align: center; justify-content: center; align-items: center; }
+  .slide-end h2 { color: #fff; justify-content: center; font-size: 32px; }
+  .comparison-grid {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 24px;
+    max-width: 800px; margin: 0 auto 32px;
+  }
+  .comp-box { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; }
+  .comp-bad { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5; }
+  .comp-good { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: #86efac; font-weight: 600; }
+  .next-list { text-align: left; max-width: 500px; margin: 0 auto; width: 100%; }
+  .next-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; border-radius: 8px;
+    background: rgba(255,255,255,0.05); margin-bottom: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* ── UI Controls ── */
+  .progress-bar { position: fixed; bottom: 0; left: 0; height: 4px; background: var(--accent-blue); width: 0%; z-index: 100; transition: width 0.3s; }
+  
+  .nav-controls {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; gap: 8px; align-items: center;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(8px);
+    padding: 8px 16px; border-radius: 99px;
+    z-index: 100; color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .nav-btn {
+    background: rgba(255,255,255,0.1); border: none;
+    width: 32px; height: 32px; border-radius: 50%;
+    color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.2); }
+  .counter { font-size: 12px; font-weight: 700; font-family: var(--font-code); min-width: 40px; text-align: center; }
+
+  /* ── Print Styles ── */
+  @media print {
+    body { background: #fff; height: auto; overflow: visible; }
+    .deck { display: block; height: auto; background: none; }
+    .slide {
+      position: relative; width: 100%; height: 100vh;
+      opacity: 1; visibility: visible; transform: none;
+      page-break-after: always;
+      box-shadow: none; border: 1px solid #ccc;
+      margin: 0; padding: 40px;
+    }
+    .slide-title, .slide-end { background: #0f172a !important; -webkit-print-color-adjust: exact; }
+    .nav-controls, .progress-bar { display: none; }
+  }
+
+  /* ── Helper: Problem Cards ── */
+  .prob-card { display: flex; gap: 16px; margin-bottom: 16px; padding: 12px; border-radius: 12px; transition: background 0.2s; }
+  .prob-card:hover { background: rgba(255,255,255,0.5); }
+  .prob-num { 
+    flex-shrink: 0; width: 32px; height: 32px; background: #fee2e2; color: #ef4444; 
+    border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- Slide 1: Title -->
+  <section class="slide slide-title active" data-index="0">
+    <div class="bg-anim one"></div>
+    <div class="bg-anim two"></div>
+    <div class="badge stagger-in">GitOps for Business</div>
+    <h1 class="stagger-in delay-1">FlowOps</h1>
+    <p class="stagger-in delay-2">業務フローを「コード」として管理し、<br>非エンジニアでも改善できるプラットフォーム</p>
+    <div class="stagger-in delay-3" style="margin-top: 40px; font-size: 14px; opacity: 0.7;">
+      業務プロセスの透明性と継続的改善を実現
+    </div>
+  </section>
+
+  <!-- Slide 2: Why -->
+  <section class="slide" data-index="1">
+    <span class="slide-tag">Why</span>
+    <h2>現場が抱える4つの課題</h2>
+    <div class="grid-2">
+      <div class="flex-col">
+        <div class="prob-card stagger-in delay-1">
+          <div class="prob-num">1</div>
+          <div>
+            <h4 style="margin-bottom:4px; font-weight:700;">正本が不明</h4>
+            <p>業務フローがExcel/PPTに散在し、どれが最新か分からない</p>
+          </div>
+        </div>
+        <div class="prob-card stagger-in delay-2">
+          <div class="prob-num">2</div>
+          <div>
+            <h4 style="margin-bottom:4px; font-weight:700;">変更が追えない</h4>
+            <p>「最新版」が複数存在し、誰がいつ何を変更したか不透明</p>
+          </div>
+        </div>
+        <div class="prob-card stagger-in delay-3">
+          <div class="prob-num">3</div>
+          <div>
+            <h4 style="margin-bottom:4px; font-weight:700;">改善ループが遅い</h4>
+            <p>フィードバックが口頭・メール依存で、提案から反映まで数週間</p>
+          </div>
+        </div>
+        <div class="prob-card stagger-in delay-4">
+          <div class="prob-num">4</div>
+          <div>
+            <h4 style="margin-bottom:4px; font-weight:700;">現場とシステムの分断</h4>
+            <p>エンジニアしか触れないシステム vs 業務を知る現場の壁</p>
+          </div>
+        </div>
+      </div>
+      <div class="stagger-in delay-5" style="display:flex; align-items:center; justify-content:center;">
+        <div class="card" style="text-align:center; background:#fef2f2; border-color:#fecaca;">
+          <div style="font-size:64px; margin-bottom:16px;">⚠️</div>
+          <h3 style="color:#ef4444; font-size:24px;">結果</h3>
+          <p style="color:#991b1b;">業務プロセスの改善が<br><strong>属人的・場当たり的</strong>になる</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 3: What -->
+  <section class="slide" data-index="2">
+    <span class="slide-tag">What</span>
+    <h2>FlowOps = 業務フローの GitHub</h2>
+    <div class="grid-2">
+      <div class="flex-col">
+        <ul style="list-style:none; display:flex; flex-direction:column; gap:16px;" class="stagger-in delay-1">
+          <li style="padding-left:24px; position:relative;">
+            <span style="position:absolute; left:0; top:8px; width:8px; height:8px; background:var(--accent-blue); border-radius:50%;"></span>
+            業務フロー定義（YAML）を<br><strong>Single Source of Truth</strong>として管理
+          </li>
+          <li style="padding-left:24px; position:relative;">
+            <span style="position:absolute; left:0; top:8px; width:8px; height:8px; background:var(--accent-blue); border-radius:50%;"></span>
+            <strong>Issue起票 &rarr; LLM自動提案 &rarr; レビュー &rarr; マージ</strong>の改善サイクル
+          </li>
+          <li style="padding-left:24px; position:relative;">
+            <span style="position:absolute; left:0; top:8px; width:8px; height:8px; background:var(--accent-blue); border-radius:50%;"></span>
+            非エンジニアでも<strong>WebUI</strong>から改善提案
+          </li>
+        </ul>
+        <div class="card card-highlight stagger-in delay-2 mt-auto">
+          <h3 style="font-size:16px;">YAML = 正本 (SSOT)</h3>
+          <p style="font-size:13px;">DBはあくまで派生データ。spec/flows/*.yaml が唯一の正解</p>
+        </div>
+      </div>
+      <div class="stagger-in delay-3">
+        <div class="code-window">
+          <div class="code-header">
+            <span>spec/flows/order-process.yaml</span>
+          </div>
+          <div>
+            <span class="token-prop">id:</span> <span class="token-str">order-process</span><br>
+            <span class="token-prop">title:</span> <span class="token-str">受注処理フロー</span><br>
+            <span class="token-prop">layer:</span> <span class="token-str">L1</span><br><br>
+            <span class="token-prop">nodes:</span><br>
+            &nbsp;&nbsp;<span class="token-prop">receive_order:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="token-prop">type:</span> <span class="token-val">process</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="token-prop">label:</span> <span class="token-str">受注受付</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="token-prop">role:</span> <span class="token-str">営業</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="token-prop">system:</span> <span class="token-str">CRM</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="token-comment"># Git管理された定義</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 4: Who -->
+  <section class="slide" data-index="3">
+    <span class="slide-tag">Who</span>
+    <h2>4つのロールが協働する</h2>
+    <div class="grid-4" style="flex:1;">
+      <div class="card stagger-in delay-1" style="text-align:center;">
+        <div class="icon-box" style="margin:0 auto 12px; background:#dbeafe;">👤</div>
+        <h3>業務担当者</h3>
+        <p style="font-size:13px;">Issue起票<br>改善要望の報告<br>提案レビュー</p>
+      </div>
+      <div class="card stagger-in delay-2" style="text-align:center;">
+        <div class="icon-box" style="margin:0 auto 12px; background:#fef3c7;">👑</div>
+        <h3>プロセスオーナー</h3>
+        <p style="font-size:13px;">フロー承認<br>マージ判断<br>優先度決定</p>
+      </div>
+      <div class="card stagger-in delay-3" style="text-align:center;">
+        <div class="icon-box" style="margin:0 auto 12px; background:#d1fae5;">⚙️</div>
+        <h3>システム管理者</h3>
+        <p style="font-size:13px;">環境構築<br>プロバイダー設定<br>運用保守</p>
+      </div>
+      <div class="card stagger-in delay-4" style="text-align:center;">
+        <div class="icon-box" style="margin:0 auto 12px; background:#ede9fe;">🤖</div>
+        <h3>LLM (AI)</h3>
+        <p style="font-size:13px;">Issue内容から<br>YAML修正パッチを<br>自動生成</p>
+      </div>
+    </div>
+    <div class="card card-highlight stagger-in delay-5" style="text-align:center; padding:12px;">
+      <strong>Point:</strong> コードを書けなくても、GitHubのような開発フローに参加できる
+    </div>
+  </section>
+
+  <!-- Slide 5: When -->
+  <section class="slide" data-index="4">
+    <span class="slide-tag">When</span>
+    <h2>利用タイミング</h2>
+    <div class="grid-2" style="align-items:start;">
+      <div class="card stagger-in delay-1" style="border-left:4px solid var(--accent-blue);">
+        <h3 style="display:flex;align-items:center;gap:8px;">📅 日常</h3>
+        <p>業務中に気づいた問題・改善点をIssueとして即座に報告。記憶が新鮮なうちにアクション。</p>
+      </div>
+      <div class="card stagger-in delay-2" style="border-left:4px solid var(--accent-teal);">
+        <h3 style="display:flex;align-items:center;gap:8px;">📈 定期レビュー</h3>
+        <p>月次/四半期のプロセスレビュー会議で、蓄積されたIssueや変更履歴を素材として活用。</p>
+      </div>
+      <div class="card stagger-in delay-3" style="border-left:4px solid #f97316;">
+        <h3 style="display:flex;align-items:center;gap:8px;">⚡ イベント駆動</h3>
+        <p>システム変更や組織改編時。変更によるフローへの影響範囲を分析。</p>
+      </div>
+      <div class="card stagger-in delay-4" style="border-left:4px solid #a855f7;">
+        <h3 style="display:flex;align-items:center;gap:8px;">🔍 監査対応</h3>
+        <p>「誰が/いつ/何を/なぜ」変更したか、Git履歴と監査ログで完全なトレーサビリティを確保。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 6: Where -->
+  <section class="slide" data-index="5">
+    <span class="slide-tag">Where</span>
+    <h2>技術スタックと動作環境</h2>
+    <div class="grid-2" style="flex:1;">
+      <div class="stagger-in delay-1 flex-col">
+        <h3 style="margin-bottom:12px;">Tech Stack</h3>
+        <table style="width:100%; font-size:14px; border-collapse:collapse;">
+          <tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:10px 0; font-weight:600; color:#64748b;">Framework</td><td style="padding:10px 0;">Next.js 14 (App Router)</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:10px 0; font-weight:600; color:#64748b;">Database</td><td style="padding:10px 0;">SQLite + Prisma</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:10px 0; font-weight:600; color:#64748b;">UI</td><td style="padding:10px 0;">Tailwind + shadcn/ui</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:10px 0; font-weight:600; color:#64748b;">Git Ops</td><td style="padding:10px 0;">simple-git (Mutex Lock)</td></tr>
+          <tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:10px 0; font-weight:600; color:#64748b;">Visualization</td><td style="padding:10px 0;">Mermaid.js (フロー図)</td></tr>
+          <tr><td style="padding:10px 0; font-weight:600; color:#64748b;">Validation</td><td style="padding:10px 0;">Zod (全入出力検証)</td></tr>
+        </table>
+      </div>
+      <div class="stagger-in delay-2 flex-col">
+        <h3 style="margin-bottom:12px;">LLM Providers (6種対応)</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px;">
+          <span style="padding:6px 12px; background:#e0f2fe; color:#0369a1; border-radius:6px; font-size:12px; font-weight:600;">OpenAI</span>
+          <span style="padding:6px 12px; background:#fce7f3; color:#be185d; border-radius:6px; font-size:12px; font-weight:600;">Anthropic</span>
+          <span style="padding:6px 12px; background:#e0e7ff; color:#4338ca; border-radius:6px; font-size:12px; font-weight:600;">Gemini</span>
+          <span style="padding:6px 12px; background:#fef3c7; color:#b45309; border-radius:6px; font-size:12px; font-weight:600;">Groq</span>
+          <span style="padding:6px 12px; background:#d1fae5; color:#047857; border-radius:6px; font-size:12px; font-weight:600;">Ollama (Local)</span>
+        </div>
+        <div class="card" style="background:#f8fafc;">
+          <h3 style="font-size:14px;">Deployment</h3>
+          <ul style="font-size:13px; margin-top:8px;">
+            <li>開発: <code>npm run dev</code></li>
+            <li>本番: Vercel / Docker / オンプレ</li>
+            <li>要件: Node.js 18+ (Git必須)</li>
+          </ul>
+        </div>
+        <div class="card" style="background:#f0f9ff; border-left:4px solid var(--accent-blue); margin-top:auto;">
+          <p style="font-size:13px; margin:0;"><strong>Data:</strong> YAML正本は <code>spec/flows/*.yaml</code> (Git内)、メタデータはSQLite (Prisma)</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 7: Architecture -->
+  <section class="slide" data-index="6">
+    <span class="slide-tag">Architecture</span>
+    <h2>3層アーキテクチャ</h2>
+    <div class="grid-2">
+      <div class="flex-col stagger-in delay-1">
+        <!-- UI Layer -->
+        <div class="arch-layer" style="background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e40af;">
+          UI Layer
+          <div style="font-size:11px; opacity:0.8;">Next.js App Router + React</div>
+          <div class="chip-group">
+            <span class="chip">Dashboard</span>
+            <span class="chip">Flow Viewer</span>
+            <span class="chip">Issue Mgmt</span>
+          </div>
+        </div>
+        <!-- Core Layer -->
+        <div class="arch-layer" style="background:linear-gradient(135deg,#fffbeb,#fde68a); color:#92400e;">
+          Core Logic Layer
+          <div class="chip-group">
+            <span class="chip">Zod Parser</span>
+            <span class="chip">Git Mgr (Mutex)</span>
+            <span class="chip">LLM Client</span>
+            <span class="chip">JSON Patch</span>
+          </div>
+        </div>
+        <!-- Persistence -->
+        <div class="arch-layer" style="background:linear-gradient(135deg,#f0fdf4,#bbf7d0); color:#166534;">
+          Persistence Layer
+          <div class="chip-group">
+            <span class="chip">SQLite (Prisma)</span>
+            <span class="chip">Local Git Repo</span>
+            <span class="chip">YAML (SSOT)</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex-col stagger-in delay-2">
+        <h3 style="margin-bottom:0;">設計原則</h3>
+        <div class="card" style="padding:16px;">
+          <h4 style="font-size:14px; margin-bottom:4px; color:#1e40af;">Git-first</h4>
+          <p style="font-size:13px;">DB更新はGit commit成功後のみ。不整合を原理的に排除。</p>
+        </div>
+        <div class="card" style="padding:16px;">
+          <h4 style="font-size:14px; margin-bottom:4px; color:#c2410c;">Zod Boundary</h4>
+          <p style="font-size:13px;">全ての入出力をスキーマ検証。LLMのハルシネーションも水際で防ぐ。</p>
+        </div>
+        <div class="card" style="padding:16px;">
+          <h4 style="font-size:14px; margin-bottom:4px; color:#15803d;">Optimistic Lock</h4>
+          <p style="font-size:13px;">パッチ生成時のYAMLハッシュ(baseHash)で陳腐化を検知。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 8: Workflow -->
+  <section class="slide" data-index="7">
+    <span class="slide-tag">Workflow</span>
+    <h2>5ステップの改善サイクル</h2>
+    <div class="grid-2">
+      <!-- Steps -->
+      <div class="timeline stagger-in delay-1">
+        <div class="t-item">
+          <div class="t-dot" style="background:#ef4444;">1</div>
+          <div class="t-content">
+            <h4>Issue 作成</h4>
+            <p>WebUIから問題報告。Evidence添付可能。</p>
+          </div>
+        </div>
+        <div class="t-item">
+          <div class="t-dot" style="background:#f97316;">2</div>
+          <div class="t-content">
+            <h4>作業開始</h4>
+            <p>ブランチ自動作成 (e.g. <code>cr/ISS-001</code>)</p>
+          </div>
+        </div>
+        <div class="t-item">
+          <div class="t-dot" style="background:#eab308;">3</div>
+          <div class="t-content">
+            <h4>LLM 提案生成</h4>
+            <p>AIがYAML修正案(JSON Patch)を生成。</p>
+          </div>
+        </div>
+        <div class="t-item">
+          <div class="t-dot" style="background:#3b82f6;">4</div>
+          <div class="t-content">
+            <h4>パッチ適用</h4>
+            <p>差分プレビュー確認 &rarr; 適用 &rarr; Commit。</p>
+          </div>
+        </div>
+        <div class="t-item">
+          <div class="t-dot" style="background:#22c55e;">5</div>
+          <div class="t-content">
+            <h4>マージ & Close</h4>
+            <p>mainへマージ。全履歴がGitに残る。</p>
+          </div>
+        </div>
+      </div>
+      <!-- API Info -->
+      <div class="flex-col stagger-in delay-2">
+        <div class="card" style="background:#f8fafc; font-size:12px;">
+          <h3 style="font-size:14px; margin-bottom:8px;">Core API Endpoints</h3>
+          <div style="font-family:var(--font-code); display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:space-between;">
+              <span>POST /api/issues</span> <span style="color:#22c55e;">Create</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span>POST /api/issues/:id/start</span> <span style="color:#f97316;">Branch</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span>POST .../proposals/generate</span> <span style="color:#eab308;">LLM</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span>POST /api/proposals/:id/apply</span> <span style="color:#3b82f6;">Patch</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span>POST /api/issues/:id/merge</span> <span style="color:#22c55e;">Merge</span>
+            </div>
+          </div>
+        </div>
+        <div class="card card-highlight">
+          <p style="font-size:13px; line-height:1.5;">
+            <strong>重複統合機能:</strong><br>
+            同じ指摘が複数来ても <code>merge-duplicate</code> APIでシステムレベルで統合可能。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 9: Demo Screen (Abstract) -->
+  <section class="slide" data-index="8">
+    <span class="slide-tag">UI Experience</span>
+    <h2>WebUI で完結する操作体験</h2>
+    <div class="grid-3 stagger-in delay-1" style="flex:1; align-items:center;">
+      <!-- Mockup 1 -->
+      <div style="text-align:center;">
+        <div style="background:#1e293b; padding:12px; border-radius:12px; box-shadow:var(--shadow-md); margin-bottom:12px;">
+          <div style="display:flex; gap:6px; margin-bottom:12px;">
+            <div style="width:8px; height:8px; border-radius:50%; background:#ef4444;"></div>
+            <div style="width:8px; height:8px; border-radius:50%; background:#eab308;"></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div style="background:#fee2e2; border-radius:4px; height:40px;"></div>
+            <div style="background:#dbeafe; border-radius:4px; height:40px;"></div>
+            <div style="background:#fef3c7; border-radius:4px; height:40px;"></div>
+            <div style="background:#d1fae5; border-radius:4px; height:40px;"></div>
+          </div>
+        </div>
+        <p style="font-size:13px;">Dashboard</p>
+      </div>
+      <!-- Mockup 2 -->
+      <div style="text-align:center;">
+        <div style="background:#1e293b; padding:12px; border-radius:12px; box-shadow:var(--shadow-md); margin-bottom:12px;">
+          <div style="background:#3b82f6; width:60%; height:20px; margin:0 auto 8px; border-radius:4px;"></div>
+          <div style="color:#64748b; margin-bottom:4px;">↓</div>
+          <div style="background:#1d4ed8; width:60%; height:20px; margin:0 auto 8px; border-radius:4px;"></div>
+          <div style="display:flex; justify-content:center; gap:8px;">
+            <div style="background:#1e40af; width:20px; height:20px; border-radius:4px;"></div>
+            <div style="background:#1e40af; width:20px; height:20px; border-radius:4px;"></div>
+          </div>
+        </div>
+        <p style="font-size:13px;">Flow Viewer (Mermaid)</p>
+      </div>
+      <!-- Mockup 3 -->
+      <div style="text-align:center;">
+        <div style="background:#1e293b; padding:12px; border-radius:12px; box-shadow:var(--shadow-md); margin-bottom:12px; color:#fff; text-align:left;">
+          <div style="font-size:10px; color:#94a3b8; margin-bottom:4px;">ISS-003</div>
+          <div style="font-size:11px; font-weight:bold; margin-bottom:8px;">在庫ロジック修正</div>
+          <div style="background:#334155; padding:6px; border-radius:4px; font-size:9px;">
+            <span style="color:#4ade80;">+ ノード追加</span><br>
+            <span style="color:#f87171;">- 旧条件削除</span>
+          </div>
+        </div>
+        <p style="font-size:13px;">Review & Patch</p>
+      </div>
+    </div>
+    <p class="stagger-in delay-2" style="text-align:center; font-size:14px; margin-top:16px;">
+      Mermaid.js による自動可視化と差分プレビューで、<br>コードが読めない人でも直感的にレビュー可能
+    </p>
+  </section>
+
+  <!-- Slide 10: Security -->
+  <section class="slide" data-index="9">
+    <span class="slide-tag">Security</span>
+    <h2>堅牢なセキュリティ設計</h2>
+    <div class="grid-2">
+      <div class="stagger-in delay-1">
+        <h3 style="margin-bottom:16px;">Security Measures</h3>
+        <div class="shield-grid">
+          <div class="shield-card">
+            <div style="font-size:20px;">🔒</div>
+            <div>
+              <h4>Path Traversal</h4>
+              <p>IDは英数字限定。不正パスアクセスを遮断。</p>
+            </div>
+          </div>
+          <div class="shield-card">
+            <div style="font-size:20px;">🤖</div>
+            <div>
+              <h4>LLM Input Scope</h4>
+              <p>spec/flowsのみ渡す。.envや機密情報は渡さない。</p>
+            </div>
+          </div>
+          <div class="shield-card">
+            <div style="font-size:20px;">✅</div>
+            <div>
+              <h4>Output Validation</h4>
+              <p>Zodスキーマ + 辞書チェックで出力を厳格検証。</p>
+            </div>
+          </div>
+          <div class="shield-card">
+            <div style="font-size:20px;">📝</div>
+            <div>
+              <h4>Audit Log</h4>
+              <p>全操作をログ化。いつ誰が変更したか完全追跡。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="stagger-in delay-2 flex-col">
+        <h3 style="margin-bottom:8px;">Reliability</h3>
+        <div class="card" style="padding:16px;">
+          <h4 style="font-size:14px; color:#1e40af;">Git Mutex Lock</h4>
+          <p style="font-size:13px;">Git操作中は排他ロック。タイムアウト30s/自動解除60s。</p>
+        </div>
+        <div class="card" style="padding:16px;">
+          <h4 style="font-size:14px; color:#c2410c;">baseHash Check</h4>
+          <p style="font-size:13px;">編集競合をハッシュ値で検知し、古い状態へのパッチ適用を防止。</p>
+        </div>
+        <div class="card card-highlight" style="padding:16px;">
+          <h4 style="font-size:14px;">Automated Test</h4>
+          <p style="font-size:13px;">VitestでParser/Patch/Lock機構を保護。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 11: Cost -->
+  <section class="slide" data-index="10">
+    <span class="slide-tag">Cost Performance</span>
+    <h2>導入・運用コスト</h2>
+    <div class="grid-2">
+      <div class="stagger-in delay-1">
+        <h3 style="margin-bottom:16px;">Cost Breakdown</h3>
+        <div class="cost-item">
+          <span class="cost-label">インフラ</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:5%; background:#22c55e;"></div></div>
+          <span class="cost-val">0 円</span>
+        </div>
+        <div class="cost-item">
+          <span class="cost-label">LLM (Ollama)</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:5%; background:#22c55e;"></div></div>
+          <span class="cost-val">0 円</span>
+        </div>
+        <div class="cost-item">
+          <span class="cost-label">LLM (GPT-4)</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:20%; background:#3b82f6;"></div></div>
+          <span class="cost-val">~数円/件</span>
+        </div>
+        <div class="cost-item">
+          <span class="cost-label">Setup Time</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:10%; background:#f97316;"></div></div>
+          <span class="cost-val">~10分</span>
+        </div>
+      </div>
+      <div class="stagger-in delay-2 flex-col">
+        <h3 style="margin-bottom:8px;">Reasonable</h3>
+        <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:12px;">
+          <li style="display:flex; gap:12px; align-items:start;">
+            <span style="color:#22c55e; font-weight:bold;">✔</span>
+            <div>
+              <strong>追加DBサーバー不要</strong><br>
+              <span style="font-size:13px;">SQLite + ローカルGitで完結。外部依存なし。</span>
+            </div>
+          </li>
+          <li style="display:flex; gap:12px; align-items:start;">
+            <span style="color:#22c55e; font-weight:bold;">✔</span>
+            <div>
+              <strong>ローカルLLM対応</strong><br>
+              <span style="font-size:13px;">OllamaならAPI費ゼロ。機密情報も社外に出ない。</span>
+            </div>
+          </li>
+          <li style="display:flex; gap:12px; align-items:start;">
+            <span style="color:#22c55e; font-weight:bold;">✔</span>
+            <div>
+              <strong>Vercel Friendly</strong><br>
+              <span style="font-size:13px;">フリーティアでも十分動作可能。</span>
+            </div>
+          </li>
+        </ul>
+        <div class="card card-highlight mt-auto">
+          <strong>Quick Start:</strong><br>
+          <code>npm install && npm run dev</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 12: Summary -->
+  <section class="slide slide-end" data-index="11">
+    <div class="bg-anim one"></div>
+    <div class="stagger-in">
+      <h2>FlowOps が実現すること</h2>
+      <p style="opacity:0.7; margin-bottom:32px;">Process Transparency & Continuous Improvement</p>
+    </div>
+    
+    <div class="comparison-grid stagger-in delay-1">
+      <div class="flex-col">
+        <div class="comp-box comp-bad">Excel散在・属人化</div>
+        <div class="comp-box comp-bad">変更履歴不明</div>
+        <div class="comp-box comp-bad">改善サイクルが遅い</div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:32px;">
+        &rarr;
+      </div>
+      <div class="flex-col">
+        <div class="comp-box comp-good">Git正本管理・SSOT</div>
+        <div class="comp-box comp-good">完全な監査ログ</div>
+        <div class="comp-box comp-good">Issue起点の高速改善</div>
+      </div>
+    </div>
+
+    <div class="next-list stagger-in delay-2">
+      <p style="font-size:12px; text-transform:uppercase; color:#94a3b8; letter-spacing:1px; margin-bottom:12px;">Next Steps</p>
+      <div class="next-item">
+        <span style="color:#4ade80;">✔</span> ローカル環境で試してみる（10分で起動）
+      </div>
+      <div class="next-item">
+        <span style="color:#4ade80;">✔</span> 自チームの業務フローをYAMLで定義
+      </div>
+      <div class="next-item">
+        <span style="color:#4ade80;">✔</span> Issue起票 &rarr; LLM提案生成を体験
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- UI Elements -->
+<div class="progress-bar" id="progress"></div>
+<div class="nav-controls">
+  <button class="nav-btn" id="prev" aria-label="Prev">‹</button>
+  <span class="counter" id="counter">1/12</span>
+  <button class="nav-btn" id="next" aria-label="Next">›</button>
+</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  
+  const progressBar = document.getElementById('progress');
+  const counterEl = document.getElementById('counter');
+
+  function update() {
+    slides.forEach((s, i) => {
+      s.classList.toggle('active', i === current);
+    });
+    
+    // Progress
+    const pct = ((current + 1) / total) * 100;
+    progressBar.style.width = pct + '%';
+    counterEl.textContent = `${current + 1} / ${total}`;
+  }
+
+  function go(idx) {
+    if (idx < 0) idx = 0;
+    if (idx >= total) idx = total - 1;
+    current = idx;
+    update();
+  }
+
+  // Event Listeners
+  document.getElementById('prev').addEventListener('click', () => go(current - 1));
+  document.getElementById('next').addEventListener('click', () => go(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    switch(e.key) {
+      case 'ArrowRight': case ' ': case 'PageDown':
+        e.preventDefault(); go(current + 1); break;
+      case 'ArrowLeft': case 'PageUp':
+        e.preventDefault(); go(current - 1); break;
+      case 'Home':
+        e.preventDefault(); go(0); break;
+      case 'End':
+        e.preventDefault(); go(total - 1); break;
+    }
+  });
+
+  // Touch / Swipe
+  let startX = 0;
+  document.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+  document.addEventListener('touchend', e => {
+    const diff = e.changedTouches[0].clientX - startX;
+    if (Math.abs(diff) > 50) {
+      if (diff < 0) go(current + 1);
+      else go(current - 1);
+    }
+  });
+
+  // Init
+  update();
+})();
+</script>
+</body>
+</html>
