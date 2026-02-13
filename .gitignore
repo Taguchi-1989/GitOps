@@ -45,3 +45,10 @@ dist/
 .cache/
 .temp/
 .tmp/
+
+# Claude Code
+.claude/
+
+# Temp screenshots
+*.png
+nul
