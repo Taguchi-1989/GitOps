@@ -14,6 +14,7 @@ export {
   LLMError,
   createLLMClient,
   getLLMClient,
+  resetLLMClient,
   type LLMClientConfig,
   type GenerateProposalParams,
 } from './client';

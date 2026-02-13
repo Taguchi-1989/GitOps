@@ -15,7 +15,8 @@ import {
 import { API_ERROR_CODES } from '@/core/types/api';
 import { getFlowYaml, getDictionary } from '@/lib/flow-service';
 import { getLLMClient, LLMError } from '@/core/llm';
-import { sha256 } from '@/core/patch';
+import { sha256, applyPatches, diffFlows, formatDiffAsHtml } from '@/core/patch';
+import { parseFlowYaml } from '@/core/parser';
 import { auditLog } from '@/core/audit';
 
 interface RouteParams {
@@ -92,12 +93,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // baseHashを計算
     const baseHash = sha256(flowYaml);
 
+    // Diffプレビューを生成
+    let diffPreview: string | null = null;
+    try {
+      const parseResult = parseFlowYaml(flowYaml);
+      if (parseResult.success && parseResult.flow) {
+        const patchedFlow = applyPatches(parseResult.flow, proposalOutput.patches);
+        const diff = diffFlows(parseResult.flow, patchedFlow);
+        if (diff.entries.length > 0) {
+          diffPreview = formatDiffAsHtml(diff);
+        }
+      }
+    } catch (e) {
+      // Diffプレビュー生成失敗は致命的ではない
+      console.warn('Failed to generate diff preview:', e);
+    }
+
     // Proposalを保存
     const proposal = await prisma.proposal.create({
       data: {
         issueId: issue.id,
         intent: proposalOutput.intent,
         jsonPatch: JSON.stringify(proposalOutput.patches),
+        diffPreview,
         baseHash,
         targetFlowId: issue.targetFlowId,
       },

@@ -6,7 +6,9 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import yaml from 'yaml';
 import { parseFlowYaml, Flow, flowToMermaid, getFlowSummary } from '@/core/parser';
+import { sanitizeFlowId } from '@/lib/api-utils';
 
 const FLOWS_DIR = path.join(process.cwd(), 'spec', 'flows');
 const DICT_DIR = path.join(process.cwd(), 'spec', 'dictionary');
@@ -69,7 +71,9 @@ export async function listFlows(): Promise<FlowSummary[]> {
  * 特定のフローを取得
  */
 export async function getFlow(flowId: string): Promise<FlowWithMermaid | null> {
-  const filePath = path.join(FLOWS_DIR, `${flowId}.yaml`);
+  const safeId = sanitizeFlowId(flowId);
+  if (!safeId) return null;
+  const filePath = path.join(FLOWS_DIR, `${safeId}.yaml`);
   
   try {
     const content = await fs.readFile(filePath, 'utf-8');
@@ -101,7 +105,9 @@ export async function getFlow(flowId: string): Promise<FlowWithMermaid | null> {
  * フローのYAMLコンテンツを取得
  */
 export async function getFlowYaml(flowId: string): Promise<string | null> {
-  const filePath = path.join(FLOWS_DIR, `${flowId}.yaml`);
+  const safeId = sanitizeFlowId(flowId);
+  if (!safeId) return null;
+  const filePath = path.join(FLOWS_DIR, `${safeId}.yaml`);
   
   try {
     return await fs.readFile(filePath, 'utf-8');
@@ -114,7 +120,11 @@ export async function getFlowYaml(flowId: string): Promise<string | null> {
  * フローのYAMLを保存
  */
 export async function saveFlowYaml(flowId: string, content: string): Promise<void> {
-  const filePath = path.join(FLOWS_DIR, `${flowId}.yaml`);
+  const safeId = sanitizeFlowId(flowId);
+  if (!safeId) {
+    throw new Error(`Invalid flow ID: ${flowId}`);
+  }
+  const filePath = path.join(FLOWS_DIR, `${safeId}.yaml`);
   await fs.writeFile(filePath, content, 'utf-8');
 }
 
@@ -127,21 +137,20 @@ export async function getDictionary(): Promise<{ roles: string[]; systems: strin
   try {
     const rolesPath = path.join(DICT_DIR, 'roles.yaml');
     const rolesContent = await fs.readFile(rolesPath, 'utf-8');
-    // Simple key extraction (proper parsing would use yaml library)
-    const rolesMatch = rolesContent.match(/^(\S+):/gm);
-    if (rolesMatch) {
-      result.roles = rolesMatch.map(m => m.replace(':', ''));
+    const parsed = yaml.parse(rolesContent);
+    if (parsed && typeof parsed === 'object') {
+      result.roles = Object.keys(parsed);
     }
   } catch (e) {
     console.error('Failed to read roles.yaml');
   }
-  
+
   try {
     const systemsPath = path.join(DICT_DIR, 'systems.yaml');
     const systemsContent = await fs.readFile(systemsPath, 'utf-8');
-    const systemsMatch = systemsContent.match(/^(\S+):/gm);
-    if (systemsMatch) {
-      result.systems = systemsMatch.map(m => m.replace(':', ''));
+    const parsed = yaml.parse(systemsContent);
+    if (parsed && typeof parsed === 'object') {
+      result.systems = Object.keys(parsed);
     }
   } catch (e) {
     console.error('Failed to read systems.yaml');

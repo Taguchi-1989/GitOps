@@ -80,3 +80,14 @@ export async function parseBody<T>(
 export function getIdParam(params: { id?: string }): string | null {
   return params.id || null;
 }
+
+/**
+ * flowIdのサニタイズ（パストラバーサル対策）
+ * 英数字・ハイフン・アンダースコアのみ許可
+ */
+export function sanitizeFlowId(flowId: string): string | null {
+  if (!flowId || !/^[a-zA-Z0-9_-]+$/.test(flowId)) {
+    return null;
+  }
+  return flowId;
+}

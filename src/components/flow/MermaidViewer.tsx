@@ -14,6 +14,7 @@ import { ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
 interface MermaidViewerProps {
   content: string;
   onNodeClick?: (nodeId: string) => void;
+  selectedNodeId?: string | null;
   className?: string;
 }
 
@@ -28,7 +29,7 @@ mermaid.initialize({
   },
 });
 
-export function MermaidViewer({ content, onNodeClick, className = '' }: MermaidViewerProps) {
+export function MermaidViewer({ content, onNodeClick, selectedNodeId, className = '' }: MermaidViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgContent, setSvgContent] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +59,23 @@ export function MermaidViewer({ content, onNodeClick, className = '' }: MermaidV
     renderDiagram();
   }, [content]);
 
+  /**
+   * MermaidのDOM要素からノードIDを抽出
+   * flowchart-{nodeId}-{index} 形式のidから元のnodeIdを復元
+   */
+  const extractNodeId = useCallback((element: Element): string | null => {
+    // data-id属性を優先
+    const dataId = element.getAttribute('data-id');
+    if (dataId) return dataId;
+
+    // id属性からflowchart-プレフィックスを除去してnodeIdを取得
+    const id = element.id;
+    if (!id) return null;
+
+    const match = id.match(/^flowchart-(.+?)-\d+$/);
+    return match ? match[1] : null;
+  }, []);
+
   // ノードクリックハンドラーの設定
   useEffect(() => {
     if (!containerRef.current || !onNodeClick) return;
@@ -67,40 +85,45 @@ export function MermaidViewer({ content, onNodeClick, className = '' }: MermaidV
 
     const handleClick = (event: Event) => {
       const target = event.target as Element;
-      
-      // ノード要素を探す（.nodeクラスまたは親要素）
-      let nodeElement = target.closest('.node');
-      
+      const nodeElement = target.closest('.node');
+
       if (nodeElement) {
-        // data-id または id からノードIDを抽出
-        const nodeId = nodeElement.getAttribute('data-id') 
-          || nodeElement.id?.replace('flowchart-', '')?.split('-')[0];
-        
+        const nodeId = extractNodeId(nodeElement);
         if (nodeId) {
           onNodeClick(nodeId);
         }
       }
     };
 
-    // クリックイベントを追加
     svg.addEventListener('click', handleClick);
 
     // ホバー効果を追加
     const nodes = svg.querySelectorAll('.node');
     nodes.forEach(node => {
       (node as HTMLElement).style.cursor = 'pointer';
-      node.addEventListener('mouseenter', () => {
-        (node as HTMLElement).style.filter = 'brightness(1.1)';
-      });
-      node.addEventListener('mouseleave', () => {
-        (node as HTMLElement).style.filter = '';
-      });
     });
 
     return () => {
       svg.removeEventListener('click', handleClick);
     };
-  }, [svgContent, onNodeClick]);
+  }, [svgContent, onNodeClick, extractNodeId]);
+
+  // 選択ノードのハイライト
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const svg = containerRef.current.querySelector('svg');
+    if (!svg) return;
+
+    const nodes = svg.querySelectorAll('.node');
+    nodes.forEach(node => {
+      const nodeId = extractNodeId(node);
+      const isSelected = nodeId === selectedNodeId;
+      (node as HTMLElement).style.outline = isSelected ? '3px solid #3b82f6' : '';
+      (node as HTMLElement).style.outlineOffset = isSelected ? '2px' : '';
+      (node as HTMLElement).style.borderRadius = isSelected ? '4px' : '';
+    });
+  }, [svgContent, selectedNodeId, extractNodeId]);
 
   // ズーム操作
   const handleZoomIn = useCallback(() => setZoom(z => Math.min(z + 0.25, 3)), []);
