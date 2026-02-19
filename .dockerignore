@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Git (container initializes its own repo)
+.git/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+
+# Database files (container creates its own)
+prisma/*.db
+prisma/*.db-journal
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing / Coverage
+coverage/
+.nyc_output/
+
+# Build artifacts
+*.tsbuildinfo
+
+# Documentation (not needed in image)
+docs/
+
+# Agent/AI tool configs
+.agent/
+.claude/
+.gemini/
+
+# Misc
+.cache/
+.temp/
+.tmp/

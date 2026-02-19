@@ -1,0 +1,33 @@
+services:
+  flowops:
+    build: .
+    container_name: flowops
+    ports:
+      - "${FLOWOPS_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/flowops.db
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_JSON_MODE=${LLM_JSON_MODE:-}
+    volumes:
+      - flowops-data:/app/data
+      - flowops-spec:/app/spec
+      - flowops-git:/app/.git
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  flowops-data:
+    driver: local
+  flowops-spec:
+    driver: local
+  flowops-git:
+    driver: local
