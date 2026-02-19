@@ -4,7 +4,7 @@
  * 監査ログの記録と照会
  */
 
-import { AuditLogEntry, AuditQueryOptions, AuditAction, AuditEntityType } from './types';
+import { AuditLogEntry, AuditQueryOptions } from './types';
 
 // Note: 実際のPrismaクライアントはlibから注入される
 // ここではインターフェースのみ定義
@@ -48,12 +48,6 @@ class AuditLogger {
    */
   async record(entry: AuditLogEntry): Promise<AuditLogRecord | null> {
     if (!this.repository) {
-      // リポジトリが未設定の場合はコンソールに出力
-      console.log('[AuditLog]', {
-        ...entry,
-        actor: entry.actor || this.defaultActor,
-        timestamp: new Date().toISOString(),
-      });
       return null;
     }
 
@@ -68,7 +62,6 @@ class AuditLogger {
    */
   async query(options: AuditQueryOptions = {}): Promise<AuditLogRecord[]> {
     if (!this.repository) {
-      console.warn('[AuditLog] Repository not set, returning empty array');
       return [];
     }
 

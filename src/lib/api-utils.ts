@@ -1,12 +1,13 @@
 /**
  * FlowOps - API Utilities
- * 
+ *
  * API Route用のユーティリティ関数
  */
 
 import { NextResponse } from 'next/server';
 import { ZodError, ZodSchema } from 'zod';
 import { ApiResponse, API_ERROR_CODES, ApiErrorCode } from '@/core/types/api';
+import { logger } from '@/lib/logger';
 
 /**
  * 成功レスポンスを生成
@@ -37,7 +38,7 @@ export function notFoundResponse(resource = 'Resource'): NextResponse<ApiRespons
  * 500 Internal Errorレスポンス
  */
 export function internalErrorResponse(error: unknown): NextResponse<ApiResponse<never>> {
-  console.error('[API Error]', error);
+  logger.error({ err: error }, 'API internal error');
   const message = error instanceof Error ? error.message : 'Unknown error';
   return errorResponse(API_ERROR_CODES.INTERNAL_ERROR, message, 500);
 }

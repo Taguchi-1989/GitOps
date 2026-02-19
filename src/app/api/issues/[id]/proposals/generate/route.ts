@@ -18,6 +18,7 @@ import { getLLMClient, LLMError } from '@/core/llm';
 import { sha256, applyPatches, diffFlows, formatDiffAsHtml } from '@/core/patch';
 import { parseFlowYaml } from '@/core/parser';
 import { auditLog } from '@/core/audit';
+import { logger } from '@/lib/logger';
 
 interface RouteParams {
   params: { id: string };
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     } catch (e) {
       // Diffプレビュー生成失敗は致命的ではない
-      console.warn('Failed to generate diff preview:', e);
+      logger.warn({ err: e }, 'Failed to generate diff preview');
     }
 
     // Proposalを保存

@@ -6,10 +6,11 @@
 
 import { auditLog } from '@/core/audit';
 import { auditRepository } from '@/lib/audit-repository';
+import { logger } from '@/lib/logger';
 
 // AuditLogにPrismaリポジトリを注入
 auditLog.setRepository(auditRepository);
 
 export function initializeApp() {
-  console.log('[FlowOps] Application initialized');
+  logger.info('FlowOps application initialized');
 }

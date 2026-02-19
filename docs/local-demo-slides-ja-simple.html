@@ -1,0 +1,279 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowOps かんたん説明スライド（非エンジニア向け）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #ffffff;
+    --text: #0f172a;
+    --sub: #475569;
+    --line: #dbeafe;
+    --main: #2563eb;
+    --soft: #eff6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: radial-gradient(circle at 20% 15%, #1d4ed8 0%, var(--bg) 42%), var(--bg);
+    height: 100vh;
+    overflow: hidden;
+  }
+  .deck { position: relative; width: 100vw; height: 100vh; }
+  .slide {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(94vw, 1200px);
+    height: min(88vh, 700px);
+    transform: translate(-50%, -50%) translateX(30px);
+    opacity: 0;
+    pointer-events: none;
+    background: var(--card);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(2, 6, 23, .42);
+    padding: 44px 50px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    transition: all .28s ease;
+  }
+  .slide.active { opacity: 1; transform: translate(-50%, -50%); pointer-events: auto; }
+  .tag {
+    width: fit-content;
+    font-size: 12px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 700;
+  }
+  h1 { font-size: 44px; line-height: 1.2; color: var(--text); font-weight: 900; }
+  h2 { font-size: 34px; line-height: 1.25; color: var(--text); font-weight: 800; }
+  p, li { font-size: 25px; line-height: 1.55; color: var(--sub); }
+  .lead { font-size: 29px; color: #334155; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .box {
+    border: 1px solid var(--line);
+    background: var(--soft);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .box h3 { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  ul { list-style: none; display: grid; gap: 8px; }
+  li { padding-left: 24px; position: relative; }
+  li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 13px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--main);
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    background: #f8fbff;
+  }
+  .num {
+    width: 52px;
+    height: 52px;
+    border-radius: 13px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 900;
+    display: grid;
+    place-items: center;
+  }
+  .footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+    color: #64748b;
+  }
+  .progress { border: 1px solid #dbe4ef; border-radius: 8px; padding: 4px 10px; background: #fff; }
+  @media (max-width: 960px) {
+    .slide { padding: 28px 22px; }
+    .grid2 { grid-template-columns: 1fr; }
+    h1 { font-size: 32px; }
+    h2 { font-size: 27px; }
+    p, li { font-size: 18px; }
+    .lead { font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+  <section class="slide active">
+    <span class="tag">1 / 6</span>
+    <h1>FlowOps かんたん説明</h1>
+    <p class="lead">非エンジニア向け: 「何をする道具か」を短く理解するための版</p>
+    <div class="grid2">
+      <div class="box">
+        <h3>ひとことで</h3>
+        <ul>
+          <li>業務フローの修正を、画面から安全に進める道具</li>
+          <li>変更の記録が残るので、あとで追跡できる</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>今日わかること</h3>
+        <ul>
+          <li>どう使い始めるか</li>
+          <li>どこにデータを置くか</li>
+          <li>どうやって運用するか</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer"><span>クリック/矢印キーで進む</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide">
+    <span class="tag">2 / 6</span>
+    <h2>使う流れは3つだけ</h2>
+    <div class="step"><div class="num">1</div><p>「直したい内容」を登録する</p></div>
+    <div class="step"><div class="num">2</div><p>提案を確認して、OKなら適用する</p></div>
+    <div class="step"><div class="num">3</div><p>完了として確定する</p></div>
+    <div class="box">
+      <ul>
+        <li>難しい操作は、基本的に画面側でガイドされる</li>
+        <li>どのタイミングで誰が何をしたか記録される</li>
+      </ul>
+    </div>
+    <div class="footer"><span>まずは「登録→確認→完了」だけ覚える</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide">
+    <span class="tag">3 / 6</span>
+    <h2>データはどこに置く？</h2>
+    <div class="grid2">
+      <div class="box">
+        <h3>本体データ（最重要）</h3>
+        <ul>
+          <li><b>spec/flows</b> に置く</li>
+          <li>ここが「正式な業務フロー」</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>運用メモ・履歴</h3>
+        <ul>
+          <li><b>prisma/dev.db</b> に保存</li>
+          <li>案件情報・提案・監査ログ</li>
+        </ul>
+      </div>
+    </div>
+    <div class="box">
+      <h3>画像や重いファイル</h3>
+      <ul>
+        <li>クラウドストレージに置いてURLを記録</li>
+        <li>リポジトリには必要最小限だけ置く</li>
+      </ul>
+    </div>
+    <div class="footer"><span>正本は flows、運用情報は db</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide">
+    <span class="tag">4 / 6</span>
+    <h2>実際のデモの見せ方（5分）</h2>
+    <ul>
+      <li>1. 一覧を見る</li>
+      <li>2. 修正依頼を1件作る</li>
+      <li>3. 提案を出して内容を読む</li>
+      <li>4. 適用して、完了にする</li>
+    </ul>
+    <div class="box">
+      <h3>ポイント</h3>
+      <ul>
+        <li>「誰でも操作できる画面」になっていることを見せる</li>
+        <li>「記録が残る」ことを最後に強調する</li>
+      </ul>
+    </div>
+    <div class="footer"><span>操作より、価値を伝える</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide">
+    <span class="tag">5 / 6</span>
+    <h2>運用ルール（かんたん版）</h2>
+    <div class="grid2">
+      <div class="box">
+        <h3>やること</h3>
+        <ul>
+          <li>変更前に、必ず依頼を作る</li>
+          <li>提案は目視で確認してから反映</li>
+          <li>完了したら共有する</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>やらないこと</h3>
+        <ul>
+          <li>口頭だけで変更しない</li>
+          <li>記録なしで本番反映しない</li>
+          <li>根拠不明の修正を残さない</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer"><span>ルールを固定するとミスが減る</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide">
+    <span class="tag">6 / 6</span>
+    <h2>まとめ</h2>
+    <ul>
+      <li>この仕組みは「業務フロー変更の安全運用」ツール</li>
+      <li>正本データの置き場所を決めて、履歴を残す</li>
+      <li>非エンジニアでも、登録・確認・完了の3ステップで使える</li>
+    </ul>
+    <div class="box">
+      <h3>次のアクション</h3>
+      <ul>
+        <li>この6枚で社内説明を実施</li>
+        <li>質問が出た箇所を追記して第2版を作る</li>
+      </ul>
+    </div>
+    <div class="footer"><span>End</span><span class="progress" data-progress></span></div>
+  </section>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const progress = Array.from(document.querySelectorAll('[data-progress]'));
+  let current = 0;
+
+  function draw() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === current));
+    const txt = `${current + 1} / ${slides.length}`;
+    progress.forEach(p => p.textContent = txt);
+  }
+
+  function next() { if (current < slides.length - 1) { current++; draw(); } }
+  function prev() { if (current > 0) { current--; draw(); } }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') next();
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') prev();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (e.clientX > window.innerWidth * 0.55) next();
+    else if (e.clientX < window.innerWidth * 0.45) prev();
+  });
+
+  draw();
+</script>
+</body>
+</html>

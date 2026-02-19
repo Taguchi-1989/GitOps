@@ -9,6 +9,7 @@ import path from 'path';
 import yaml from 'yaml';
 import { parseFlowYaml, Flow, flowToMermaid, getFlowSummary } from '@/core/parser';
 import { sanitizeFlowId } from '@/lib/api-utils';
+import { logger } from '@/lib/logger';
 
 const FLOWS_DIR = path.join(process.cwd(), 'spec', 'flows');
 const DICT_DIR = path.join(process.cwd(), 'spec', 'dictionary');
@@ -55,14 +56,14 @@ export async function listFlows(): Promise<FlowSummary[]> {
           });
         }
       } catch (e) {
-        console.error(`Failed to parse flow: ${file}`, e);
+        logger.warn({ err: e, file }, 'Failed to parse flow');
       }
     }
     
     return flows;
   } catch (e) {
     // ディレクトリが存在しない場合
-    console.error('Failed to read flows directory:', e);
+    logger.error({ err: e }, 'Failed to read flows directory');
     return [];
   }
 }
@@ -80,7 +81,7 @@ export async function getFlow(flowId: string): Promise<FlowWithMermaid | null> {
     const result = parseFlowYaml(content, `${flowId}.yaml`);
     
     if (!result.success || !result.flow) {
-      console.error(`Flow validation failed: ${flowId}`, result.errors);
+      logger.warn({ flowId, errors: result.errors }, 'Flow validation failed');
       return null;
     }
     
@@ -96,7 +97,7 @@ export async function getFlow(flowId: string): Promise<FlowWithMermaid | null> {
       filePath,
     };
   } catch (e) {
-    console.error(`Failed to read flow: ${flowId}`, e);
+    logger.error({ err: e, flowId }, 'Failed to read flow');
     return null;
   }
 }
@@ -142,7 +143,7 @@ export async function getDictionary(): Promise<{ roles: string[]; systems: strin
       result.roles = Object.keys(parsed);
     }
   } catch (e) {
-    console.error('Failed to read roles.yaml');
+    logger.warn('Failed to read roles.yaml');
   }
 
   try {
@@ -153,7 +154,7 @@ export async function getDictionary(): Promise<{ roles: string[]; systems: strin
       result.systems = Object.keys(parsed);
     }
   } catch (e) {
-    console.error('Failed to read systems.yaml');
+    logger.warn('Failed to read systems.yaml');
   }
   
   return result;

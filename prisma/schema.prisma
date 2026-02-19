@@ -11,6 +11,32 @@ datasource db {
 }
 
 // --------------------------------------------------------
+// Authentication (認証)
+// --------------------------------------------------------
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  hashedPassword String
+  role           String    @default("viewer") // admin, editor, viewer
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+
+  @@index([userId])
+}
+
+// --------------------------------------------------------
 // Issue Management
 // --------------------------------------------------------
 model Issue {

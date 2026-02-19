@@ -8,6 +8,8 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { successResponse, internalErrorResponse } from '@/lib/api-utils';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/audit
  * 監査ログを取得
