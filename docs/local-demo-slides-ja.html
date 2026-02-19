@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="FlowOps ローカルデモの起動手順・操作フロー・データ配置・運用ルールを説明するスライド資料">
+<title>FlowOps ローカルデモ説明スライド</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #ffffff;
+    --panel-soft: #f8fafc;
+    --text: #0f172a;
+    --muted: #475569;
+    --line: #dbe4ef;
+    --brand: #2563eb;
+    --brand-soft: #dbeafe;
+    --ok: #16a34a;
+    --warn: #ea580c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: radial-gradient(circle at 10% 10%, #1d4ed8 0%, var(--bg) 45%), var(--bg);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .slide {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(94vw, 1280px);
+    height: min(90vh, 720px);
+    transform: translate(-50%, -50%) translateX(40px);
+    opacity: 0;
+    pointer-events: none;
+    background: var(--panel);
+    border-radius: 18px;
+    box-shadow: 0 28px 72px rgba(2, 6, 23, .45);
+    padding: 48px 58px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    transition: opacity .3s ease, transform .3s ease;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+  }
+
+  .tag {
+    display: inline-block;
+    width: fit-content;
+    padding: 4px 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .05em;
+  }
+
+  h1 {
+    font-size: 48px;
+    line-height: 1.15;
+    color: var(--text);
+    font-weight: 900;
+  }
+
+  h2 {
+    font-size: 34px;
+    line-height: 1.2;
+    color: var(--text);
+    font-weight: 900;
+  }
+
+  p, li {
+    font-size: 22px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  ul {
+    list-style: none;
+    display: grid;
+    gap: 10px;
+  }
+
+  li {
+    position: relative;
+    padding-left: 26px;
+  }
+
+  li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 13px;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--brand);
+  }
+
+  .lead {
+    font-size: 25px;
+    color: #334155;
+    font-weight: 500;
+  }
+
+  .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    flex: 1;
+  }
+
+  .card {
+    border: 1px solid var(--line);
+    background: var(--panel-soft);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+
+  .card h3 {
+    font-size: 22px;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .85em;
+    background: #f1f5f9;
+    color: #1e40af;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+
+  .ok { color: var(--ok); font-weight: 700; }
+  .warn { color: var(--warn); font-weight: 700; }
+
+  .footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 15px;
+    color: #64748b;
+  }
+
+  .progress {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 4px 10px;
+    background: #fff;
+  }
+
+  .title-slide {
+    background: linear-gradient(160deg, #eaf2ff 0%, #ffffff 45%, #eff6ff 100%);
+  }
+
+  .title-slide .title-main {
+    color: #0b3aa4;
+  }
+
+  .note {
+    font-size: 18px;
+    color: #64748b;
+  }
+
+  /* Navigation UI */
+  .nav-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,.85);
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,.15);
+    transition: opacity .2s, background .2s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-btn:hover { background: #fff; }
+  .nav-btn:disabled { opacity: 0; pointer-events: none; }
+  .nav-btn.prev { left: max(12px, calc((100vw - 1320px) / 2 - 60px)); }
+  .nav-btn.next { right: max(12px, calc((100vw - 1320px) / 2 - 60px)); }
+
+  .dots {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,.35);
+    cursor: pointer;
+    padding: 0;
+    transition: background .2s, transform .2s;
+  }
+  .dot:hover { background: rgba(255,255,255,.6); }
+  .dot.active { background: #fff; transform: scale(1.3); }
+
+  /* Focus visible for keyboard users */
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 960px) {
+    .slide { padding: 28px 24px; }
+    h1 { font-size: 34px; }
+    h2 { font-size: 28px; }
+    p, li { font-size: 18px; }
+    .lead { font-size: 20px; }
+    .two { grid-template-columns: 1fr; }
+    .code { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" role="region" aria-label="スライドプレゼンテーション" aria-roledescription="carousel">
+  <button type="button" class="nav-btn prev" aria-label="前のスライド" data-nav="prev">&larr;</button>
+  <button type="button" class="nav-btn next" aria-label="次のスライド" data-nav="next">&rarr;</button>
+  <div class="dots" role="tablist" aria-label="スライド選択"></div>
+
+  <section class="slide title-slide active" role="tabpanel" aria-roledescription="slide" aria-label="スライド 1/8">
+    <span class="tag">SLIDE 1</span>
+    <h1 class="title-main">FlowOps ローカルデモ説明</h1>
+    <p class="lead">ローカル起動から、動作、データ配置、拡張運用までを一気に説明するための資料</p>
+    <div class="two">
+      <div class="card">
+        <h3>今日見せること</h3>
+        <ul>
+          <li>ローカルサーバーの立ち上げ</li>
+          <li>Issue起点の実行フロー</li>
+          <li>どこにデータを置くか</li>
+          <li>拡張時の運用ルール</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>前提</h3>
+        <ul>
+          <li>Node.js 18+</li>
+          <li>Git</li>
+          <li>このリポジトリをローカルで実行</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer"><span>左右キー / Space でページ送り</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide" role="tabpanel" aria-roledescription="slide" aria-label="スライド 2/8">
+    <span class="tag">SLIDE 2</span>
+    <h2>起動手順（最短）</h2>
+    <p class="lead">この4コマンドでローカルデモが開始できます</p>
+    <div class="code">npm install
+cp .env.example .env.local
+npx prisma db push
+npm run dev</div>
+    <div class="two">
+      <div class="card">
+        <h3>アクセス</h3>
+        <ul>
+          <li><code>http://localhost:3000</code></li>
+          <li>APIヘルス確認: <code>/api/health</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>.env.local 最低限</h3>
+        <ul>
+          <li><code>DATABASE_URL=file:./dev.db</code></li>
+          <li><code>LLM_PROVIDER=openai</code></li>
+          <li><code>LLM_API_KEY=...</code></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer"><span>準備が終わったらすぐデモに入れる</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide" role="tabpanel" aria-roledescription="slide" aria-label="スライド 3/8">
+    <span class="tag">SLIDE 3</span>
+    <h2>デモシナリオ（5-10分）</h2>
+    <div class="two">
+      <div class="card">
+        <h3>前半</h3>
+        <ul>
+          <li><code>/api/flows</code> でフロー一覧確認</li>
+          <li><code>/issues/new</code> でIssue作成</li>
+          <li><code>/start</code> で作業ブランチ作成</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>後半</h3>
+        <ul>
+          <li><code>/proposals/generate</code> で提案生成</li>
+          <li><code>/proposals/:id/apply</code> でYAML更新+commit</li>
+          <li><code>/merge-close</code> でmainマージ+Issue完了</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note">見せる順番を固定すると、聞き手が「何が自動化されているか」を追いやすくなります。</p>
+    <div class="footer"><span>Issue中心のGitOpsフローを可視化</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide" role="tabpanel" aria-roledescription="slide" aria-label="スライド 4/8">
+    <span class="tag">SLIDE 4</span>
+    <h2>どこにデータを上げるべきか</h2>
+    <div class="two">
+      <div class="card">
+        <h3>正本（最重要）</h3>
+        <ul>
+          <li><code>spec/flows/*.yaml</code> がSSOT</li>
+          <li>最終的にGit commit / pushで共有</li>
+          <li class="ok">YAMLが業務フローの唯一の真実</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>補助データ</h3>
+        <ul>
+          <li>辞書: <code>spec/dictionary/*.yaml</code></li>
+          <li>運用DB: <code>prisma/dev.db</code>（Issue/Proposal/Audit）</li>
+          <li>証跡: 外部ストレージに保存しURL管理</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note"><span class="warn">注意:</span> ローカルSQLiteはチーム共有されません。共有が必要ならDB移行方針を別途定義。</p>
+    <div class="footer"><span>正本はYAML、DBは運用メタ情報</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide" role="tabpanel" aria-roledescription="slide" aria-label="スライド 5/8">
+    <span class="tag">SLIDE 5</span>
+    <h2>拡張時の運用ルール</h2>
+    <div class="two">
+      <div class="card">
+        <h3>開発フロー</h3>
+        <ul>
+          <li>変更はまずIssue化する</li>
+          <li><code>/start</code> でブランチを作る</li>
+          <li>提案をレビューしてから適用する</li>
+          <li>適用後にテスト・型チェックを実行</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>検証コマンド</h3>
+        <div class="code">npm run test
+npm run typecheck
+npm run lint</div>
+      </div>
+    </div>
+    <div class="footer"><span>レビューと検証を入れると品質が安定</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide" role="tabpanel" aria-roledescription="slide" aria-label="スライド 6/8">
+    <span class="tag">SLIDE 6</span>
+    <h2>説明トーク例（そのまま読める版）</h2>
+    <ul>
+      <li>「Flowの正本はYAMLです。UIはYAMLを安全に更新する入口です。」</li>
+      <li>「Issueを起点にブランチ作成、LLM提案、Patch適用、マージまでを一本化しています。」</li>
+      <li>「適用時にYAML更新とGit commitを自動実行し、履歴を残します。」</li>
+      <li>「保存先は、正本=spec/flows、運用データ=SQLite、証跡=外部URL管理です。」</li>
+    </ul>
+    <div class="footer"><span>デモ中に迷わない説明スクリプト</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide" role="tabpanel" aria-roledescription="slide" aria-label="スライド 7/8">
+    <span class="tag">SLIDE 7</span>
+    <h2>実装との対応（根拠ファイル）</h2>
+    <div class="two">
+      <div class="card">
+        <h3>主な処理</h3>
+        <ul>
+          <li>フロー読込/保存: <code>src/lib/flow-service.ts</code></li>
+          <li>Issue作成: <code>src/app/api/issues/route.ts</code></li>
+          <li>提案生成: <code>src/app/api/issues/[id]/proposals/generate/route.ts</code></li>
+          <li>提案適用: <code>src/app/api/proposals/[id]/apply/route.ts</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Git / DB</h3>
+        <ul>
+          <li>Git操作: <code>src/core/git/manager.ts</code></li>
+          <li>マージクローズ: <code>src/app/api/issues/[id]/merge-close/route.ts</code></li>
+          <li>DBスキーマ: <code>prisma/schema.prisma</code></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer"><span>説明の信頼性を上げる参照先</span><span class="progress" data-progress></span></div>
+  </section>
+
+  <section class="slide" role="tabpanel" aria-roledescription="slide" aria-label="スライド 8/8">
+    <span class="tag">SLIDE 8</span>
+    <h2>まとめ</h2>
+    <div class="two">
+      <div class="card">
+        <h3>伝えるべき要点</h3>
+        <ul>
+          <li>ローカル起動は4コマンド</li>
+          <li>Issue中心でGitOpsを実行</li>
+          <li>データ配置を分離して運用</li>
+          <li>拡張時はレビュー+検証を固定化</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>次の一手</h3>
+        <ul>
+          <li>この資料で10分デモを実施</li>
+          <li>詰まった箇所をFAQ化して追記</li>
+          <li>必要なら社内版テンプレートへ展開</li>
+        </ul>
+      </div>
+    </div>
+    <p class="lead">以上で、ローカルデモと運用説明の最小セットが揃います。</p>
+    <div class="footer"><span>End</span><span class="progress" data-progress></span></div>
+  </section>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const progressEls = Array.from(document.querySelectorAll('[data-progress]'));
+  const prevBtn = document.querySelector('[data-nav="prev"]');
+  const nextBtn = document.querySelector('[data-nav="next"]');
+  const dotsContainer = document.querySelector('.dots');
+  let index = 0;
+
+  // Generate dot indicators
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('role', 'tab');
+    dot.setAttribute('aria-label', `スライド ${i + 1}`);
+    dot.addEventListener('click', () => goTo(i));
+    dotsContainer.appendChild(dot);
+  });
+  const dots = Array.from(dotsContainer.querySelectorAll('.dot'));
+
+  function render() {
+    slides.forEach((slide, i) => {
+      const isActive = i === index;
+      slide.classList.toggle('active', isActive);
+      slide.setAttribute('aria-hidden', String(!isActive));
+    });
+    dots.forEach((dot, i) => {
+      dot.classList.toggle('active', i === index);
+      dot.setAttribute('aria-selected', String(i === index));
+    });
+    const label = `${index + 1} / ${slides.length}`;
+    progressEls.forEach(el => { el.textContent = label; });
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === slides.length - 1;
+  }
+
+  function goTo(i) {
+    index = Math.max(0, Math.min(i, slides.length - 1));
+    render();
+  }
+
+  function next() {
+    if (index < slides.length - 1) goTo(index + 1);
+  }
+
+  function prev() {
+    if (index > 0) goTo(index - 1);
+  }
+
+  // Keyboard navigation with preventDefault to stop browser scroll
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      next();
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      prev();
+    }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End')  { e.preventDefault(); goTo(slides.length - 1); }
+  });
+
+  // Button navigation
+  prevBtn.addEventListener('click', prev);
+  nextBtn.addEventListener('click', next);
+
+  // Click navigation (excluding buttons & dots)
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.nav-btn, .dots')) return;
+    const x = e.clientX;
+    if (x > window.innerWidth * 0.55) next();
+    else if (x < window.innerWidth * 0.45) prev();
+  });
+
+  // Touch / swipe support
+  let touchStartX = 0;
+  let touchStartY = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].clientX;
+    touchStartY = e.changedTouches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+    if (dx < 0) next();
+    else prev();
+  }, { passive: true });
+
+  render();
+</script>
+</body>
+</html>
