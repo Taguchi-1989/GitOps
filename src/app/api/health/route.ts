@@ -1,6 +1,6 @@
 /**
  * FlowOps - Health Check API
- * 
+ *
  * GET /api/health - ヘルスチェック
  */
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   try {
     // DB接続確認
     await prisma.$queryRaw`SELECT 1`;
-    
+
     return successResponse({
       status: 'healthy',
       timestamp: new Date().toISOString(),

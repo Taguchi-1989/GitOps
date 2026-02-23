@@ -1,13 +1,13 @@
 /**
  * FlowOps - Merge & Close API
- * 
+ *
  * POST /api/issues/[id]/merge-close - ブランチをマージしてクローズ
  */
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { 
-  successResponse, 
+import {
+  successResponse,
   notFoundResponse,
   errorResponse,
   internalErrorResponse,
@@ -45,11 +45,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // ブランチ確認
     if (!issue.branchName) {
-      return errorResponse(
-        API_ERROR_CODES.VALIDATION_ERROR,
-        'Issue has no branch to merge',
-        400
-      );
+      return errorResponse(API_ERROR_CODES.VALIDATION_ERROR, 'Issue has no branch to merge', 400);
     }
 
     // 適用済みProposalがあるか確認

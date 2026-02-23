@@ -18,10 +18,5 @@ export function IssuesListClient({ initialIssues }: IssuesListClientProps) {
     router.push('/issues/new');
   };
 
-  return (
-    <IssueList
-      issues={initialIssues}
-      onCreateClick={handleCreateClick}
-    />
-  );
+  return <IssueList issues={initialIssues} onCreateClick={handleCreateClick} />;
 }

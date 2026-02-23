@@ -1,6 +1,6 @@
 /**
  * FlowOps - JSON Patch Apply
- * 
+ *
  * JSON Patch (RFC 6902) の適用ロジック
  */
 
@@ -10,7 +10,7 @@ import { sha256 } from './hash';
 
 export class PatchApplyError extends Error {
   code: ProposalErrorCode;
-  
+
   constructor(code: ProposalErrorCode, message: string) {
     super(message);
     this.name = 'PatchApplyError';
@@ -24,20 +24,13 @@ export class PatchApplyError extends Error {
  */
 function parseJsonPointer(pointer: string): string[] {
   if (!pointer.startsWith('/')) {
-    throw new PatchApplyError(
-      'PATCH_APPLY_FAILED',
-      `Invalid JSON Pointer: must start with /`
-    );
+    throw new PatchApplyError('PATCH_APPLY_FAILED', `Invalid JSON Pointer: must start with /`);
   }
-  
+
   return pointer
     .substring(1)
     .split('/')
-    .map(segment => 
-      segment
-        .replace(/~1/g, '/')
-        .replace(/~0/g, '~')
-    );
+    .map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
 }
 
 /**
@@ -68,7 +61,7 @@ function setValueAtPath(obj: Record<string, unknown>, path: string[], value: unk
     }
     current = current[segment] as Record<string, unknown>;
   }
-  
+
   const lastSegment = path[path.length - 1];
   current[lastSegment] = value;
 }
@@ -84,7 +77,7 @@ function deleteValueAtPath(obj: Record<string, unknown>, path: string[]): void {
     }
     current = current[path[i]] as Record<string, unknown>;
   }
-  
+
   if (current !== undefined && current !== null) {
     const lastSegment = path[path.length - 1];
     if (Array.isArray(current)) {
@@ -100,16 +93,16 @@ function deleteValueAtPath(obj: Record<string, unknown>, path: string[]): void {
  */
 function applySinglePatch(obj: Record<string, unknown>, patch: JsonPatch): void {
   const path = parseJsonPointer(patch.path);
-  
+
   switch (patch.op) {
     case 'add':
       setValueAtPath(obj, path, patch.value);
       break;
-      
+
     case 'remove':
       deleteValueAtPath(obj, path);
       break;
-      
+
     case 'replace':
       const current = getValueAtPath(obj, path);
       if (current === undefined) {
@@ -120,32 +113,26 @@ function applySinglePatch(obj: Record<string, unknown>, patch: JsonPatch): void 
       }
       setValueAtPath(obj, path, patch.value);
       break;
-      
+
     case 'move':
       if (!patch.from) {
-        throw new PatchApplyError(
-          'PATCH_APPLY_FAILED',
-          `Move operation requires "from" field`
-        );
+        throw new PatchApplyError('PATCH_APPLY_FAILED', `Move operation requires "from" field`);
       }
       const fromPath = parseJsonPointer(patch.from);
       const valueToMove = getValueAtPath(obj, fromPath);
       deleteValueAtPath(obj, fromPath);
       setValueAtPath(obj, path, valueToMove);
       break;
-      
+
     case 'copy':
       if (!patch.from) {
-        throw new PatchApplyError(
-          'PATCH_APPLY_FAILED',
-          `Copy operation requires "from" field`
-        );
+        throw new PatchApplyError('PATCH_APPLY_FAILED', `Copy operation requires "from" field`);
       }
       const copyFromPath = parseJsonPointer(patch.from);
       const valueToCopy = getValueAtPath(obj, copyFromPath);
       setValueAtPath(obj, path, JSON.parse(JSON.stringify(valueToCopy)));
       break;
-      
+
     case 'test':
       const testValue = getValueAtPath(obj, path);
       if (JSON.stringify(testValue) !== JSON.stringify(patch.value)) {
@@ -155,12 +142,9 @@ function applySinglePatch(obj: Record<string, unknown>, patch: JsonPatch): void 
         );
       }
       break;
-      
+
     default:
-      throw new PatchApplyError(
-        'PATCH_APPLY_FAILED',
-        `Unknown operation: ${patch.op}`
-      );
+      throw new PatchApplyError('PATCH_APPLY_FAILED', `Unknown operation: ${patch.op}`);
   }
 }
 
@@ -172,11 +156,11 @@ function applySinglePatch(obj: Record<string, unknown>, patch: JsonPatch): void 
 export function applyPatches<T>(obj: T, patches: JsonPatch[]): T {
   // ディープコピーを作成
   const result = JSON.parse(JSON.stringify(obj));
-  
+
   for (const patch of patches) {
     applySinglePatch(result, patch);
   }
-  
+
   return result;
 }
 
@@ -201,13 +185,13 @@ export function applyPatchesToFlow(
       );
     }
   }
-  
+
   // パッチ適用
   const patchedFlow = applyPatches(flow, patches);
-  
+
   // 新しいハッシュを計算
   const newHash = sha256(JSON.stringify(patchedFlow));
-  
+
   return {
     flow: patchedFlow,
     newHash,
@@ -224,7 +208,7 @@ export function checkForbiddenPaths(
   forbiddenPaths: string[] = ['/id']
 ): string[] {
   const violations: string[] = [];
-  
+
   for (const patch of patches) {
     for (const forbidden of forbiddenPaths) {
       if (patch.path.startsWith(forbidden)) {
@@ -232,6 +216,6 @@ export function checkForbiddenPaths(
       }
     }
   }
-  
+
   return violations;
 }

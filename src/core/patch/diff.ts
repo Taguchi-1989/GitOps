@@ -1,6 +1,6 @@
 /**
  * FlowOps - Diff Generator
- * 
+ *
  * 2つのFlowオブジェクト間の差分を生成
  */
 
@@ -62,9 +62,14 @@ function diffObjects(
       const oldVal = oldObj[key];
       const newVal = newObj[key];
 
-      if (typeof oldVal === 'object' && typeof newVal === 'object' && 
-          oldVal !== null && newVal !== null &&
-          !Array.isArray(oldVal) && !Array.isArray(newVal)) {
+      if (
+        typeof oldVal === 'object' &&
+        typeof newVal === 'object' &&
+        oldVal !== null &&
+        newVal !== null &&
+        !Array.isArray(oldVal) &&
+        !Array.isArray(newVal)
+      ) {
         // 再帰的に比較
         diffObjects(
           oldVal as Record<string, unknown>,
@@ -176,20 +181,28 @@ export function formatDiffAsHtml(diff: FlowDiff): string {
       case 'add':
         parts.push(`<div class="diff-add">`);
         parts.push(`<span class="diff-path">+ ${escapeHtml(entry.path)}</span>`);
-        parts.push(`<pre class="diff-value">${escapeHtml(JSON.stringify(entry.newValue, null, 2))}</pre>`);
+        parts.push(
+          `<pre class="diff-value">${escapeHtml(JSON.stringify(entry.newValue, null, 2))}</pre>`
+        );
         parts.push(`</div>`);
         break;
       case 'remove':
         parts.push(`<div class="diff-remove">`);
         parts.push(`<span class="diff-path">- ${escapeHtml(entry.path)}</span>`);
-        parts.push(`<pre class="diff-value">${escapeHtml(JSON.stringify(entry.oldValue, null, 2))}</pre>`);
+        parts.push(
+          `<pre class="diff-value">${escapeHtml(JSON.stringify(entry.oldValue, null, 2))}</pre>`
+        );
         parts.push(`</div>`);
         break;
       case 'modify':
         parts.push(`<div class="diff-modify">`);
         parts.push(`<span class="diff-path">~ ${escapeHtml(entry.path)}</span>`);
-        parts.push(`<div class="diff-old"><pre>${escapeHtml(JSON.stringify(entry.oldValue, null, 2))}</pre></div>`);
-        parts.push(`<div class="diff-new"><pre>${escapeHtml(JSON.stringify(entry.newValue, null, 2))}</pre></div>`);
+        parts.push(
+          `<div class="diff-old"><pre>${escapeHtml(JSON.stringify(entry.oldValue, null, 2))}</pre></div>`
+        );
+        parts.push(
+          `<div class="diff-new"><pre>${escapeHtml(JSON.stringify(entry.newValue, null, 2))}</pre></div>`
+        );
         parts.push(`</div>`);
         break;
     }

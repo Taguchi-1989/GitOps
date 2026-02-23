@@ -1,6 +1,6 @@
 /**
  * FlowOps - Audit Logger
- * 
+ *
  * 監査ログの記録と照会
  */
 
@@ -115,7 +115,12 @@ class AuditLogger {
    * Git関連のログを記録するヘルパー
    */
   async logGitAction(
-    action: 'GIT_COMMIT' | 'GIT_BRANCH_CREATE' | 'GIT_BRANCH_DELETE' | 'MERGE_CLOSE' | 'DUPLICATE_MERGE',
+    action:
+      | 'GIT_COMMIT'
+      | 'GIT_BRANCH_CREATE'
+      | 'GIT_BRANCH_DELETE'
+      | 'MERGE_CLOSE'
+      | 'DUPLICATE_MERGE',
     entityId: string,
     payload?: Record<string, unknown>
   ): Promise<void> {

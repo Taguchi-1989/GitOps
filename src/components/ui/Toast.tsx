@@ -73,10 +73,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
     >
       <Icon className={`w-5 h-5 flex-shrink-0 ${iconColors[toast.type]}`} />
       <p className="flex-1 text-sm">{toast.message}</p>
-      <button
-        onClick={onRemove}
-        className="flex-shrink-0 text-gray-400 hover:text-gray-600"
-      >
+      <button onClick={onRemove} className="flex-shrink-0 text-gray-400 hover:text-gray-600">
         <X className="w-4 h-4" />
       </button>
     </div>
@@ -98,15 +95,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
-      
+
       {/* Toast Container */}
       <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm">
         {toasts.map(toast => (
-          <ToastItem
-            key={toast.id}
-            toast={toast}
-            onRemove={() => removeToast(toast.id)}
-          />
+          <ToastItem key={toast.id} toast={toast} onRemove={() => removeToast(toast.id)} />
         ))}
       </div>
     </ToastContext.Provider>

@@ -39,9 +39,9 @@ describe('applyPatches', () => {
 
   it('throws on replace of nonexistent path', () => {
     const obj = { a: 1 };
-    expect(() =>
-      applyPatches(obj, [{ op: 'replace', path: '/missing', value: 99 }])
-    ).toThrow(PatchApplyError);
+    expect(() => applyPatches(obj, [{ op: 'replace', path: '/missing', value: 99 }])).toThrow(
+      PatchApplyError
+    );
   });
 
   it('does not mutate original object', () => {
@@ -52,9 +52,7 @@ describe('applyPatches', () => {
 
   it('applies nested path operations', () => {
     const obj = { nodes: { n1: { label: 'old' } } };
-    const result = applyPatches(obj, [
-      { op: 'replace', path: '/nodes/n1/label', value: 'new' },
-    ]);
+    const result = applyPatches(obj, [{ op: 'replace', path: '/nodes/n1/label', value: 'new' }]);
     expect(result.nodes.n1.label).toBe('new');
   });
 });

@@ -1,6 +1,6 @@
 /**
  * FlowOps - Issue Duplicate Handler
- * 
+ *
  * Issue重複統合ロジック
  */
 
@@ -55,17 +55,10 @@ export function canMergeDuplicate(
 /**
  * 重複統合時のステータス変更を検証
  */
-export function validateDuplicateMergeTransition(
-  fromStatus: IssueStatus
-): boolean {
+export function validateDuplicateMergeTransition(fromStatus: IssueStatus): boolean {
   // 以下のステータスからのみ統合可能
-  const allowedFromStatuses: IssueStatus[] = [
-    'new',
-    'triage',
-    'in-progress',
-    'proposed',
-  ];
-  
+  const allowedFromStatuses: IssueStatus[] = ['new', 'triage', 'in-progress', 'proposed'];
+
   return allowedFromStatuses.includes(fromStatus);
 }
 

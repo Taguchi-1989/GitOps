@@ -3,12 +3,7 @@
  */
 
 export * from './types';
-export { 
-  generateHumanId, 
-  parseHumanId, 
-  generateBranchName, 
-  titleToSlug 
-} from './humanId';
+export { generateHumanId, parseHumanId, generateBranchName, titleToSlug } from './humanId';
 export {
   canMergeDuplicate,
   validateDuplicateMergeTransition,

@@ -1,13 +1,13 @@
 /**
  * FlowOps - Audit Repository (Prisma Implementation)
- * 
+ *
  * PrismaベースのAuditLog永続化
  */
 
 import { prisma } from './prisma';
-import { 
-  IAuditLogRepository, 
-  AuditLogRecord, 
+import {
+  IAuditLogRepository,
+  AuditLogRecord,
   AuditLogEntry,
   AuditQueryOptions,
 } from '@/core/audit';
@@ -37,19 +37,19 @@ class PrismaAuditRepository implements IAuditLogRepository {
 
   async findMany(options: AuditQueryOptions): Promise<AuditLogRecord[]> {
     const where: Record<string, unknown> = {};
-    
+
     if (options.entityType) {
       where.entityType = options.entityType;
     }
-    
+
     if (options.entityId) {
       where.entityId = options.entityId;
     }
-    
+
     if (options.action) {
       where.action = options.action;
     }
-    
+
     if (options.startDate || options.endDate) {
       where.createdAt = {};
       if (options.startDate) {
@@ -80,15 +80,15 @@ class PrismaAuditRepository implements IAuditLogRepository {
 
   async count(options: AuditQueryOptions): Promise<number> {
     const where: Record<string, unknown> = {};
-    
+
     if (options.entityType) {
       where.entityType = options.entityType;
     }
-    
+
     if (options.entityId) {
       where.entityId = options.entityId;
     }
-    
+
     if (options.action) {
       where.action = options.action;
     }

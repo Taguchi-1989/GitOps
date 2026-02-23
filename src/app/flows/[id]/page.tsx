@@ -1,6 +1,6 @@
 /**
  * FlowOps - Flow Detail Page
- * 
+ *
  * フロー詳細ページ
  */
 
@@ -14,7 +14,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const flowData = await getFlow(params.id);
-  
+
   if (!flowData) {
     return { title: 'Flow Not Found - FlowOps' };
   }
@@ -34,10 +34,7 @@ export default async function FlowDetailPage({ params }: PageProps) {
 
   return (
     <div className="h-[calc(100vh-0px)]">
-      <FlowViewerClient
-        flow={flowData.flow}
-        mermaidContent={flowData.mermaid}
-      />
+      <FlowViewerClient flow={flowData.flow} mermaidContent={flowData.mermaid} />
     </div>
   );
 }

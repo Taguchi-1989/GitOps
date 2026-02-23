@@ -1,6 +1,6 @@
 /**
  * FlowOps - Hash Utilities
- * 
+ *
  * baseHash計算用のユーティリティ
  */
 
@@ -40,11 +40,11 @@ export function hashMatch(hash1: string, hash2: string): boolean {
   if (hash1.length !== hash2.length) {
     return false;
   }
-  
+
   let result = 0;
   for (let i = 0; i < hash1.length; i++) {
     result |= hash1.charCodeAt(i) ^ hash2.charCodeAt(i);
   }
-  
+
   return result === 0;
 }

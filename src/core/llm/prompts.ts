@@ -1,6 +1,6 @@
 /**
  * FlowOps - LLM Prompts
- * 
+ *
  * OpenAI API用のプロンプトテンプレート
  */
 

@@ -61,11 +61,11 @@ export async function parseBody<T>(
   try {
     const body = await request.json();
     const result = schema.safeParse(body);
-    
+
     if (!result.success) {
       return { data: null, error: validationErrorResponse(result.error) };
     }
-    
+
     return { data: result.data, error: null };
   } catch (e) {
     return {

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { canMergeDuplicate, validateDuplicateMergeTransition, generateDuplicateMergeSummary } from './duplicate';
+import {
+  canMergeDuplicate,
+  validateDuplicateMergeTransition,
+  generateDuplicateMergeSummary,
+} from './duplicate';
 
 describe('canMergeDuplicate', () => {
   it('allows merging new issue into in-progress canonical', () => {

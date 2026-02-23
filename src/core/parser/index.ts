@@ -1,6 +1,6 @@
 /**
  * FlowOps - YAML Flow Parser
- * 
+ *
  * YAMLフロー定義ファイルの読み込みと解析
  */
 
@@ -23,32 +23,34 @@ export interface ParseResult {
  */
 export function parseFlowYaml(yamlContent: string, fileName?: string): ParseResult {
   const errors: ValidationError[] = [];
-  
+
   try {
     // YAML パース
     const rawData = parseYaml(yamlContent);
-    
+
     if (!rawData) {
       return {
         success: false,
-        errors: [{
-          code: 'INVALID_SCHEMA',
-          message: 'Failed to parse YAML: empty content',
-        }],
+        errors: [
+          {
+            code: 'INVALID_SCHEMA',
+            message: 'Failed to parse YAML: empty content',
+          },
+        ],
         rawContent: yamlContent,
       };
     }
 
     // Zodスキーマ検証
     const zodResult = FlowSchema.safeParse(rawData);
-    
+
     if (!zodResult.success) {
       const zodErrors: ValidationError[] = zodResult.error.errors.map((e: ZodIssue) => ({
         code: 'INVALID_SCHEMA' as const,
         message: e.message,
         path: e.path.join('.'),
       }));
-      
+
       return {
         success: false,
         errors: zodErrors,
@@ -83,10 +85,12 @@ export function parseFlowYaml(yamlContent: string, fileName?: string): ParseResu
   } catch (error) {
     return {
       success: false,
-      errors: [{
-        code: 'INVALID_SCHEMA',
-        message: `YAML parse error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }],
+      errors: [
+        {
+          code: 'INVALID_SCHEMA',
+          message: `YAML parse error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+      ],
       rawContent: yamlContent,
     };
   }
@@ -109,7 +113,7 @@ export function stringifyFlow(flow: Flow): string {
  */
 export function validateFlow(flow: Flow): ValidationResult {
   const errors: ValidationError[] = [];
-  
+
   // Zodスキーマ再検証
   const zodResult = FlowSchema.safeParse(flow);
   if (!zodResult.success) {
@@ -121,11 +125,11 @@ export function validateFlow(flow: Flow): ValidationResult {
       });
     });
   }
-  
+
   // 整合性チェック
   const integrityResult = validateFlowIntegrity(flow);
   errors.push(...integrityResult.errors);
-  
+
   return {
     valid: errors.length === 0,
     errors,

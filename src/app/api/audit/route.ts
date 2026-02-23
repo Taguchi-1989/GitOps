@@ -1,6 +1,6 @@
 /**
  * FlowOps - Audit Log API
- * 
+ *
  * GET /api/audit - 監査ログ照会
  */
 
@@ -24,15 +24,15 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     const where: Record<string, unknown> = {};
-    
+
     if (entityType) {
       where.entityType = entityType;
     }
-    
+
     if (entityId) {
       where.entityId = entityId;
     }
-    
+
     if (action) {
       where.action = action;
     }

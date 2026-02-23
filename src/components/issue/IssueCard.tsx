@@ -1,6 +1,6 @@
 /**
  * FlowOps - Issue Card Component
- * 
+ *
  * Issue一覧で使用するカードコンポーネント
  */
 
@@ -58,16 +58,12 @@ export function IssueCard({ issue, onClick }: IssueCardProps) {
             <span className="text-sm font-mono text-gray-500">{issue.humanId}</span>
             <StatusBadge status={issue.status} size="sm" />
           </div>
-          <h3 className="text-base font-semibold text-gray-900 truncate">
-            {issue.title}
-          </h3>
+          <h3 className="text-base font-semibold text-gray-900 truncate">{issue.title}</h3>
         </div>
       </div>
 
       {/* Description */}
-      <p className="mt-2 text-sm text-gray-600 line-clamp-2">
-        {issue.description}
-      </p>
+      <p className="mt-2 text-sm text-gray-600 line-clamp-2">{issue.description}</p>
 
       {/* Meta */}
       <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
@@ -75,17 +71,19 @@ export function IssueCard({ issue, onClick }: IssueCardProps) {
           <span className="flex items-center gap-1">
             <FileText className="w-3.5 h-3.5" />
             {issue.targetFlowId}
-            {issue.targetNodeId && <span className="text-gray-400"> &gt; {issue.targetNodeId}</span>}
+            {issue.targetNodeId && (
+              <span className="text-gray-400"> &gt; {issue.targetNodeId}</span>
+            )}
           </span>
         )}
-        
+
         {issue.branchName && (
           <span className="flex items-center gap-1">
             <GitBranch className="w-3.5 h-3.5" />
             <span className="font-mono">{issue.branchName}</span>
           </span>
         )}
-        
+
         <span className="flex items-center gap-1 ml-auto">
           <Clock className="w-3.5 h-3.5" />
           {formatDate(issue.updatedAt)}

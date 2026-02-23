@@ -1,6 +1,6 @@
 /**
  * FlowOps - Flow to Mermaid Converter
- * 
+ *
  * FlowオブジェクトをMermaid記法に変換
  */
 
@@ -48,9 +48,7 @@ function getNodeClass(type: NodeType): string {
  * ラベルをエスケープ（Mermaid用）
  */
 function escapeLabel(label: string): string {
-  return label
-    .replace(/"/g, '#quot;')
-    .replace(/\n/g, '<br/>');
+  return label.replace(/"/g, '#quot;').replace(/\n/g, '<br/>');
 }
 
 export interface MermaidOptions {
@@ -85,10 +83,10 @@ export function flowToMermaid(flow: Flow, options: MermaidOptions = {}): string 
     const shape = getNodeShape(node.type);
     const prefixedId = `${nodeIdPrefix}${nodeId}`;
     const label = escapeLabel(node.label);
-    
+
     // ノード定義
     lines.push(`  ${prefixedId}${shape.open}"${label}"${shape.close}`);
-    
+
     // クリックハンドラー（オプション）
     if (includeClickHandlers) {
       lines.push(`  click ${prefixedId} callback "${nodeId}"`);
@@ -101,7 +99,7 @@ export function flowToMermaid(flow: Flow, options: MermaidOptions = {}): string 
   for (const [edgeId, edge] of Object.entries(flow.edges)) {
     const fromId = `${nodeIdPrefix}${edge.from}`;
     const toId = `${nodeIdPrefix}${edge.to}`;
-    
+
     if (edge.label) {
       // ラベル付きエッジ
       lines.push(`  ${fromId} -->|"${escapeLabel(edge.label)}"| ${toId}`);

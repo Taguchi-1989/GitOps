@@ -1,6 +1,6 @@
 /**
  * FlowOps - Human ID Generator
- * 
+ *
  * 表示用のIssue ID（ISS-001形式）を生成
  */
 
@@ -10,11 +10,7 @@
  * @param sequence シーケンス番号
  * @param padding パディング桁数（デフォルト: 3）
  */
-export function generateHumanId(
-  sequence: number,
-  prefix = 'ISS',
-  padding = 3
-): string {
+export function generateHumanId(sequence: number, prefix = 'ISS', padding = 3): string {
   const paddedNumber = String(sequence).padStart(padding, '0');
   return `${prefix}-${paddedNumber}`;
 }
@@ -28,7 +24,7 @@ export function parseHumanId(humanId: string): { prefix: string; sequence: numbe
   if (!match) {
     return null;
   }
-  
+
   return {
     prefix: match[1],
     sequence: parseInt(match[2], 10),
@@ -48,7 +44,7 @@ export function generateBranchName(issueHumanId: string, slug: string): string {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .substring(0, 30);
-  
+
   return `cr/${issueHumanId}-${sanitizedSlug}`;
 }
 
@@ -58,11 +54,13 @@ export function generateBranchName(issueHumanId: string, slug: string): string {
 export function titleToSlug(title: string): string {
   // 日本語をローマ字に変換する代わりに、英数字のみ抽出
   // 実際のプロダクションではwanakaなどのライブラリを使用
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .substring(0, 30) || 'update';
+  return (
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 30) || 'update'
+  );
 }

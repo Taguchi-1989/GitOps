@@ -1,14 +1,14 @@
 /**
  * FlowOps - Merge Duplicate API
- * 
+ *
  * POST /api/issues/[id]/merge-duplicate - 重複Issueを統合
  */
 
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { 
-  successResponse, 
+import {
+  successResponse,
   notFoundResponse,
   errorResponse,
   internalErrorResponse,
@@ -57,11 +57,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // 自分自身への統合を防止
     if (duplicate.id === canonical.id) {
-      return errorResponse(
-        API_ERROR_CODES.VALIDATION_ERROR,
-        'Cannot merge issue into itself',
-        400
-      );
+      return errorResponse(API_ERROR_CODES.VALIDATION_ERROR, 'Cannot merge issue into itself', 400);
     }
 
     // 統合可否をチェック
@@ -84,12 +80,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (duplicate.branchName) {
       const hasCommits = await git.hasCommits(duplicate.branchName);
-      
+
       if (hasCommits && canonical.branchName) {
         // 統合先にブランチがあればcherry-pick
         cherryPickedCommits = await git.cherryPick(duplicate.branchName, canonical.branchName);
       }
-      
+
       // 重複側のブランチを削除
       await git.deleteBranch(duplicate.branchName, true);
     }

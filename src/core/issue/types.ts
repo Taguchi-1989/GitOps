@@ -1,6 +1,6 @@
 /**
  * FlowOps - Issue Types
- * 
+ *
  * Issue管理関連の型定義
  */
 
@@ -16,7 +16,7 @@ export const IssueStatusSchema = z.enum([
   'proposed',
   'merged',
   'rejected',
-  'merged-duplicate'
+  'merged-duplicate',
 ]);
 
 export type IssueStatus = z.infer<typeof IssueStatusSchema>;
@@ -53,11 +53,7 @@ export type MergeDuplicateInput = z.infer<typeof MergeDuplicateSchema>;
 // --------------------------------------------------------
 // Evidence Types
 // --------------------------------------------------------
-export const EvidenceTypeSchema = z.enum([
-  'screenshot',
-  'link',
-  'text_log'
-]);
+export const EvidenceTypeSchema = z.enum(['screenshot', 'link', 'text_log']);
 
 export type EvidenceType = z.infer<typeof EvidenceTypeSchema>;
 

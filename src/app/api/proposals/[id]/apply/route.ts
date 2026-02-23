@@ -1,13 +1,13 @@
 /**
  * FlowOps - Apply Proposal API
- * 
+ *
  * POST /api/proposals/[id]/apply - 提案を適用
  */
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { 
-  successResponse, 
+import {
+  successResponse,
   notFoundResponse,
   errorResponse,
   internalErrorResponse,
@@ -50,11 +50,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // 対象フローの取得
     if (!proposal.targetFlowId) {
-      return errorResponse(
-        API_ERROR_CODES.VALIDATION_ERROR,
-        'Proposal has no target flow',
-        400
-      );
+      return errorResponse(API_ERROR_CODES.VALIDATION_ERROR, 'Proposal has no target flow', 400);
     }
 
     const flowData = await getFlow(proposal.targetFlowId);

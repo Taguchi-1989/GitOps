@@ -1,13 +1,13 @@
 /**
  * FlowOps - Generate Proposal API
- * 
+ *
  * POST /api/issues/[id]/proposals/generate - LLMで提案を生成
  */
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { 
-  successResponse, 
+import {
+  successResponse,
   notFoundResponse,
   errorResponse,
   internalErrorResponse,
@@ -82,11 +82,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     } catch (error) {
       if (error instanceof LLMError) {
-        return errorResponse(
-          API_ERROR_CODES.LLM_ERROR,
-          `LLM error: ${error.message}`,
-          500
-        );
+        return errorResponse(API_ERROR_CODES.LLM_ERROR, `LLM error: ${error.message}`, 500);
       }
       throw error;
     }

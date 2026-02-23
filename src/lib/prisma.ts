@@ -1,6 +1,6 @@
 /**
  * FlowOps - Prisma Client
- * 
+ *
  * PrismaClient のシングルトンインスタンス
  */
 

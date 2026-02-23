@@ -14,18 +14,12 @@ export const metadata: Metadata = {
   description: '業務フローをコード（YAML）として管理するGitOpsプラットフォーム',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
       <body className={inter.className}>
         <ToastProvider>
-          <MainLayout>
-            {children}
-          </MainLayout>
+          <MainLayout>{children}</MainLayout>
         </ToastProvider>
       </body>
     </html>

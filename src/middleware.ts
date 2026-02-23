@@ -54,11 +54,7 @@ export default auth(async function middleware(request) {
     const isLlmRoute = pathname.includes('/proposals/generate');
     const isAuthRoute = pathname.startsWith('/api/auth');
 
-    const config = isAuthRoute
-      ? RATE_LIMITS.auth
-      : isLlmRoute
-        ? RATE_LIMITS.llm
-        : RATE_LIMITS.api;
+    const config = isAuthRoute ? RATE_LIMITS.auth : isLlmRoute ? RATE_LIMITS.llm : RATE_LIMITS.api;
 
     const result = checkRateLimit(`${clientIp}:${isLlmRoute ? 'llm' : 'api'}`, config);
 

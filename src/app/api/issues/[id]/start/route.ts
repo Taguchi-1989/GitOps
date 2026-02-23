@@ -1,13 +1,13 @@
 /**
  * FlowOps - Issue Start API
- * 
+ *
  * POST /api/issues/[id]/start - 作業開始（ブランチ作成）
  */
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { 
-  successResponse, 
+import {
+  successResponse,
   notFoundResponse,
   errorResponse,
   internalErrorResponse,
