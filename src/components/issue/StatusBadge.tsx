@@ -1,6 +1,6 @@
 /**
  * FlowOps - Status Badge Component
- * 
+ *
  * Issueステータスを色分けして表示
  */
 
@@ -13,45 +13,48 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-const statusConfig: Record<IssueStatus, { label: string; color: string; bg: string; emoji: string }> = {
-  'new': {
-    label: 'New',
+const statusConfig: Record<
+  IssueStatus,
+  { label: string; color: string; bg: string; emoji: string }
+> = {
+  new: {
+    label: '起票',
     color: 'text-red-700',
     bg: 'bg-red-100',
     emoji: '🔴',
   },
-  'triage': {
-    label: 'Triage',
+  triage: {
+    label: 'トリアージ',
     color: 'text-orange-700',
     bg: 'bg-orange-100',
     emoji: '🟠',
   },
   'in-progress': {
-    label: 'In Progress',
+    label: '作業中',
     color: 'text-blue-700',
     bg: 'bg-blue-100',
     emoji: '🔵',
   },
-  'proposed': {
-    label: 'Proposed',
+  proposed: {
+    label: '提案済',
     color: 'text-yellow-700',
     bg: 'bg-yellow-100',
     emoji: '🟡',
   },
-  'merged': {
-    label: 'Merged',
+  merged: {
+    label: '完了',
     color: 'text-green-700',
     bg: 'bg-green-100',
     emoji: '🟢',
   },
-  'rejected': {
-    label: 'Rejected',
+  rejected: {
+    label: '却下',
     color: 'text-gray-700',
     bg: 'bg-gray-100',
     emoji: '⚫',
   },
   'merged-duplicate': {
-    label: 'Duplicate',
+    label: '重複',
     color: 'text-purple-700',
     bg: 'bg-purple-100',
     emoji: '🟣',
@@ -66,7 +69,7 @@ const sizeClasses = {
 
 export function StatusBadge({ status, size = 'md', className = '' }: StatusBadgeProps) {
   const config = statusConfig[status];
-  
+
   return (
     <span
       className={`
@@ -82,7 +85,7 @@ export function StatusBadge({ status, size = 'md', className = '' }: StatusBadge
 
 export function StatusDot({ status, className = '' }: { status: IssueStatus; className?: string }) {
   const config = statusConfig[status];
-  
+
   return (
     <span
       className={`inline-block w-2 h-2 rounded-full ${config.bg.replace('100', '500')} ${className}`}

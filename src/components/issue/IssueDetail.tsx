@@ -1,25 +1,31 @@
 /**
  * FlowOps - Issue Detail Component
- * 
+ *
  * Issue詳細画面のメインコンポーネント
+ * - ステータスライフサイクルの可視化
+ * - 日本語のアクションボタン
+ * - コンテキストヘルプ
  */
 
 'use client';
 
 import React, { useState } from 'react';
 import { StatusBadge } from './StatusBadge';
+import { StatusLifecycle } from './StatusLifecycle';
 import { IssueCardData } from './IssueCard';
 import { ProposalCard, ProposalData } from './ProposalCard';
-import { 
-  ArrowLeft, 
-  GitBranch, 
-  FileText, 
-  Clock, 
-  Play, 
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import {
+  ArrowLeft,
+  GitBranch,
+  FileText,
+  Clock,
+  Play,
   Sparkles,
   CheckCircle,
   XCircle,
   History,
+  Loader2,
 } from 'lucide-react';
 
 interface IssueDetailProps {
@@ -72,10 +78,10 @@ export function IssueDetail({
             className="flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Issues
+            Issue一覧に戻る
           </button>
         )}
-        
+
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -84,9 +90,9 @@ export function IssueDetail({
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{issue.title}</h1>
           </div>
-          
+
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             {canStart && onStart && (
               <button
                 onClick={onStart}
@@ -97,12 +103,20 @@ export function IssueDetail({
                   hover:bg-blue-700 disabled:opacity-50
                   transition-colors
                 "
+                title="Gitブランチを作成して作業を開始します"
               >
-                <Play className="w-4 h-4" />
-                Start Work
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                <span>
+                  <span className="font-medium">作業を開始</span>
+                  <span className="block text-xs text-blue-200">ブランチを作成</span>
+                </span>
               </button>
             )}
-            
+
             {canGenerateProposal && onGenerateProposal && (
               <button
                 onClick={onGenerateProposal}
@@ -113,12 +127,20 @@ export function IssueDetail({
                   hover:bg-purple-700 disabled:opacity-50
                   transition-colors
                 "
+                title="AIがフロー定義の改善案を自動生成します"
               >
-                <Sparkles className="w-4 h-4" />
-                Generate Proposal
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                <span>
+                  <span className="font-medium">AIで改善案を生成</span>
+                  <span className="block text-xs text-purple-200">LLMが変更を提案</span>
+                </span>
               </button>
             )}
-            
+
             {canMergeOrReject && (
               <>
                 {onMergeClose && (
@@ -131,9 +153,17 @@ export function IssueDetail({
                       hover:bg-green-700 disabled:opacity-50
                       transition-colors
                     "
+                    title="変更をメインブランチに統合してIssueを完了にします"
                   >
-                    <CheckCircle className="w-4 h-4" />
-                    Merge & Close
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}
+                    <span>
+                      <span className="font-medium">マージして完了</span>
+                      <span className="block text-xs text-green-200">メインに統合</span>
+                    </span>
                   </button>
                 )}
                 {onReject && (
@@ -146,9 +176,14 @@ export function IssueDetail({
                       hover:bg-gray-700 disabled:opacity-50
                       transition-colors
                     "
+                    title="この提案を却下します"
                   >
-                    <XCircle className="w-4 h-4" />
-                    Reject
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <XCircle className="w-4 h-4" />
+                    )}
+                    却下
                   </button>
                 )}
               </>
@@ -157,33 +192,39 @@ export function IssueDetail({
         </div>
       </div>
 
+      {/* Status Lifecycle */}
+      <StatusLifecycle currentStatus={issue.status} className="mb-6" />
+
       {/* Meta Info */}
       <div className="flex flex-wrap gap-4 mb-6 text-sm text-gray-600">
         {issue.targetFlowId && (
           <span className="flex items-center gap-1.5">
             <FileText className="w-4 h-4" />
-            <span>Flow: <span className="font-medium">{issue.targetFlowId}</span></span>
+            <span>
+              対象フロー: <span className="font-medium">{issue.targetFlowId}</span>
+            </span>
             {issue.targetNodeId && (
               <span className="text-gray-400"> &gt; {issue.targetNodeId}</span>
             )}
           </span>
         )}
-        
+
         {issue.branchName && (
           <span className="flex items-center gap-1.5">
             <GitBranch className="w-4 h-4" />
             <span className="font-mono">{issue.branchName}</span>
+            <HelpTooltip content="このIssueの変更はこのGitブランチで管理されています" />
           </span>
         )}
-        
+
         <span className="flex items-center gap-1.5">
           <Clock className="w-4 h-4" />
-          Created: {formatDate(issue.createdAt)}
+          作成: {formatDate(issue.createdAt)}
         </span>
-        
+
         <span className="flex items-center gap-1.5">
           <Clock className="w-4 h-4" />
-          Updated: {formatDate(issue.updatedAt)}
+          更新: {formatDate(issue.updatedAt)}
         </span>
       </div>
 
@@ -194,30 +235,34 @@ export function IssueDetail({
             onClick={() => setActiveTab('details')}
             className={`
               px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
-              ${activeTab === 'details'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ${
+                activeTab === 'details'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
               }
             `}
           >
-            Details
+            詳細
           </button>
           <button
             onClick={() => setActiveTab('proposals')}
             className={`
               flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
-              ${activeTab === 'proposals'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ${
+                activeTab === 'proposals'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
               }
             `}
           >
-            Proposals
+            改善案
             {issue.proposals && issue.proposals.length > 0 && (
-              <span className={`
+              <span
+                className={`
                 px-2 py-0.5 rounded-full text-xs
                 ${activeTab === 'proposals' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}
-              `}>
+              `}
+              >
                 {issue.proposals.length}
               </span>
             )}
@@ -226,14 +271,15 @@ export function IssueDetail({
             onClick={() => setActiveTab('history')}
             className={`
               flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
-              ${activeTab === 'history'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ${
+                activeTab === 'history'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
               }
             `}
           >
             <History className="w-4 h-4" />
-            History
+            履歴
           </button>
         </nav>
       </div>
@@ -241,7 +287,7 @@ export function IssueDetail({
       {/* Tab Content */}
       {activeTab === 'details' && (
         <div className="prose prose-gray max-w-none">
-          <h3>Description</h3>
+          <h3>説明</h3>
           <p className="whitespace-pre-wrap">{issue.description}</p>
         </div>
       )}
@@ -258,15 +304,27 @@ export function IssueDetail({
             ))
           ) : (
             <div className="text-center py-12 text-gray-500">
-              No proposals yet
-              {canGenerateProposal && onGenerateProposal && (
-                <button
-                  onClick={onGenerateProposal}
-                  className="block mx-auto mt-2 text-purple-600 hover:text-purple-700"
-                >
-                  Generate your first proposal
-                </button>
-              )}
+              <Sparkles className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+              <p className="font-medium">まだ改善案がありません</p>
+              {canGenerateProposal && onGenerateProposal ? (
+                <div className="mt-3">
+                  <p className="text-sm text-gray-400 mb-2">
+                    AIがフロー定義を分析し、この課題に対する改善案を自動生成します
+                  </p>
+                  <button
+                    onClick={onGenerateProposal}
+                    disabled={isLoading}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    AIで改善案を生成
+                  </button>
+                </div>
+              ) : issue.status === 'new' || issue.status === 'triage' ? (
+                <p className="text-sm text-gray-400 mt-2">
+                  まず「作業を開始」を押してから、改善案を生成できます
+                </p>
+              ) : null}
             </div>
           )}
         </div>
@@ -274,7 +332,8 @@ export function IssueDetail({
 
       {activeTab === 'history' && (
         <div className="text-center py-12 text-gray-500">
-          Audit log will be displayed here
+          <History className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+          <p>監査ログがここに表示されます</p>
         </div>
       )}
     </div>
