@@ -1,20 +1,18 @@
 /**
  * FlowOps - Flow Integrity Validator
- * 
+ *
  * Zodスキーマでは検証できない参照整合性をチェック
  */
 
 import { Flow, Node, Edge, ValidationError, ValidationResult, Dictionary } from './schema';
+import { logger } from '@/lib/logger';
 
 /**
  * フローの参照整合性をチェック
  * @param flow Flowオブジェクト
  * @param dictionary オプション：role/system辞書
  */
-export function validateFlowIntegrity(
-  flow: Flow,
-  dictionary?: Dictionary
-): ValidationResult {
+export function validateFlowIntegrity(flow: Flow, dictionary?: Dictionary): ValidationResult {
   const errors: ValidationError[] = [];
 
   // 1. ノードIDの存在確認（Recordなので基本的にOK）
@@ -94,7 +92,7 @@ export function validateFlowIntegrity(
     // start/endノード以外で接続がないものは警告
     if (!connectedNodes.has(nodeId) && node.type !== 'start' && node.type !== 'end') {
       // 警告としてログ出力（エラーにはしない）
-      console.warn(`[Validator] Isolated node detected: ${nodeId}`);
+      logger.warn({ nodeId }, 'Isolated node detected');
     }
   }
 
@@ -124,7 +122,7 @@ export function validateFlowIntegrity(
     for (const nodeId of nodeIds) {
       if (!reachable.has(nodeId)) {
         // 警告としてログ出力（エラーにはしない）
-        console.warn(`[Validator] Unreachable node from start: ${nodeId}`);
+        logger.warn({ nodeId }, 'Unreachable node from start');
       }
     }
   }

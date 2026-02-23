@@ -1,6 +1,6 @@
 /**
  * FlowOps - Issue Detail API
- * 
+ *
  * GET /api/issues/[id] - Issue詳細取得
  * PATCH /api/issues/[id] - Issue更新
  * DELETE /api/issues/[id] - Issue削除
@@ -8,11 +8,11 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { 
-  successResponse, 
+import {
+  successResponse,
   notFoundResponse,
-  internalErrorResponse, 
-  parseBody 
+  internalErrorResponse,
+  parseBody,
 } from '@/lib/api-utils';
 import { UpdateIssueSchema } from '@/core/issue';
 import { auditLog } from '@/core/audit';
@@ -28,7 +28,7 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const issue = await prisma.issue.findUnique({
-      where: { id: params.id },
+      where: { id: params.id, deletedAt: null },
       include: {
         proposals: {
           orderBy: { createdAt: 'desc' },
@@ -72,7 +72,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await parseBody(request, UpdateIssueSchema);
     if (error) return error;
 
-    const before = { title: existing.title, description: existing.description, status: existing.status };
+    const before = {
+      title: existing.title,
+      description: existing.description,
+      status: existing.status,
+    };
 
     const issue = await prisma.issue.update({
       where: { id: params.id },
@@ -111,9 +115,18 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return notFoundResponse('Issue');
     }
 
-    // 関連データも含めて削除（Prismaのカスケード設定による）
-    await prisma.issue.delete({
+    // ソフトデリート（復旧可能）
+    await prisma.issue.update({
       where: { id: params.id },
+      data: { deletedAt: new Date() },
+    });
+
+    // 監査ログ
+    await auditLog.record({
+      action: 'ISSUE_DELETE',
+      entityType: 'Issue',
+      entityId: existing.id,
+      payload: { humanId: existing.humanId },
     });
 
     return successResponse({ deleted: true });

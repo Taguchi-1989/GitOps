@@ -5,7 +5,7 @@
  * Single Source of Truth (SSOT) としてのYAMLを厳密に管理
  */
 
-import { z } from "zod";
+import { z } from 'zod';
 
 // --------------------------------------------------------
 // Basic ID Types
@@ -21,13 +21,7 @@ export type EdgeID = z.infer<typeof EdgeIDSchema>;
 // --------------------------------------------------------
 // Node Types
 // --------------------------------------------------------
-export const NodeTypeSchema = z.enum([
-  "start",
-  "end",
-  "process",
-  "decision",
-  "database",
-]);
+export const NodeTypeSchema = z.enum(['start', 'end', 'process', 'decision', 'database']);
 
 export type NodeType = z.infer<typeof NodeTypeSchema>;
 
@@ -40,7 +34,7 @@ export const NodeSchema = z.object({
   label: z.string().min(1),
   role: z.string().optional(), // roles.yaml のキーと一致すること
   system: z.string().optional(), // systems.yaml のキーと一致すること
-  meta: z.record(z.any()).optional(),
+  meta: z.record(z.unknown()).optional(),
 });
 
 export type Node = z.infer<typeof NodeSchema>;
@@ -61,7 +55,7 @@ export type Edge = z.infer<typeof EdgeSchema>;
 // --------------------------------------------------------
 // Layer Definition
 // --------------------------------------------------------
-export const LayerSchema = z.enum(["L0", "L1", "L2"]);
+export const LayerSchema = z.enum(['L0', 'L1', 'L2']);
 export type Layer = z.infer<typeof LayerSchema>;
 
 /**
@@ -89,13 +83,13 @@ export type Flow = z.infer<typeof FlowSchema>;
 // Validation Error Types
 // --------------------------------------------------------
 export const ValidationErrorCodeSchema = z.enum([
-  "INVALID_SCHEMA", // Zodスキーマ違反
-  "ID_MISMATCH", // flow.idとファイル名不一致
-  "DUPLICATE_NODE_ID", // ノードIDの重複
-  "MISSING_NODE_REF", // edgeが参照するnodeが存在しない
-  "MISSING_START_END", // start/endノードがない
-  "UNKNOWN_ROLE", // 辞書にないrole
-  "UNKNOWN_SYSTEM", // 辞書にないsystem
+  'INVALID_SCHEMA', // Zodスキーマ違反
+  'ID_MISMATCH', // flow.idとファイル名不一致
+  'DUPLICATE_NODE_ID', // ノードIDの重複
+  'MISSING_NODE_REF', // edgeが参照するnodeが存在しない
+  'MISSING_START_END', // start/endノードがない
+  'UNKNOWN_ROLE', // 辞書にないrole
+  'UNKNOWN_SYSTEM', // 辞書にないsystem
 ]);
 
 export type ValidationErrorCode = z.infer<typeof ValidationErrorCodeSchema>;

@@ -6,7 +6,7 @@
     "react/no-unescaped-entities": "off",
     "react-hooks/exhaustive-deps": "warn",
     "prefer-const": "warn",
-    "no-console": ["warn", { "allow": ["warn", "error", "log"] }]
+    "no-console": ["warn", { "allow": ["warn", "error"] }]
   },
   "ignorePatterns": [
     "node_modules/",

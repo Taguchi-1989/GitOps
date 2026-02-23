@@ -65,13 +65,15 @@ model Issue {
   proposals Proposal[]
   evidences Evidence[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // ソフトデリート
 
   // Indexes for better query performance
   @@index([status])
   @@index([targetFlowId])
   @@index([canonicalId])
+  @@index([deletedAt])
 }
 
 // --------------------------------------------------------

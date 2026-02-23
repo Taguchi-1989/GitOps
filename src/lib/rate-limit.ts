@@ -62,6 +62,11 @@ export function checkRateLimit(
   };
 }
 
+/** テスト用: ストアをクリア */
+export function _resetStore(): void {
+  store.clear();
+}
+
 /** プリセット設定 */
 export const RATE_LIMITS = {
   /** 通常API: 60req/min */

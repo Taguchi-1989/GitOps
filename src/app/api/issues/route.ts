@@ -1,17 +1,13 @@
 /**
  * FlowOps - Issues API
- * 
+ *
  * GET /api/issues - Issue一覧取得
  * POST /api/issues - Issue作成
  */
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { 
-  successResponse, 
-  internalErrorResponse, 
-  parseBody 
-} from '@/lib/api-utils';
+import { successResponse, internalErrorResponse, parseBody } from '@/lib/api-utils';
 import { CreateIssueSchema } from '@/core/issue';
 import { generateHumanId } from '@/core/issue/humanId';
 import { auditLog } from '@/core/audit';
@@ -28,12 +24,12 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    const where: Record<string, unknown> = {};
-    
+    const where: Record<string, unknown> = { deletedAt: null };
+
     if (status) {
       where.status = status;
     }
-    
+
     if (targetFlowId) {
       where.targetFlowId = targetFlowId;
     }
@@ -81,7 +77,7 @@ export async function POST(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
       select: { humanId: true },
     });
-    
+
     let nextSequence = 1;
     if (lastIssue) {
       const match = lastIssue.humanId.match(/ISS-(\d+)/);
@@ -89,7 +85,7 @@ export async function POST(request: NextRequest) {
         nextSequence = parseInt(match[1], 10) + 1;
       }
     }
-    
+
     const humanId = generateHumanId(nextSequence);
 
     // Issue作成

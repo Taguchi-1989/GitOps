@@ -1,11 +1,12 @@
 /**
  * FlowOps - Issues List Page
- * 
+ *
  * Issue一覧ページ
  */
 
 import { prisma } from '@/lib/prisma';
 import { IssuesListClient } from './IssuesListClient';
+import { IssueStatus } from '@/core/issue';
 
 export const metadata = {
   title: 'Issues - FlowOps',
@@ -27,7 +28,7 @@ async function getIssues() {
     humanId: issue.humanId,
     title: issue.title,
     description: issue.description,
-    status: issue.status as any,
+    status: issue.status as IssueStatus,
     targetFlowId: issue.targetFlowId,
     targetNodeId: issue.targetNodeId,
     branchName: issue.branchName,

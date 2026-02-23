@@ -1,6 +1,6 @@
 /**
  * FlowOps - Flow Viewer Client Component
- * 
+ *
  * クライアントサイドのフロービューワー
  */
 
@@ -23,7 +23,7 @@ export function FlowViewerClient({ flow, mermaidContent }: FlowViewerClientProps
   };
 
   const handleNodeClick = (nodeId: string) => {
-    console.log('Node clicked:', nodeId);
+    // TODO: ノード選択時のアクション（詳細パネル表示など）
   };
 
   const handleCreateIssue = (nodeId?: string) => {

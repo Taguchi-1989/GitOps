@@ -1,12 +1,13 @@
 /**
  * FlowOps - Issue Detail Page
- * 
+ *
  * Issue詳細ページ
  */
 
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { IssueDetailClient } from './IssueDetailClient';
+import { IssueStatus } from '@/core/issue';
 
 interface PageProps {
   params: { id: string };
@@ -35,7 +36,7 @@ async function getIssue(id: string) {
     humanId: issue.humanId,
     title: issue.title,
     description: issue.description,
-    status: issue.status as any,
+    status: issue.status as IssueStatus,
     targetFlowId: issue.targetFlowId,
     targetNodeId: issue.targetNodeId,
     branchName: issue.branchName,
@@ -58,7 +59,7 @@ async function getIssue(id: string) {
 
 export async function generateMetadata({ params }: PageProps) {
   const issue = await getIssue(params.id);
-  
+
   if (!issue) {
     return { title: 'Issue Not Found - FlowOps' };
   }

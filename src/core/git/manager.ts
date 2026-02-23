@@ -1,12 +1,13 @@
 /**
  * FlowOps - Git Manager
- * 
+ *
  * simple-git を使用したGit操作のラッパー
  * すべての操作はロックを取得してから実行
  */
 
 import simpleGit, { SimpleGit, StatusResult } from 'simple-git';
 import { gitLock, LockHandle } from './lock';
+import { logger } from '@/lib/logger';
 
 export interface GitStatus {
   branch: string;
@@ -44,7 +45,7 @@ class GitManager {
    */
   async getStatus(): Promise<GitStatus> {
     const status: StatusResult = await this.git.status();
-    
+
     return {
       branch: status.current || 'unknown',
       ahead: status.ahead,
@@ -85,11 +86,11 @@ class GitManager {
     try {
       // 現在のブランチを記録
       const beforeHead = await this.getHead();
-      console.log(`[GitManager] Creating branch: ${branchName} from ${beforeHead}`);
-      
+      logger.info({ branch: branchName, from: beforeHead }, 'Creating branch');
+
       await this.git.checkoutLocalBranch(branchName);
-      
-      console.log(`[GitManager] Branch created and checked out: ${branchName}`);
+
+      logger.info({ branch: branchName }, 'Branch created and checked out');
     } finally {
       lock.release();
     }
@@ -103,7 +104,7 @@ class GitManager {
     const lock = await gitLock.acquire(`checkout:${branchName}`);
     try {
       await this.git.checkout(branchName);
-      console.log(`[GitManager] Checked out: ${branchName}`);
+      logger.info({ branch: branchName }, 'Checked out branch');
     } finally {
       lock.release();
     }
@@ -115,7 +116,7 @@ class GitManager {
    */
   async add(files: string[]): Promise<void> {
     await this.git.add(files);
-    console.log(`[GitManager] Staged files: ${files.join(', ')}`);
+    logger.info({ files }, 'Staged files');
   }
 
   /**
@@ -129,11 +130,11 @@ class GitManager {
       if (files && files.length > 0) {
         await this.git.add(files);
       }
-      
+
       const result = await this.git.commit(message);
-      
-      console.log(`[GitManager] Committed: ${result.commit} - ${message}`);
-      
+
+      logger.info({ hash: result.commit, message }, 'Committed');
+
       return {
         hash: result.commit,
         message,
@@ -154,12 +155,12 @@ class GitManager {
     try {
       // ファイルをステージング
       await this.git.add(files);
-      
+
       // コミット
       const result = await this.git.commit(message);
-      
-      console.log(`[GitManager] Committed changes: ${result.commit}`);
-      
+
+      logger.info({ hash: result.commit }, 'Committed changes');
+
       return {
         hash: result.commit,
         message,
@@ -178,7 +179,7 @@ class GitManager {
     const lock = await gitLock.acquire(`merge:${branchName}`);
     try {
       await this.git.merge([branchName]);
-      console.log(`[GitManager] Merged branch: ${branchName}`);
+      logger.info({ branch: branchName }, 'Merged branch');
     } finally {
       lock.release();
     }
@@ -193,14 +194,14 @@ class GitManager {
     try {
       // mainにチェックアウト
       await this.git.checkout('main');
-      
+
       // マージ
       await this.git.merge([branchName]);
-      
+
       // ブランチ削除
       await this.git.deleteLocalBranch(branchName);
-      
-      console.log(`[GitManager] Merged and closed branch: ${branchName}`);
+
+      logger.info({ branch: branchName }, 'Merged and closed branch');
     } finally {
       lock.release();
     }
@@ -219,7 +220,7 @@ class GitManager {
       } else {
         await this.git.deleteLocalBranch(branchName);
       }
-      console.log(`[GitManager] Deleted branch: ${branchName}`);
+      logger.info({ branch: branchName }, 'Deleted branch');
     } finally {
       lock.release();
     }
@@ -250,21 +251,21 @@ class GitManager {
       // 取得元ブランチのコミットを取得
       const log = await this.git.log([`main..${fromBranch}`]);
       const commits = log.all.map(c => c.hash);
-      
+
       if (commits.length === 0) {
-        console.log(`[GitManager] No commits to cherry-pick from ${fromBranch}`);
+        logger.info({ branch: fromBranch }, 'No commits to cherry-pick');
         return [];
       }
-      
+
       // 適用先ブランチにチェックアウト
       await this.git.checkout(toBranch);
-      
+
       // 各コミットをcherry-pick（古い順に）
       for (const hash of commits.reverse()) {
         await this.git.raw(['cherry-pick', hash]);
-        console.log(`[GitManager] Cherry-picked: ${hash}`);
+        logger.info({ hash }, 'Cherry-picked commit');
       }
-      
+
       return commits;
     } finally {
       lock.release();
@@ -276,7 +277,7 @@ class GitManager {
    */
   async init(): Promise<void> {
     await this.git.init();
-    console.log(`[GitManager] Initialized repository at: ${this.repoPath}`);
+    logger.info({ path: this.repoPath }, 'Initialized repository');
   }
 
   /**
