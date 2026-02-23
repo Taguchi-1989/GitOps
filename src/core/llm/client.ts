@@ -69,9 +69,13 @@ class LLMClient {
         this.validateProposalConstraints(output, params.roles, params.systems);
         return output;
       } catch (error) {
-        const llmError = error instanceof LLMError
-          ? error
-          : new LLMError('API_ERROR', `LLM API error: ${error instanceof Error ? error.message : error}`);
+        const llmError =
+          error instanceof LLMError
+            ? error
+            : new LLMError(
+                'API_ERROR',
+                `LLM API error: ${error instanceof Error ? error.message : error}`
+              );
 
         // API_ERROR以外はリトライしない
         if (llmError.code !== 'API_ERROR' || attempt === maxRetries) {
@@ -79,7 +83,8 @@ class LLMClient {
         }
 
         lastError = llmError;
-        const delay = 1000 * Math.pow(2, attempt);
+        // ジッター付き指数バックオフ（thundering herd防止）
+        const delay = 1000 * Math.pow(2, attempt) * (0.5 + Math.random() * 0.5);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -151,7 +156,10 @@ class LLMClient {
         }
       }
 
-      throw new LLMError('PARSE_ERROR', `Failed to extract JSON from LLM response: ${content.substring(0, 200)}`);
+      throw new LLMError(
+        'PARSE_ERROR',
+        `Failed to extract JSON from LLM response: ${content.substring(0, 200)}`
+      );
     }
   }
 
@@ -194,12 +202,27 @@ class LLMClient {
 /**
  * プロバイダー別のデフォルト設定
  */
-const PROVIDER_DEFAULTS: Record<string, { baseURL: string; model: string; supportsJsonMode: boolean }> = {
-  openai:    { baseURL: 'https://api.openai.com/v1',           model: 'gpt-4o',              supportsJsonMode: true },
-  anthropic: { baseURL: 'https://api.anthropic.com/v1',        model: 'claude-sonnet-4-5-20250929', supportsJsonMode: false },
-  gemini:    { baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.0-flash', supportsJsonMode: true },
-  groq:      { baseURL: 'https://api.groq.com/openai/v1',     model: 'llama-3.3-70b-versatile', supportsJsonMode: true },
-  ollama:    { baseURL: 'http://localhost:11434/v1',           model: 'llama3.2',            supportsJsonMode: true },
+const PROVIDER_DEFAULTS: Record<
+  string,
+  { baseURL: string; model: string; supportsJsonMode: boolean }
+> = {
+  openai: { baseURL: 'https://api.openai.com/v1', model: 'gpt-4o', supportsJsonMode: true },
+  anthropic: {
+    baseURL: 'https://api.anthropic.com/v1',
+    model: 'claude-sonnet-4-5-20250929',
+    supportsJsonMode: false,
+  },
+  gemini: {
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    model: 'gemini-2.0-flash',
+    supportsJsonMode: true,
+  },
+  groq: {
+    baseURL: 'https://api.groq.com/openai/v1',
+    model: 'llama-3.3-70b-versatile',
+    supportsJsonMode: true,
+  },
+  ollama: { baseURL: 'http://localhost:11434/v1', model: 'llama3.2', supportsJsonMode: true },
 };
 
 /**
@@ -219,28 +242,26 @@ export function createLLMClient(config?: Partial<LLMClientConfig>): LLMClient {
   const provider = process.env.LLM_PROVIDER || 'openai';
   const defaults = PROVIDER_DEFAULTS[provider];
 
-  const apiKey = config?.apiKey
-    || process.env.LLM_API_KEY
-    || process.env.OPENAI_API_KEY;
+  const apiKey = config?.apiKey || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     throw new Error('LLM_API_KEY (or OPENAI_API_KEY) is not set');
   }
 
-  const baseURL = config?.baseURL
-    || process.env.LLM_BASE_URL
-    || defaults?.baseURL;
+  const baseURL = config?.baseURL || process.env.LLM_BASE_URL || defaults?.baseURL;
 
-  const model = config?.model
-    || process.env.LLM_MODEL
-    || process.env.OPENAI_MODEL
-    || defaults?.model
-    || 'gpt-4o';
+  const model =
+    config?.model ||
+    process.env.LLM_MODEL ||
+    process.env.OPENAI_MODEL ||
+    defaults?.model ||
+    'gpt-4o';
 
-  const supportsJsonMode = config?.supportsJsonMode
-    ?? (process.env.LLM_JSON_MODE !== undefined
+  const supportsJsonMode =
+    config?.supportsJsonMode ??
+    (process.env.LLM_JSON_MODE !== undefined
       ? process.env.LLM_JSON_MODE === 'true'
-      : defaults?.supportsJsonMode ?? true);
+      : (defaults?.supportsJsonMode ?? true));
 
   return new LLMClient({
     apiKey,

@@ -18,16 +18,26 @@ interface RateLimitConfig {
 
 const store = new Map<string, RateLimitEntry>();
 
-// 5分ごとに古いエントリを掃除
-setInterval(() => {
-  const now = Date.now();
+/** 最後にクリーンアップを実行した時刻 */
+let lastCleanup = Date.now();
+
+/** クリーンアップ間隔（5分） */
+const CLEANUP_INTERVAL_MS = 300_000;
+
+/**
+ * 古いエントリを掃除（checkRateLimit呼び出し時にインラインで実行）
+ */
+function cleanupIfNeeded(now: number): void {
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+  lastCleanup = now;
+
   for (const [key, entry] of store) {
     entry.timestamps = entry.timestamps.filter(t => now - t < 600_000);
     if (entry.timestamps.length === 0) {
       store.delete(key);
     }
   }
-}, 300_000);
+}
 
 /**
  * レート制限チェック
@@ -38,6 +48,10 @@ export function checkRateLimit(
   config: RateLimitConfig
 ): { allowed: boolean; remaining: number; resetMs: number } {
   const now = Date.now();
+
+  // サーバーレス環境でも安全なインラインクリーンアップ
+  cleanupIfNeeded(now);
+
   let entry = store.get(key);
 
   if (!entry) {

@@ -1,6 +1,6 @@
 /**
  * FlowOps - Mermaid Viewer Component
- * 
+ *
  * Mermaid図を表示するコンポーネント
  * クリックイベントをSVG DOM操作で実装
  */
@@ -22,14 +22,19 @@ interface MermaidViewerProps {
 mermaid.initialize({
   startOnLoad: false,
   theme: 'default',
-  securityLevel: 'loose',
+  securityLevel: 'strict',
   flowchart: {
-    htmlLabels: true,
+    htmlLabels: false,
     curve: 'basis',
   },
 });
 
-export function MermaidViewer({ content, onNodeClick, selectedNodeId, className = '' }: MermaidViewerProps) {
+export function MermaidViewer({
+  content,
+  onNodeClick,
+  selectedNodeId,
+  className = '',
+}: MermaidViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgContent, setSvgContent] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +45,10 @@ export function MermaidViewer({ content, onNodeClick, selectedNodeId, className 
   useEffect(() => {
     const renderDiagram = async () => {
       if (!content) return;
-      
+
       setIsRendering(true);
       setError(null);
-      
+
       try {
         const id = `mermaid-${Date.now()}`;
         const { svg } = await mermaid.render(id, content);
@@ -133,7 +138,7 @@ export function MermaidViewer({ content, onNodeClick, selectedNodeId, className 
   // SVGダウンロード
   const handleDownload = useCallback(() => {
     if (!svgContent) return;
-    
+
     const blob = new Blob([svgContent], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -181,7 +186,7 @@ export function MermaidViewer({ content, onNodeClick, selectedNodeId, className 
       </div>
 
       {/* Content */}
-      <div 
+      <div
         className="overflow-auto border border-gray-200 rounded-lg bg-white"
         style={{ maxHeight: '70vh' }}
       >
@@ -190,19 +195,19 @@ export function MermaidViewer({ content, onNodeClick, selectedNodeId, className 
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
           </div>
         )}
-        
+
         {error && (
           <div className="p-4 text-red-600 bg-red-50">
             <strong>Render Error:</strong> {error}
             <pre className="mt-2 text-xs overflow-x-auto">{content}</pre>
           </div>
         )}
-        
+
         {!isRendering && !error && svgContent && (
           <div
             ref={containerRef}
             className="p-4 flex items-center justify-center"
-            style={{ 
+            style={{
               transform: `scale(${zoom})`,
               transformOrigin: 'top left',
               transition: 'transform 0.2s ease',
