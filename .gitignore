@@ -49,6 +49,8 @@ dist/
 # Claude Code
 .claude/
 
-# Temp screenshots
-*.png
+# Temp screenshots (root only)
+/*.png
+
+# Windows artifacts
 nul

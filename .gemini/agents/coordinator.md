@@ -48,8 +48,9 @@ d:\dev\GitOps\
 ├── spec/                     # YAML正本データ
 │   ├── flows/
 │   └── dict/
-├── start.md                  # 要件定義書
-└── start.add.md              # 追補提案
+├── docs/
+│   ├── start.md              # 要件定義書
+│   └── start.add.md          # 追補提案
 ```
 
 ## 実装フェーズ
