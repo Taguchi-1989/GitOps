@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { auth } from '@/lib/auth';
+import { randomUUID } from 'node:crypto';
 
 // 許可するオリジン（環境変数で設定可能）
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
@@ -40,12 +41,17 @@ export default auth(async function middleware(request) {
   const { pathname } = request.nextUrl;
   const origin = request.headers.get('origin');
 
+  // --- Trace ID: リクエストに一意のIDを付与 ---
+  const traceId = request.headers.get('x-trace-id') || randomUUID();
+
   // --- CORS: プリフライトリクエスト ---
   if (request.method === 'OPTIONS' && pathname.startsWith('/api')) {
-    return new NextResponse(null, {
+    const preflightResponse = new NextResponse(null, {
       status: 204,
       headers: getCorsHeaders(origin),
     });
+    preflightResponse.headers.set('X-Trace-Id', traceId);
+    return preflightResponse;
   }
 
   // --- レート制限（API のみ） ---
@@ -76,8 +82,11 @@ export default auth(async function middleware(request) {
     }
 
     // レート制限ヘッダーを付与するためレスポンスを通過後に加工
-    const response = NextResponse.next();
+    const response = NextResponse.next({
+      headers: { 'X-Trace-Id': traceId },
+    });
     response.headers.set('X-RateLimit-Remaining', String(result.remaining));
+    response.headers.set('X-Trace-Id', traceId);
 
     // CORSヘッダー
     for (const [k, v] of Object.entries(getCorsHeaders(origin))) {
@@ -87,7 +96,9 @@ export default auth(async function middleware(request) {
     return response;
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set('X-Trace-Id', traceId);
+  return response;
 });
 
 export const config = {

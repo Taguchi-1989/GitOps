@@ -1,4 +1,7 @@
 services:
+  # ============================================================
+  # Layer 1+2: UI + Core (FlowOps)
+  # ============================================================
   flowops:
     build: .
     container_name: flowops
@@ -6,16 +9,20 @@ services:
       - "${FLOWOPS_PORT:-3000}:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:/app/data/flowops.db
-      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
-      - LLM_API_KEY=${LLM_API_KEY:-}
-      - LLM_MODEL=${LLM_MODEL:-}
-      - LLM_BASE_URL=${LLM_BASE_URL:-}
-      - LLM_JSON_MODE=${LLM_JSON_MODE:-}
+      - DATABASE_URL=postgresql://flowops:${DB_PASSWORD:-flowops}@postgres:5432/flowops
+      - LLM_PROVIDER=custom
+      - LLM_API_KEY=${LITELLM_MASTER_KEY:-sk-litellm-dev}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      - LLM_BASE_URL=http://litellm:4000/v1
+      - LLM_JSON_MODE=${LLM_JSON_MODE:-true}
     volumes:
-      - flowops-data:/app/data
       - flowops-spec:/app/spec
       - flowops-git:/app/.git
+    depends_on:
+      postgres:
+        condition: service_healthy
+      litellm:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
@@ -24,10 +31,121 @@ services:
       retries: 3
       start_period: 40s
 
+  # ============================================================
+  # Layer 3: LLM Gateway (LiteLLM)
+  # ============================================================
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm
+    ports:
+      - "${LITELLM_PORT:-4000}:4000"
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-litellm-dev}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=http://langfuse:3000
+    volumes:
+      - ./infrastructure/litellm/config.yaml:/app/config.yaml
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    depends_on:
+      langfuse:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ============================================================
+  # Layer 4: Local LLM (Ollama) - オプション
+  # ============================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    profiles: ["local-llm"]
+    restart: unless-stopped
+
+  # ============================================================
+  # Layer 5: Governance / LLMOps (Langfuse)
+  # ============================================================
+  langfuse:
+    image: langfuse/langfuse:latest
+    container_name: langfuse
+    ports:
+      - "${LANGFUSE_PORT:-3001}:3000"
+    environment:
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD:-langfuse}@langfuse-db:5432/langfuse
+      - NEXTAUTH_SECRET=${LANGFUSE_AUTH_SECRET:-langfuse-dev-secret}
+      - NEXTAUTH_URL=http://localhost:${LANGFUSE_PORT:-3001}
+      - SALT=${LANGFUSE_SALT:-langfuse-dev-salt}
+      - TELEMETRY_ENABLED=${LANGFUSE_TELEMETRY:-false}
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/public/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ============================================================
+  # Databases
+  # ============================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: flowops-db
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_USER=flowops
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-flowops}
+      - POSTGRES_DB=flowops
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  langfuse-db:
+    image: postgres:16-alpine
+    container_name: langfuse-db
+    ports:
+      - "${LANGFUSE_DB_PORT:-5433}:5432"
+    environment:
+      - POSTGRES_USER=langfuse
+      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD:-langfuse}
+      - POSTGRES_DB=langfuse
+    volumes:
+      - langfuse-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
-  flowops-data:
+  postgres-data:
+    driver: local
+  langfuse-db-data:
     driver: local
   flowops-spec:
     driver: local
   flowops-git:
+    driver: local
+  ollama-models:
     driver: local

@@ -1,0 +1,165 @@
+# FlowOps - AI-Powered Customer Inquiry Flow
+# Layer: L2 (システム手順 - HOW)
+#
+# AI統合ワークフローのサンプル:
+#   1. 問い合わせをLLMで自動分類 (llm-task)
+#   2. カテゴリに応じた分岐 (decision)
+#   3. LLMで回答ドラフト生成 (llm-task)
+#   4. 人間による承認 (human-review)
+#   5. 送信・完了
+
+id: ai-inquiry-handling
+title: AI問い合わせ自動対応フロー
+layer: L2
+updatedAt: '2026-03-01T00:00:00+09:00'
+
+nodes:
+  receive:
+    id: receive
+    type: start
+    label: 問い合わせ受付
+    role: support
+    system: crm
+    meta:
+      description: 顧客からの問い合わせを受け付ける
+
+  ai_classify:
+    id: ai_classify
+    type: llm-task
+    label: AI分類
+    taskId: classify-inquiry
+    system: crm
+    meta:
+      description: LLMが問い合わせ内容をgeneral/technical/complaintに自動分類
+
+  route:
+    id: route
+    type: decision
+    label: カテゴリ分岐
+    role: support
+    meta:
+      description: AI分類結果に基づいて対応ルートを決定
+
+  handle_general:
+    id: handle_general
+    type: process
+    label: 一般対応
+    role: support
+    system: crm
+    meta:
+      description: 一般的な問い合わせに対応
+      sla: 当日中
+
+  handle_technical:
+    id: handle_technical
+    type: process
+    label: 技術対応
+    role: tech-support
+    system: crm
+    meta:
+      description: 技術チームにエスカレーション
+      sla: 24時間以内
+
+  handle_complaint:
+    id: handle_complaint
+    type: process
+    label: クレーム対応
+    role: supervisor
+    system: crm
+    meta:
+      description: 上位者にエスカレーション
+      priority: high
+      sla: 4時間以内
+
+  ai_draft:
+    id: ai_draft
+    type: llm-task
+    label: AI回答ドラフト生成
+    taskId: generate-response-draft
+    system: crm
+    meta:
+      description: LLMが回答ドラフトを自動生成（承認が必要）
+
+  review:
+    id: review
+    type: human-review
+    label: 上長承認
+    role: supervisor
+    meta:
+      description: AI生成の回答ドラフトを人間が確認・承認/否認
+
+  send_response:
+    id: send_response
+    type: process
+    label: 回答送信
+    role: support
+    system: crm
+    meta:
+      description: 承認された回答を顧客に送信
+
+  complete:
+    id: complete
+    type: end
+    label: 対応完了
+
+edges:
+  e1:
+    id: e1
+    from: receive
+    to: ai_classify
+
+  e2:
+    id: e2
+    from: ai_classify
+    to: route
+
+  e3:
+    id: e3
+    from: route
+    to: handle_general
+    label: 一般
+    condition: category == "general"
+
+  e4:
+    id: e4
+    from: route
+    to: handle_technical
+    label: 技術
+    condition: category == "technical"
+
+  e5:
+    id: e5
+    from: route
+    to: handle_complaint
+    label: クレーム
+    condition: category == "complaint"
+
+  e6:
+    id: e6
+    from: handle_general
+    to: ai_draft
+
+  e7:
+    id: e7
+    from: handle_technical
+    to: ai_draft
+
+  e8:
+    id: e8
+    from: handle_complaint
+    to: ai_draft
+
+  e9:
+    id: e9
+    from: ai_draft
+    to: review
+
+  e10:
+    id: e10
+    from: review
+    to: send_response
+
+  e11:
+    id: e11
+    from: send_response
+    to: complete

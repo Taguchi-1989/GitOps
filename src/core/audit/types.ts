@@ -28,6 +28,15 @@ export const AuditActionSchema = z.enum([
   'GIT_BRANCH_CREATE',
   'GIT_BRANCH_DELETE',
 
+  // Workflow lifecycle
+  'WORKFLOW_START',
+  'WORKFLOW_COMPLETE',
+  'WORKFLOW_FAIL',
+  'WORKFLOW_CANCEL',
+  'TASK_EXECUTE',
+  'HUMAN_APPROVE',
+  'HUMAN_REJECT',
+
   // System operations
   'BACKUP_CREATE',
 ]);
@@ -37,7 +46,14 @@ export type AuditAction = z.infer<typeof AuditActionSchema>;
 // --------------------------------------------------------
 // Entity Types
 // --------------------------------------------------------
-export const AuditEntityTypeSchema = z.enum(['Issue', 'Proposal', 'Flow', 'Evidence', 'System']);
+export const AuditEntityTypeSchema = z.enum([
+  'Issue',
+  'Proposal',
+  'Flow',
+  'Evidence',
+  'System',
+  'WorkflowExecution',
+]);
 
 export type AuditEntityType = z.infer<typeof AuditEntityTypeSchema>;
 
@@ -48,6 +64,7 @@ export interface AuditLogEntry {
   action: AuditAction;
   entityType: AuditEntityType;
   entityId: string;
+  traceId?: string;
   payload?: Record<string, unknown>;
   actor?: string;
 }
@@ -59,6 +76,7 @@ export interface AuditQueryOptions {
   entityType?: AuditEntityType;
   entityId?: string;
   action?: AuditAction;
+  traceId?: string;
   startDate?: Date;
   endDate?: Date;
   limit?: number;

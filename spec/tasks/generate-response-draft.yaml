@@ -1,0 +1,63 @@
+id: generate-response-draft
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたは丁寧なカスタマーサポート担当者です。
+    問い合わせ内容とそのカテゴリに基づいて、適切な回答ドラフトを作成してください。
+
+    ルール:
+    - 敬語を使用する
+    - 具体的で実用的な回答をする
+    - 不明点がある場合は確認事項を含める
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    カテゴリ: {{category}}
+    問い合わせ内容: {{inquiry_text}}
+    顧客名: {{customer_name}}
+  temperature: 0.5
+  maxTokens: 1024
+
+inputSchema:
+  type: object
+  properties:
+    inquiry_text:
+      type: string
+    customer_name:
+      type: string
+    category:
+      type: string
+      enum: [general, technical, complaint]
+  required:
+    - inquiry_text
+    - category
+
+outputSchema:
+  type: object
+  properties:
+    subject:
+      type: string
+    body:
+      type: string
+    followUpQuestions:
+      type: array
+      items:
+        type: string
+  required:
+    - subject
+    - body
+
+requiresHumanApproval: true
+maxRetries: 2
+timeoutMs: 30000
+
+metadata:
+  author: "support-team"
+  description: "問い合わせに対する回答ドラフトを生成するタスク（要承認）"
+  tags:
+    - response
+    - draft
+    - support

@@ -1,0 +1,57 @@
+# LiteLLM Proxy Configuration
+# https://docs.litellm.ai/docs/proxy/configs
+#
+# FlowOps LLM Gateway - モデルルーティング設定
+# 全LLMリクエストはこのプロキシ経由でルーティングされる
+
+model_list:
+  # --- 商用API (Phase 1) ---
+  - model_name: "gpt-4o"
+    litellm_params:
+      model: "openai/gpt-4o"
+      api_key: "os.environ/OPENAI_API_KEY"
+
+  - model_name: "gpt-4o-mini"
+    litellm_params:
+      model: "openai/gpt-4o-mini"
+      api_key: "os.environ/OPENAI_API_KEY"
+
+  - model_name: "claude-sonnet"
+    litellm_params:
+      model: "anthropic/claude-sonnet-4-5-20250929"
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  - model_name: "gemini-flash"
+    litellm_params:
+      model: "gemini/gemini-2.0-flash"
+      api_key: "os.environ/GEMINI_API_KEY"
+
+  # --- ローカルLLM (Phase 2: --profile local-llm) ---
+  - model_name: "local-llama"
+    litellm_params:
+      model: "ollama/llama3.2"
+      api_base: "http://ollama:11434"
+
+litellm_settings:
+  # Langfuse連携（トレース・コスト分析）
+  success_callback: ["langfuse"]
+  failure_callback: ["langfuse"]
+
+  # リクエスト設定
+  request_timeout: 120
+  num_retries: 2
+
+  # キャッシュ（オプション：必要に応じて有効化）
+  # cache: true
+  # cache_params:
+  #   type: "redis"
+  #   host: "redis"
+  #   port: 6379
+
+environment_variables:
+  LANGFUSE_PUBLIC_KEY: "os.environ/LANGFUSE_PUBLIC_KEY"
+  LANGFUSE_SECRET_KEY: "os.environ/LANGFUSE_SECRET_KEY"
+  LANGFUSE_HOST: "http://langfuse:3000"
+
+general_settings:
+  master_key: "os.environ/LITELLM_MASTER_KEY"

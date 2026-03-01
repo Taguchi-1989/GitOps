@@ -5,6 +5,7 @@
  */
 
 import { AuditLogEntry, AuditQueryOptions } from './types';
+import { getTraceId } from '@/lib/trace-context';
 
 // Note: 実際のPrismaクライアントはlibから注入される
 // ここではインターフェースのみ定義
@@ -15,6 +16,7 @@ export interface AuditLogRecord {
   action: string;
   entityType: string;
   entityId: string;
+  traceId: string | null;
   payload: unknown;
   createdAt: Date;
 }
@@ -44,7 +46,7 @@ class AuditLogger {
   }
 
   /**
-   * 監査ログを記録
+   * 監査ログを記録（Trace IDは自動注入）
    */
   async record(entry: AuditLogEntry): Promise<AuditLogRecord | null> {
     if (!this.repository) {
@@ -54,6 +56,7 @@ class AuditLogger {
     return this.repository.create({
       ...entry,
       actor: entry.actor || this.defaultActor,
+      traceId: entry.traceId || getTraceId(),
     });
   }
 
@@ -128,6 +131,31 @@ class AuditLogger {
       action,
       entityType: action.startsWith('GIT') ? 'System' : 'Issue',
       entityId,
+      payload,
+    });
+  }
+
+  /**
+   * ワークフロー関連のログを記録するヘルパー
+   */
+  async logWorkflowAction(
+    action:
+      | 'WORKFLOW_START'
+      | 'WORKFLOW_COMPLETE'
+      | 'WORKFLOW_FAIL'
+      | 'WORKFLOW_CANCEL'
+      | 'TASK_EXECUTE'
+      | 'HUMAN_APPROVE'
+      | 'HUMAN_REJECT',
+    entityId: string,
+    traceId: string,
+    payload?: Record<string, unknown>
+  ): Promise<void> {
+    await this.record({
+      action,
+      entityType: 'WorkflowExecution',
+      entityId,
+      traceId,
       payload,
     });
   }

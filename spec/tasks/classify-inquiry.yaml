@@ -1,0 +1,55 @@
+id: classify-inquiry
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたは問い合わせ分類システムです。
+    受け取った問い合わせ内容を以下のカテゴリに分類してください:
+    - general: 一般的な問い合わせ
+    - technical: 技術的な質問・障害報告
+    - complaint: クレーム・苦情
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    問い合わせ内容: {{inquiry_text}}
+    顧客名: {{customer_name}}
+  temperature: 0.1
+  maxTokens: 256
+
+inputSchema:
+  type: object
+  properties:
+    inquiry_text:
+      type: string
+    customer_name:
+      type: string
+  required:
+    - inquiry_text
+
+outputSchema:
+  type: object
+  properties:
+    category:
+      type: string
+      enum: [general, technical, complaint]
+    confidence:
+      type: number
+    reasoning:
+      type: string
+  required:
+    - category
+    - confidence
+
+requiresHumanApproval: false
+maxRetries: 2
+timeoutMs: 15000
+
+metadata:
+  author: "support-team"
+  description: "問い合わせを一般/技術/クレームに分類するタスク"
+  tags:
+    - inquiry
+    - classification
+    - support

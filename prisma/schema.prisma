@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -127,8 +127,10 @@ model AuditLog {
   actor  String @default("you") // MVP: 固定
   action String // ISSUE_CREATE, PROPOSAL_GENERATE, PATCH_APPLY, MERGE_CLOSE, DUPLICATE_MERGE, etc.
 
-  entityType String // Issue, Proposal, Flow
+  entityType String // Issue, Proposal, Flow, WorkflowExecution
   entityId   String
+
+  traceId String? // Trace ID（ワークフロー実行のE2Eトレーサビリティ用）
 
   payload String? // 差分や理由など (JSON文字列として保存)
 
@@ -136,5 +138,86 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([action])
+  @@index([traceId])
   @@index([createdAt])
+}
+
+// --------------------------------------------------------
+// Workflow Execution（ワークフロー実行）
+// --------------------------------------------------------
+model WorkflowExecution {
+  id            String   @id @default(cuid())
+  flowId        String
+  traceId       String   @unique
+  status        String   @default("running") // running, paused-human-review, completed, failed, cancelled
+  currentNodeId String
+  stateData     Json     @default("{}")
+  initiatorId   String
+
+  taskExecutions   TaskExecution[]
+  approvalRequests ApprovalRequest[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([flowId])
+  @@index([status])
+}
+
+// --------------------------------------------------------
+// Task Execution（タスク実行記録）
+// --------------------------------------------------------
+model TaskExecution {
+  id            String            @id @default(cuid())
+  workflowId    String
+  workflow      WorkflowExecution @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  nodeId        String
+  taskId        String
+  taskVersion   String
+  gitCommitHash String
+
+  status String @default("pending") // pending, running, success, failure
+  input  Json
+  output Json?
+
+  llmModelUsed    String?
+  llmTokensInput  Int?
+  llmTokensOutput Int?
+  durationMs      Int?
+
+  traceId String
+
+  error Json?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([workflowId])
+  @@index([traceId])
+  @@index([taskId])
+}
+
+// --------------------------------------------------------
+// Approval Request（Human-in-the-loop承認要求）
+// --------------------------------------------------------
+model ApprovalRequest {
+  id         String            @id @default(cuid())
+  workflowId String
+  workflow   WorkflowExecution @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  nodeId     String
+
+  description String
+  context     Json // 承認者に提示するコンテキスト情報
+
+  status    String    @default("pending") // pending, approved, rejected
+  decision  String? // approved / rejected
+  reason    String? // ISO 42001: 承認/否認の理由は必須記録
+  decidedBy String?
+  decidedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([workflowId])
+  @@index([status])
 }

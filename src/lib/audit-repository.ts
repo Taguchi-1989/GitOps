@@ -20,6 +20,7 @@ class PrismaAuditRepository implements IAuditLogRepository {
         action: entry.action,
         entityType: entry.entityType,
         entityId: entry.entityId,
+        traceId: entry.traceId || null,
         payload: entry.payload ? JSON.stringify(entry.payload) : null,
       },
     });
@@ -30,6 +31,7 @@ class PrismaAuditRepository implements IAuditLogRepository {
       action: record.action,
       entityType: record.entityType,
       entityId: record.entityId,
+      traceId: record.traceId,
       payload: record.payload,
       createdAt: record.createdAt,
     };
@@ -48,6 +50,10 @@ class PrismaAuditRepository implements IAuditLogRepository {
 
     if (options.action) {
       where.action = options.action;
+    }
+
+    if (options.traceId) {
+      where.traceId = options.traceId;
     }
 
     if (options.startDate || options.endDate) {
@@ -73,6 +79,7 @@ class PrismaAuditRepository implements IAuditLogRepository {
       action: r.action,
       entityType: r.entityType,
       entityId: r.entityId,
+      traceId: r.traceId,
       payload: r.payload,
       createdAt: r.createdAt,
     }));

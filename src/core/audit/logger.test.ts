@@ -47,6 +47,7 @@ describe('AuditLogger', () => {
         entityId: 'test-issue-id',
         payload: { title: 'Test Issue' },
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -86,6 +87,7 @@ describe('AuditLogger', () => {
         entityId: 'issue-123',
         payload: {},
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -122,6 +124,7 @@ describe('AuditLogger', () => {
         entityId: 'issue-123',
         payload: {},
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -160,6 +163,7 @@ describe('AuditLogger', () => {
         entityId: 'issue-456',
         payload: {},
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -210,6 +214,7 @@ describe('AuditLogger', () => {
           entityId: 'issue-1',
           payload: {},
           createdAt: new Date(),
+          traceId: null,
         },
         {
           id: 'audit-log-6',
@@ -219,6 +224,7 @@ describe('AuditLogger', () => {
           entityId: 'issue-1',
           payload: {},
           createdAt: new Date(),
+          traceId: null,
         },
       ];
 
@@ -324,6 +330,7 @@ describe('AuditLogger', () => {
         entityId: 'issue-789',
         payload: { title: 'New Issue' },
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -355,6 +362,7 @@ describe('AuditLogger', () => {
         entityId: 'issue-101',
         payload: { status: 'in-progress' },
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -387,6 +395,7 @@ describe('AuditLogger', () => {
         entityId: 'proposal-456',
         payload: { llmModel: 'gpt-4o' },
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -418,6 +427,7 @@ describe('AuditLogger', () => {
         entityId: 'proposal-789',
         payload: { patchCount: 3 },
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -450,6 +460,7 @@ describe('AuditLogger', () => {
         entityId: 'commit-abc123',
         payload: { message: 'feat: add new feature' },
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -483,6 +494,7 @@ describe('AuditLogger', () => {
         entityId: 'branch-feature-x',
         payload: {},
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -512,6 +524,7 @@ describe('AuditLogger', () => {
         entityId: 'branch-old-feature',
         payload: {},
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -541,6 +554,7 @@ describe('AuditLogger', () => {
         entityId: 'issue-123',
         payload: {},
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);
@@ -571,6 +585,7 @@ describe('AuditLogger', () => {
         entityId: 'issue-456',
         payload: { canonicalId: 'issue-123' },
         createdAt: new Date(),
+        traceId: null,
       };
 
       vi.mocked(mockRepo.create).mockResolvedValue(expectedRecord);

@@ -21,7 +21,15 @@ export type EdgeID = z.infer<typeof EdgeIDSchema>;
 // --------------------------------------------------------
 // Node Types
 // --------------------------------------------------------
-export const NodeTypeSchema = z.enum(['start', 'end', 'process', 'decision', 'database']);
+export const NodeTypeSchema = z.enum([
+  'start',
+  'end',
+  'process',
+  'decision',
+  'database',
+  'llm-task', // マイクロタスク実行ノード
+  'human-review', // Human-in-the-loop承認ノード
+]);
 
 export type NodeType = z.infer<typeof NodeTypeSchema>;
 
@@ -34,6 +42,7 @@ export const NodeSchema = z.object({
   label: z.string().min(1),
   role: z.string().optional(), // roles.yaml のキーと一致すること
   system: z.string().optional(), // systems.yaml のキーと一致すること
+  taskId: z.string().optional(), // spec/tasks/{taskId}.yaml への参照
   meta: z.record(z.unknown()).optional(),
 });
 

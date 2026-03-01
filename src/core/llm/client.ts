@@ -9,6 +9,7 @@ import OpenAI from 'openai';
 import { ProposalOutputSchema, ProposalOutput, JsonPatch } from '../patch/types';
 import { checkForbiddenPaths } from '../patch/apply';
 import { buildFullPrompt } from './prompts';
+import { getTraceId } from '@/lib/trace-context';
 
 export class LLMError extends Error {
   code: 'API_ERROR' | 'PARSE_ERROR' | 'VALIDATION_ERROR';
@@ -95,6 +96,10 @@ class LLMClient {
   private async callLLM(params: GenerateProposalParams): Promise<ProposalOutput> {
     const { system, user } = buildFullPrompt(params);
 
+    // Trace IDをLiteLLM/Langfuseに転送
+    const traceId = getTraceId();
+    const traceMetadata = traceId ? { extra_headers: { 'X-Trace-Id': traceId } } : {};
+
     const response = await this.client.chat.completions.create({
       model: this.model,
       messages: [
@@ -104,7 +109,8 @@ class LLMClient {
       max_tokens: this.maxTokens,
       temperature: this.temperature,
       ...(this.supportsJsonMode ? { response_format: { type: 'json_object' } } : {}),
-    });
+      ...traceMetadata,
+    } as OpenAI.ChatCompletionCreateParamsNonStreaming);
 
     const content = response.choices[0]?.message?.content;
 
