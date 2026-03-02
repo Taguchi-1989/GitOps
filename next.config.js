@@ -6,6 +6,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // pino/pino-prettyのworkerスレッドをWebpackバンドルから除外
+    serverComponentsExternalPackages: ['pino', 'pino-pretty'],
   },
 
   // 画像最適化の設定

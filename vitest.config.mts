@@ -13,8 +13,15 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
-      include: ['src/core/**', 'src/lib/**', 'src/app/api/**'],
-      exclude: ['**/*.test.ts', '**/node_modules/**'],
+      all: false,
+      include: ['src/core/**/*.ts', 'src/lib/**/*.ts', 'src/app/api/**/*.ts'],
+      exclude: [
+        '**/*.test.ts',
+        '**/node_modules/**',
+        '**/.next/**',
+        '**/coverage/**',
+        '**/dist/**',
+      ],
       thresholds: {
         'src/core/**': {
           branches: 80,

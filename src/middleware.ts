@@ -7,7 +7,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { auth } from '@/lib/auth';
-import { randomUUID } from 'node:crypto';
 
 // 許可するオリジン（環境変数で設定可能）
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
@@ -42,7 +41,7 @@ export default auth(async function middleware(request) {
   const origin = request.headers.get('origin');
 
   // --- Trace ID: リクエストに一意のIDを付与 ---
-  const traceId = request.headers.get('x-trace-id') || randomUUID();
+  const traceId = request.headers.get('x-trace-id') || crypto.randomUUID();
 
   // --- CORS: プリフライトリクエスト ---
   if (request.method === 'OPTIONS' && pathname.startsWith('/api')) {
