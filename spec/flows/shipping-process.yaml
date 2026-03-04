@@ -4,7 +4,7 @@
 id: shipping-process
 title: 出荷処理フロー
 layer: L1
-updatedAt: '2026-02-05T12:00:00+09:00'
+updatedAt: '2026-03-04T00:00:00+09:00'
 
 nodes:
   receive_instruction:

@@ -11,7 +11,7 @@
 id: ai-inquiry-handling
 title: AI問い合わせ自動対応フロー
 layer: L2
-updatedAt: '2026-03-01T00:00:00+09:00'
+updatedAt: '2026-03-04T00:00:00+09:00'
 
 nodes:
   receive:
