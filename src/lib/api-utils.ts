@@ -39,8 +39,7 @@ export function notFoundResponse(resource = 'Resource'): NextResponse<ApiRespons
  */
 export function internalErrorResponse(error: unknown): NextResponse<ApiResponse<never>> {
   logger.error({ err: error }, 'API internal error');
-  const message = error instanceof Error ? error.message : 'Unknown error';
-  return errorResponse(API_ERROR_CODES.INTERNAL_ERROR, message, 500);
+  return errorResponse(API_ERROR_CODES.INTERNAL_ERROR, 'An internal error occurred', 500);
 }
 
 /**

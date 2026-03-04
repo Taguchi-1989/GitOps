@@ -99,7 +99,7 @@ describe('GET /api/health', () => {
 
     expect(body.ok).toBe(false);
     expect(body.errorCode).toBe('INTERNAL_ERROR');
-    expect(body.details).toBe('Connection refused');
+    expect(body.details).toBe('An internal error occurred');
     expect(result.status).toBe(500);
   });
 });

@@ -299,7 +299,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
     const body = getBody(result);
     expect(body.ok).toBe(false);
     expect(body.errorCode).toBe('INTERNAL_ERROR');
-    expect(body.details).toBe('Database connection failed');
+    expect(body.details).toBe('An internal error occurred');
   });
 
   it('returns 500 on git error during merge', async () => {
@@ -354,7 +354,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
     const body = getBody(result);
     expect(body.ok).toBe(false);
     expect(body.errorCode).toBe('INTERNAL_ERROR');
-    expect(body.details).toBe('Merge conflict detected');
+    expect(body.details).toBe('An internal error occurred');
   });
 
   it('verifies proposal query includes both issueId and isApplied conditions', async () => {

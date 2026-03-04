@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     await saveFlowYaml(data.id, yamlContent);
 
     await auditLog.record({
-      action: 'ISSUE_CREATE',
+      action: 'FLOW_CREATE',
       entityType: 'Flow',
       entityId: data.id,
       payload: {

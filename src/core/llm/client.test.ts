@@ -354,7 +354,7 @@ describe('LLMClient.generateProposal', () => {
     } catch (e) {
       expect(e).toBeInstanceOf(LLMError);
       expect((e as LLMError).code).toBe('VALIDATION_ERROR');
-      expect((e as LLMError).message).toContain('Unknown role');
+      expect((e as LLMError).message).toContain('unknown role');
     }
   });
 
@@ -374,7 +374,7 @@ describe('LLMClient.generateProposal', () => {
     } catch (e) {
       expect(e).toBeInstanceOf(LLMError);
       expect((e as LLMError).code).toBe('VALIDATION_ERROR');
-      expect((e as LLMError).message).toContain('Unknown system');
+      expect((e as LLMError).message).toContain('unknown system');
     }
   });
 
@@ -466,7 +466,7 @@ describe('extractJson via generateProposal', () => {
     } catch (e) {
       expect(e).toBeInstanceOf(LLMError);
       expect((e as LLMError).code).toBe('PARSE_ERROR');
-      expect((e as LLMError).message).toContain('Failed to extract JSON');
+      expect((e as LLMError).message).toContain('Failed to extract valid JSON');
     }
   });
 });

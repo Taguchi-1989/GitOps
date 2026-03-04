@@ -192,11 +192,30 @@ class GitManager {
   async mergeAndClose(branchName: string): Promise<void> {
     const lock = await gitLock.acquire(`mergeAndClose:${branchName}`);
     try {
+      const originalBranch = (await this.git.status()).current;
+
       // mainにチェックアウト
       await this.git.checkout('main');
 
-      // マージ
-      await this.git.merge([branchName]);
+      try {
+        // マージ
+        await this.git.merge([branchName]);
+      } catch (error) {
+        // マージ失敗時: abortして元のブランチに復帰
+        try {
+          await this.git.merge(['--abort']);
+        } catch {
+          /* ignore */
+        }
+        if (originalBranch && originalBranch !== 'main') {
+          try {
+            await this.git.checkout(originalBranch);
+          } catch {
+            /* ignore */
+          }
+        }
+        throw error;
+      }
 
       // ブランチ削除
       await this.git.deleteLocalBranch(branchName);

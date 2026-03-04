@@ -442,27 +442,27 @@ export class WorkflowEngine {
    * 条件式を評価（簡易実装: stateDataのキーベースで判定）
    */
   private evaluateCondition(condition: string, stateData: Record<string, unknown>): boolean {
-    // "key == value" 形式
-    const eqMatch = condition.match(/^(\w+)\s*==\s*['"]?(.+?)['"]?$/);
+    // "key == value" 形式（ハイフン・ドット含むキーにも対応）
+    const eqMatch = condition.match(/^([\w.-]+)\s*==\s*['"]?(.+?)['"]?$/);
     if (eqMatch) {
       const [, key, value] = eqMatch;
       return String(stateData[key]) === value;
     }
 
     // "key != value" 形式
-    const neqMatch = condition.match(/^(\w+)\s*!=\s*['"]?(.+?)['"]?$/);
+    const neqMatch = condition.match(/^([\w.-]+)\s*!=\s*['"]?(.+?)['"]?$/);
     if (neqMatch) {
       const [, key, value] = neqMatch;
       return String(stateData[key]) !== value;
     }
 
     // "key" のみ（truthy判定）
-    if (/^\w+$/.test(condition)) {
+    if (/^[\w.-]+$/.test(condition)) {
       return !!stateData[condition];
     }
 
-    // 評価不能な条件はtrue（デフォルトパス）
-    return true;
+    // 評価不能な条件はfalse（安全側に倒す）
+    return false;
   }
 }
 

@@ -81,7 +81,11 @@ function deleteValueAtPath(obj: Record<string, unknown>, path: string[]): void {
   if (current !== undefined && current !== null) {
     const lastSegment = path[path.length - 1];
     if (Array.isArray(current)) {
-      current.splice(parseInt(lastSegment, 10), 1);
+      const index = parseInt(lastSegment, 10);
+      if (isNaN(index)) {
+        throw new PatchApplyError('PATCH_APPLY_FAILED', `Invalid array index: ${lastSegment}`);
+      }
+      current.splice(index, 1);
     } else {
       delete current[lastSegment];
     }
@@ -114,24 +118,38 @@ function applySinglePatch(obj: Record<string, unknown>, patch: JsonPatch): void 
       setValueAtPath(obj, path, patch.value);
       break;
 
-    case 'move':
+    case 'move': {
       if (!patch.from) {
         throw new PatchApplyError('PATCH_APPLY_FAILED', `Move operation requires "from" field`);
       }
       const fromPath = parseJsonPointer(patch.from);
       const valueToMove = getValueAtPath(obj, fromPath);
+      if (valueToMove === undefined) {
+        throw new PatchApplyError(
+          'PATCH_APPLY_FAILED',
+          `Cannot move: source path "${patch.from}" does not exist`
+        );
+      }
       deleteValueAtPath(obj, fromPath);
       setValueAtPath(obj, path, valueToMove);
       break;
+    }
 
-    case 'copy':
+    case 'copy': {
       if (!patch.from) {
         throw new PatchApplyError('PATCH_APPLY_FAILED', `Copy operation requires "from" field`);
       }
       const copyFromPath = parseJsonPointer(patch.from);
       const valueToCopy = getValueAtPath(obj, copyFromPath);
+      if (valueToCopy === undefined) {
+        throw new PatchApplyError(
+          'PATCH_APPLY_FAILED',
+          `Cannot copy: source path "${patch.from}" does not exist`
+        );
+      }
       setValueAtPath(obj, path, JSON.parse(JSON.stringify(valueToCopy)));
       break;
+    }
 
     case 'test':
       const testValue = getValueAtPath(obj, path);
@@ -211,8 +229,11 @@ export function checkForbiddenPaths(
 
   for (const patch of patches) {
     for (const forbidden of forbiddenPaths) {
-      if (patch.path.startsWith(forbidden)) {
+      if (patch.path === forbidden || patch.path.startsWith(forbidden + '/')) {
         violations.push(`Forbidden path modification: ${patch.path}`);
+      }
+      if (patch.from && (patch.from === forbidden || patch.from.startsWith(forbidden + '/'))) {
+        violations.push(`Forbidden path access via 'from': ${patch.from}`);
       }
     }
   }

@@ -62,7 +62,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const existing = await prisma.issue.findUnique({
-      where: { id: params.id },
+      where: { id: params.id, deletedAt: null },
     });
 
     if (!existing) {
@@ -108,7 +108,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const existing = await prisma.issue.findUnique({
-      where: { id: params.id },
+      where: { id: params.id, deletedAt: null },
     });
 
     if (!existing) {

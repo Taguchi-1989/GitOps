@@ -171,7 +171,7 @@ describe('api-utils', () => {
       expect(getBody(result)).toEqual({
         ok: false,
         errorCode: 'INTERNAL_ERROR',
-        details: 'Database connection failed',
+        details: 'An internal error occurred',
       });
       expect(result.status).toBe(500);
     });
@@ -183,7 +183,7 @@ describe('api-utils', () => {
       expect(getBody(result)).toEqual({
         ok: false,
         errorCode: 'INTERNAL_ERROR',
-        details: 'Unknown error',
+        details: 'An internal error occurred',
       });
       expect(result.status).toBe(500);
     });
@@ -193,14 +193,14 @@ describe('api-utils', () => {
       const result = internalErrorResponse(error);
 
       expect(getBody(result).errorCode).toBe('INTERNAL_ERROR');
-      expect(getBody(result).details).toBe('Unknown error');
+      expect(getBody(result).details).toBe('An internal error occurred');
     });
 
     it('should handle null/undefined errors', () => {
       const result = internalErrorResponse(null);
 
       expect(getBody(result).errorCode).toBe('INTERNAL_ERROR');
-      expect(getBody(result).details).toBe('Unknown error');
+      expect(getBody(result).details).toBe('An internal error occurred');
     });
   });
 

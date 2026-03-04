@@ -76,15 +76,23 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tra
 
     // Gitコミットハッシュの一覧（ロジックバージョン）
     const gitVersions = execution
-      ? [
-          ...new Set(
-            execution.taskExecutions.map(t => ({
-              taskId: t.taskId,
-              version: t.taskVersion,
-              gitCommitHash: t.gitCommitHash,
-            }))
-          ),
-        ]
+      ? (() => {
+          const seen = new Map<
+            string,
+            { taskId: string; version: string; gitCommitHash: string }
+          >();
+          for (const t of execution.taskExecutions) {
+            const key = `${t.taskId}:${t.taskVersion}:${t.gitCommitHash}`;
+            if (!seen.has(key)) {
+              seen.set(key, {
+                taskId: t.taskId,
+                version: t.taskVersion,
+                gitCommitHash: t.gitCommitHash,
+              });
+            }
+          }
+          return [...seen.values()];
+        })()
       : [];
 
     // Langfuseトレースリンク（設定されている場合）

@@ -83,12 +83,22 @@ export function StatusBadge({ status, size = 'md', className = '' }: StatusBadge
   );
 }
 
+const dotColors: Record<IssueStatus, string> = {
+  new: 'bg-red-500',
+  triage: 'bg-orange-500',
+  'in-progress': 'bg-blue-500',
+  proposed: 'bg-yellow-500',
+  merged: 'bg-green-500',
+  rejected: 'bg-gray-500',
+  'merged-duplicate': 'bg-purple-500',
+};
+
 export function StatusDot({ status, className = '' }: { status: IssueStatus; className?: string }) {
   const config = statusConfig[status];
 
   return (
     <span
-      className={`inline-block w-2 h-2 rounded-full ${config.bg.replace('100', '500')} ${className}`}
+      className={`inline-block w-2 h-2 rounded-full ${dotColors[status]} ${className}`}
       title={config.label}
     />
   );

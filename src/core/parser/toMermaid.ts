@@ -21,8 +21,10 @@ function getNodeShape(type: NodeType): { open: string; close: string } {
       return { open: '{', close: '}' }; // Diamond
     case 'database':
       return { open: '[(', close: ')]' }; // Cylinder
-    default:
-      return { open: '[', close: ']' };
+    case 'llm-task':
+      return { open: '{{', close: '}}' }; // Hexagon
+    case 'human-review':
+      return { open: '[[', close: ']]' }; // Subroutine
   }
 }
 
@@ -39,7 +41,11 @@ function getNodeClass(type: NodeType): string {
       return 'decisionNode';
     case 'database':
       return 'databaseNode';
-    default:
+    case 'llm-task':
+      return 'llmTaskNode';
+    case 'human-review':
+      return 'humanReviewNode';
+    case 'process':
       return 'processNode';
   }
 }
@@ -118,6 +124,8 @@ export function flowToMermaid(flow: Flow, options: MermaidOptions = {}): string 
     lines.push('  classDef processNode fill:#3b82f6,stroke:#2563eb,color:#fff');
     lines.push('  classDef decisionNode fill:#f59e0b,stroke:#d97706,color:#fff');
     lines.push('  classDef databaseNode fill:#8b5cf6,stroke:#7c3aed,color:#fff');
+    lines.push('  classDef llmTaskNode fill:#ec4899,stroke:#db2777,color:#fff');
+    lines.push('  classDef humanReviewNode fill:#14b8a6,stroke:#0d9488,color:#fff');
     lines.push('');
 
     // クラス適用

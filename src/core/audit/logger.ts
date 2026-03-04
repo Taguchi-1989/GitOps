@@ -55,8 +55,8 @@ class AuditLogger {
 
     return this.repository.create({
       ...entry,
-      actor: entry.actor || this.defaultActor,
-      traceId: entry.traceId || getTraceId(),
+      actor: entry.actor ?? this.defaultActor,
+      traceId: entry.traceId ?? getTraceId(),
     });
   }
 
@@ -86,7 +86,7 @@ class AuditLogger {
    * Issue関連のログを記録するヘルパー
    */
   async logIssueAction(
-    action: 'ISSUE_CREATE' | 'ISSUE_UPDATE' | 'ISSUE_START' | 'ISSUE_CLOSE',
+    action: 'ISSUE_CREATE' | 'ISSUE_UPDATE' | 'ISSUE_START' | 'ISSUE_CLOSE' | 'ISSUE_DELETE',
     issueId: string,
     payload?: Record<string, unknown>
   ): Promise<void> {
@@ -127,9 +127,10 @@ class AuditLogger {
     entityId: string,
     payload?: Record<string, unknown>
   ): Promise<void> {
+    const GIT_SYSTEM_ACTIONS = new Set(['GIT_COMMIT', 'GIT_BRANCH_CREATE', 'GIT_BRANCH_DELETE']);
     await this.record({
       action,
-      entityType: action.startsWith('GIT') ? 'System' : 'Issue',
+      entityType: GIT_SYSTEM_ACTIONS.has(action) ? 'System' : 'Issue',
       entityId,
       payload,
     });

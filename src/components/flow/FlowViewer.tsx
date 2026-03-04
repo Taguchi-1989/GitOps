@@ -153,6 +153,7 @@ export function FlowViewer({
               <MermaidViewer
                 content={mermaidContent}
                 onNodeClick={handleNodeClick}
+                selectedNodeId={selectedNode}
                 className="h-full"
               />
             </div>
@@ -173,8 +174,9 @@ export function FlowViewer({
                   type="button"
                   onClick={() => setSelectedNode(null)}
                   className="text-gray-400 hover:text-gray-600"
+                  aria-label="ノード詳細パネルを閉じる"
                 >
-                  x
+                  ✕
                 </button>
               </div>
 

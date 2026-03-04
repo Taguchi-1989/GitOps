@@ -43,9 +43,11 @@ export function generateBranchName(issueHumanId: string, slug: string): string {
     .replace(/[^a-z0-9]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-    .substring(0, 30);
+    .substring(0, 30)
+    .replace(/-$/g, ''); // 切り捨て後の末尾ハイフンも除去
 
-  return `cr/${issueHumanId}-${sanitizedSlug}`;
+  const finalSlug = sanitizedSlug || 'update';
+  return `cr/${issueHumanId}-${finalSlug}`;
 }
 
 /**

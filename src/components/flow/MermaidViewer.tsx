@@ -41,8 +41,10 @@ export function MermaidViewer({
   const [zoom, setZoom] = useState(1);
   const [isRendering, setIsRendering] = useState(false);
 
-  // Mermaidレンダリング
+  // Mermaidレンダリング（レースコンディション対策付き）
   useEffect(() => {
+    let cancelled = false;
+
     const renderDiagram = async () => {
       if (!content) return;
 
@@ -50,18 +52,23 @@ export function MermaidViewer({
       setError(null);
 
       try {
-        const id = `mermaid-${Date.now()}`;
+        const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         const { svg } = await mermaid.render(id, content);
-        setSvgContent(svg);
+        if (!cancelled) setSvgContent(svg);
       } catch (err) {
-        console.error('Mermaid render error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to render diagram');
+        if (!cancelled) {
+          console.error('Mermaid render error:', err);
+          setError(err instanceof Error ? err.message : 'ダイアグラムのレンダリングに失敗しました');
+        }
       } finally {
-        setIsRendering(false);
+        if (!cancelled) setIsRendering(false);
       }
     };
 
     renderDiagram();
+    return () => {
+      cancelled = true;
+    };
   }, [content]);
 
   /**
@@ -155,7 +162,8 @@ export function MermaidViewer({
         <button
           onClick={handleZoomOut}
           className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-          title="Zoom Out"
+          title="縮小"
+          aria-label="縮小"
         >
           <ZoomOut className="w-4 h-4" />
         </button>
@@ -165,21 +173,24 @@ export function MermaidViewer({
         <button
           onClick={handleZoomIn}
           className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-          title="Zoom In"
+          title="拡大"
+          aria-label="拡大"
         >
           <ZoomIn className="w-4 h-4" />
         </button>
         <button
           onClick={handleZoomReset}
           className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-          title="Reset Zoom"
+          title="ズームリセット"
+          aria-label="ズームリセット"
         >
           <RotateCcw className="w-4 h-4" />
         </button>
         <button
           onClick={handleDownload}
           className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-          title="Download SVG"
+          title="SVGダウンロード"
+          aria-label="SVGダウンロード"
         >
           <Download className="w-4 h-4" />
         </button>

@@ -37,6 +37,9 @@ export const AuditActionSchema = z.enum([
   'HUMAN_APPROVE',
   'HUMAN_REJECT',
 
+  // Flow lifecycle
+  'FLOW_CREATE',
+
   // System operations
   'BACKUP_CREATE',
 ]);

@@ -152,7 +152,7 @@ describe('GET /api/flows/[id]', () => {
 
     expect(body.ok).toBe(false);
     expect(body.errorCode).toBe('INTERNAL_ERROR');
-    expect(body.details).toBe('Disk read failure');
+    expect(body.details).toBe('An internal error occurred');
     expect(result.status).toBe(500);
   });
 });

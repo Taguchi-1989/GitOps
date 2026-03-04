@@ -52,8 +52,8 @@ class LLMClient {
       ...(config.baseURL ? { baseURL: config.baseURL } : {}),
     });
     this.model = config.model || 'gpt-4o';
-    this.maxTokens = config.maxTokens || 2048;
-    this.temperature = config.temperature || 0.3;
+    this.maxTokens = config.maxTokens ?? 2048;
+    this.temperature = config.temperature ?? 0.3;
     this.supportsJsonMode = config.supportsJsonMode ?? true;
   }
 
@@ -90,7 +90,7 @@ class LLMClient {
       }
     }
 
-    throw lastError!;
+    throw lastError ?? new LLMError('API_ERROR', 'Unknown error after retries');
   }
 
   private async callLLM(params: GenerateProposalParams): Promise<ProposalOutput> {
@@ -162,10 +162,7 @@ class LLMClient {
         }
       }
 
-      throw new LLMError(
-        'PARSE_ERROR',
-        `Failed to extract JSON from LLM response: ${content.substring(0, 200)}`
-      );
+      throw new LLMError('PARSE_ERROR', 'Failed to extract valid JSON from LLM response');
     }
   }
 
@@ -188,13 +185,17 @@ class LLMClient {
     // role/systemの辞書存在チェック
     for (const patch of output.patches) {
       if ((patch.op === 'add' || patch.op === 'replace') && patch.path.endsWith('/role')) {
-        if (roles && roles.length > 0 && !roles.includes(patch.value as string)) {
-          violations.push(`Unknown role in patch: ${patch.value}`);
+        if (roles && roles.length > 0) {
+          if (typeof patch.value !== 'string' || !roles.includes(patch.value)) {
+            violations.push(`Invalid or unknown role in patch: ${String(patch.value)}`);
+          }
         }
       }
       if ((patch.op === 'add' || patch.op === 'replace') && patch.path.endsWith('/system')) {
-        if (systems && systems.length > 0 && !systems.includes(patch.value as string)) {
-          violations.push(`Unknown system in patch: ${patch.value}`);
+        if (systems && systems.length > 0) {
+          if (typeof patch.value !== 'string' || !systems.includes(patch.value)) {
+            violations.push(`Invalid or unknown system in patch: ${String(patch.value)}`);
+          }
         }
       }
     }
