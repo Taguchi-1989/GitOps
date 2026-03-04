@@ -29,12 +29,12 @@ describe('prisma', () => {
 
   it('should store prisma on globalThis in non-production env', async () => {
     const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string>).NODE_ENV = 'test';
 
     const { prisma } = await import('@/lib/prisma');
     const g = globalThis as unknown as { prisma: unknown };
     expect(g.prisma).toBe(prisma);
 
-    process.env.NODE_ENV = originalEnv;
+    (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
   });
 });

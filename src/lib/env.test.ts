@@ -29,7 +29,7 @@ describe('validateEnv', () => {
   it('returns validated env when all required vars are present', async () => {
     process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
     process.env.AUTH_SECRET = 'my-secret-key';
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string>).NODE_ENV = 'test';
 
     const { validateEnv } = await import('@/lib/env');
     const env = validateEnv();
@@ -42,7 +42,7 @@ describe('validateEnv', () => {
   it('returns cached env on subsequent calls (same module instance)', async () => {
     process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
     process.env.AUTH_SECRET = 'my-secret-key';
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string>).NODE_ENV = 'test';
 
     const { validateEnv } = await import('@/lib/env');
     const first = validateEnv();
@@ -58,7 +58,7 @@ describe('validateEnv', () => {
   it('falls back to defaults in development when required vars are missing', async () => {
     delete process.env.DATABASE_URL;
     delete process.env.AUTH_SECRET;
-    process.env.NODE_ENV = 'development';
+    (process.env as Record<string, string>).NODE_ENV = 'development';
 
     const { validateEnv } = await import('@/lib/env');
     const env = validateEnv();
@@ -72,7 +72,7 @@ describe('validateEnv', () => {
   it('calls process.exit(1) in production when required vars are missing', async () => {
     delete process.env.DATABASE_URL;
     delete process.env.AUTH_SECRET;
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string>).NODE_ENV = 'production';
 
     const { validateEnv } = await import('@/lib/env');
 
@@ -84,7 +84,7 @@ describe('validateEnv', () => {
   it('logs descriptive error messages when validation fails', async () => {
     delete process.env.DATABASE_URL;
     delete process.env.AUTH_SECRET;
-    process.env.NODE_ENV = 'development';
+    (process.env as Record<string, string>).NODE_ENV = 'development';
 
     const { validateEnv } = await import('@/lib/env');
     validateEnv();
@@ -101,7 +101,7 @@ describe('validateEnv', () => {
     process.env.LLM_API_KEY = 'sk-test-key';
     process.env.LLM_MODEL = 'gpt-4';
     process.env.LLM_BASE_URL = 'https://api.openai.com/v1';
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string>).NODE_ENV = 'test';
 
     const { validateEnv } = await import('@/lib/env');
     const env = validateEnv();
@@ -116,7 +116,7 @@ describe('validateEnv', () => {
     process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
     process.env.AUTH_SECRET = 'my-secret-key';
     process.env.LOG_LEVEL = 'warn';
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string>).NODE_ENV = 'test';
 
     const { validateEnv } = await import('@/lib/env');
     const env = validateEnv();
@@ -128,7 +128,7 @@ describe('validateEnv', () => {
     process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
     process.env.AUTH_SECRET = 'my-secret-key';
     process.env.LOG_LEVEL = 'verbose'; // invalid
-    process.env.NODE_ENV = 'development';
+    (process.env as Record<string, string>).NODE_ENV = 'development';
 
     const { validateEnv } = await import('@/lib/env');
     const env = validateEnv();
@@ -144,7 +144,7 @@ describe('validateEnv', () => {
     process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
     process.env.AUTH_SECRET = 'my-secret-key';
     process.env.LLM_BASE_URL = 'not-a-url';
-    process.env.NODE_ENV = 'development';
+    (process.env as Record<string, string>).NODE_ENV = 'development';
 
     const { validateEnv } = await import('@/lib/env');
     const env = validateEnv();
@@ -160,7 +160,7 @@ describe('validateEnv', () => {
   it('returns undefined for optional vars when they are not set', async () => {
     process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
     process.env.AUTH_SECRET = 'my-secret-key';
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string>).NODE_ENV = 'test';
     delete process.env.LLM_PROVIDER;
     delete process.env.LLM_API_KEY;
     delete process.env.FLOWS_DIR;

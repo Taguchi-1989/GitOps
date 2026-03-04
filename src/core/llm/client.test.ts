@@ -53,7 +53,7 @@ const defaultParams = {
 // Env helpers
 // -------------------------------------------------------
 let savedEnv: NodeJS.ProcessEnv;
-let setTimeoutSpy: ReturnType<typeof vi.spyOn> | null = null;
+let setTimeoutSpy: any = null;
 
 beforeEach(() => {
   savedEnv = { ...process.env };
@@ -72,10 +72,10 @@ beforeEach(() => {
   vi.mocked(getTraceId).mockReturnValue(undefined);
 
   // Make setTimeout resolve immediately to speed up retry tests
-  setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation((fn: TimerHandler) => {
+  setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: unknown) => {
     if (typeof fn === 'function') fn();
-    return 0 as unknown as ReturnType<typeof setTimeout>;
-  });
+    return 0;
+  }) as any);
 });
 
 afterEach(() => {
