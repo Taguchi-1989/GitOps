@@ -45,7 +45,7 @@
 | Runtime | Node.js LTS |
 | Framework | Next.js 14 (App Router) |
 | Language | TypeScript (Strict Mode) |
-| Database | SQLite + Prisma ORM |
+| Database | PostgreSQL + Prisma ORM |
 | UI | Tailwind CSS + shadcn/ui + Lucide React |
 | Flow Visualization | Mermaid.js |
 | Git | simple-git (Mutex Lock付き) |
@@ -53,20 +53,39 @@
 | Validation | Zod (全入出力境界で使用) |
 | Testing | Vitest |
 
-## クイックスタート
+## 最速ローカル起動
 
-**前提条件**: Node.js >= 18, Git
+**前提条件**: Node.js >= 18, Git, Docker
 
 ```bash
+# 1. DB起動
+docker compose up postgres -d
+
+# 2. セットアップ
 npm install
-
-cp .env.example .env.local
-# .env.local を編集して LLM_PROVIDER と LLM_API_KEY を設定
-
+cp .env.example .env.local  # LLM_API_KEY を編集
 npx prisma db push
+npm run db:seed
 
+# 3. 起動
 npm run dev
-# http://localhost:3000 で起動
+# → http://localhost:3000
+```
+
+> `.env.example` の先頭にある「ローカル最小構成」セクションの3項目（`DATABASE_URL`, `AUTH_SECRET`, `LLM_API_KEY`）を設定するだけで動きます。
+
+## Docker起動（フルスタック）
+
+LiteLLM（LLMゲートウェイ）+ Langfuse（LLMOps）を含む完全構成:
+
+```bash
+cp .env.example .env
+# .env で OPENAI_API_KEY 等を設定
+
+docker compose up -d
+# → FlowOps:  http://localhost:3000
+# → Langfuse:  http://localhost:3001
+# → LiteLLM:   http://localhost:4000
 ```
 
 ### 環境変数
