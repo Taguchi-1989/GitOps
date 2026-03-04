@@ -8,6 +8,8 @@ import { prisma } from '@/lib/prisma';
 import { IssuesListClient } from './IssuesListClient';
 import { IssueStatus } from '@/core/issue';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Issues - FlowOps',
   description: 'Issue一覧',
