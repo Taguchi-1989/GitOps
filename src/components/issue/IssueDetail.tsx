@@ -27,6 +27,8 @@ import {
   History,
   Loader2,
 } from 'lucide-react';
+import { useSimpleMode } from '@/lib/simple-mode-context';
+import { GuidedWorkflow } from '@/components/ui/GuidedWorkflow';
 
 interface IssueDetailProps {
   issue: IssueCardData & {
@@ -64,6 +66,7 @@ export function IssueDetail({
 }: IssueDetailProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'proposals' | 'history'>('details');
 
+  const { isSimpleMode } = useSimpleMode();
   const canStart = issue.status === 'new' || issue.status === 'triage';
   const canGenerateProposal = issue.status === 'in-progress';
   const canMergeOrReject = issue.status === 'proposed';
@@ -78,7 +81,7 @@ export function IssueDetail({
             className="flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Issue一覧に戻る
+            課題一覧に戻る
           </button>
         )}
 
@@ -103,7 +106,11 @@ export function IssueDetail({
                   hover:bg-blue-700 disabled:opacity-50
                   transition-colors
                 "
-                title="Gitブランチを作成して作業を開始します"
+                title={
+                  isSimpleMode
+                    ? '作業スペースを準備します'
+                    : 'Gitブランチを作成して作業を開始します'
+                }
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -111,8 +118,12 @@ export function IssueDetail({
                   <Play className="w-4 h-4" />
                 )}
                 <span>
-                  <span className="font-medium">作業を開始</span>
-                  <span className="block text-xs text-blue-200">ブランチを作成</span>
+                  <span className="font-medium">
+                    {isSimpleMode ? '改善を始める' : '作業を開始'}
+                  </span>
+                  {!isSimpleMode && (
+                    <span className="block text-xs text-blue-200">ブランチを作成</span>
+                  )}
                 </span>
               </button>
             )}
@@ -136,7 +147,12 @@ export function IssueDetail({
                 )}
                 <span>
                   <span className="font-medium">AIで改善案を生成</span>
-                  <span className="block text-xs text-purple-200">LLMが変更を提案</span>
+                  {!isSimpleMode && (
+                    <span className="block text-xs text-purple-200">LLMが変更を提案</span>
+                  )}
+                  {isSimpleMode && (
+                    <span className="block text-xs text-purple-200">AIが改善案を作成</span>
+                  )}
                 </span>
               </button>
             )}
@@ -153,7 +169,11 @@ export function IssueDetail({
                       hover:bg-green-700 disabled:opacity-50
                       transition-colors
                     "
-                    title="変更をメインブランチに統合してIssueを完了にします"
+                    title={
+                      isSimpleMode
+                        ? '改善内容を確定します'
+                        : '変更をメインブランチに統合してIssueを完了にします'
+                    }
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -161,8 +181,12 @@ export function IssueDetail({
                       <CheckCircle className="w-4 h-4" />
                     )}
                     <span>
-                      <span className="font-medium">マージして完了</span>
-                      <span className="block text-xs text-green-200">メインに統合</span>
+                      <span className="font-medium">
+                        {isSimpleMode ? '変更を確定する' : 'マージして完了'}
+                      </span>
+                      {!isSimpleMode && (
+                        <span className="block text-xs text-green-200">メインに統合</span>
+                      )}
                     </span>
                   </button>
                 )}
@@ -192,6 +216,16 @@ export function IssueDetail({
         </div>
       </div>
 
+      {/* Guided Workflow (シンプルモード時のみ) */}
+      {isSimpleMode && (
+        <GuidedWorkflow
+          currentStatus={issue.status}
+          hasProposals={!!issue.proposals && issue.proposals.length > 0}
+          hasAppliedProposal={!!issue.proposals?.some(p => p.isApplied)}
+          className="mb-4"
+        />
+      )}
+
       {/* Status Lifecycle */}
       <StatusLifecycle currentStatus={issue.status} className="mb-6" />
 
@@ -209,7 +243,7 @@ export function IssueDetail({
           </span>
         )}
 
-        {issue.branchName && (
+        {issue.branchName && !isSimpleMode && (
           <span className="flex items-center gap-1.5">
             <GitBranch className="w-4 h-4" />
             <span className="font-mono">{issue.branchName}</span>

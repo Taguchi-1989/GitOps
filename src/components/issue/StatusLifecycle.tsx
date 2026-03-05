@@ -17,24 +17,29 @@ import {
   XCircle,
   ArrowRight,
 } from 'lucide-react';
+import { useSimpleMode } from '@/lib/simple-mode-context';
 
 interface StatusLifecycleProps {
   currentStatus: IssueStatus;
   className?: string;
 }
 
-const lifecycleSteps: {
+interface LifecycleStep {
   status: IssueStatus;
   label: string;
   hint: string;
+  simpleHint: string;
   icon: React.ElementType;
   color: string;
   activeColor: string;
-}[] = [
+}
+
+const lifecycleSteps: LifecycleStep[] = [
   {
     status: 'new',
     label: '起票',
     hint: 'Issueを作成',
+    simpleHint: '課題を報告',
     icon: AlertCircle,
     color: 'text-gray-300',
     activeColor: 'text-red-500 bg-red-50 border-red-200',
@@ -43,14 +48,16 @@ const lifecycleSteps: {
     status: 'in-progress',
     label: '作業中',
     hint: '「作業を開始」を押す',
+    simpleHint: '「改善を始める」を押してください',
     icon: Play,
     color: 'text-gray-300',
     activeColor: 'text-blue-500 bg-blue-50 border-blue-200',
   },
   {
     status: 'proposed',
-    label: '提案済',
+    label: '改善案あり',
     hint: 'AIが改善案を生成',
+    simpleHint: 'AIが改善案を生成',
     icon: Sparkles,
     color: 'text-gray-300',
     activeColor: 'text-yellow-600 bg-yellow-50 border-yellow-200',
@@ -59,6 +66,7 @@ const lifecycleSteps: {
     status: 'merged',
     label: '完了',
     hint: 'マージして完了',
+    simpleHint: '変更を確定',
     icon: GitMerge,
     color: 'text-gray-300',
     activeColor: 'text-green-500 bg-green-50 border-green-200',
@@ -77,6 +85,7 @@ const statusOrder: Record<string, number> = {
 };
 
 export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecycleProps) {
+  const { isSimpleMode } = useSimpleMode();
   const currentOrder = statusOrder[currentStatus] ?? -1;
   const isTerminal = currentStatus === 'rejected' || currentStatus === 'merged-duplicate';
 
@@ -100,13 +109,21 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
           <div>
             <p className="text-sm font-medium text-gray-900">
               {currentStatus === 'rejected'
-                ? 'このIssueは却下されました'
-                : 'このIssueは重複として統合されました'}
+                ? isSimpleMode
+                  ? 'この課題は見送りになりました'
+                  : 'このIssueは却下されました'
+                : isSimpleMode
+                  ? 'この課題は重複として統合されました'
+                  : 'このIssueは重複として統合されました'}
             </p>
             <p className="text-xs text-gray-500 mt-0.5">
               {currentStatus === 'rejected'
-                ? '必要に応じて新しいIssueを作成できます'
-                : '統合先のIssueをご確認ください'}
+                ? isSimpleMode
+                  ? '必要に応じて新しい課題を報告できます'
+                  : '必要に応じて新しいIssueを作成できます'
+                : isSimpleMode
+                  ? '統合先の課題をご確認ください'
+                  : '統合先のIssueをご確認ください'}
             </p>
           </div>
         </div>
@@ -121,7 +138,10 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
         <h3 className="text-sm font-medium text-gray-500">進行状況</h3>
         {currentOrder < 3 && (
           <span className="text-xs text-gray-400">
-            次のステップ: {lifecycleSteps[currentOrder + 1]?.hint}
+            次のステップ:{' '}
+            {isSimpleMode
+              ? lifecycleSteps[currentOrder + 1]?.simpleHint
+              : lifecycleSteps[currentOrder + 1]?.hint}
           </span>
         )}
       </div>

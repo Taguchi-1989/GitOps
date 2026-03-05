@@ -8,6 +8,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IssueDetail, IssueCardData, ProposalData } from '@/components/issue';
 import { useToast } from '@/components/ui/Toast';
+import { getFriendlyError, formatFriendlyToast } from '@/lib/friendly-errors';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface IssueDetailClientProps {
   issue: IssueCardData & {
@@ -21,6 +23,10 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
   const router = useRouter();
   const { addToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    type: 'merge' | 'reject' | 'apply';
+    proposalId?: string;
+  } | null>(null);
 
   const handleBack = () => {
     router.push('/issues');
@@ -35,13 +41,15 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
       const data = await res.json();
 
       if (!data.ok) {
-        throw new Error(data.details || 'Failed to start issue');
+        const friendly = getFriendlyError(data.errorCode, data.details);
+        addToast(friendly.severity, formatFriendlyToast(friendly));
+        return;
       }
 
-      addToast('success', `Work started. Branch: ${data.data.branchName}`);
+      addToast('success', '改善の作業を開始しました');
       router.refresh();
-    } catch (error) {
-      addToast('error', error instanceof Error ? error.message : 'Failed to start issue');
+    } catch {
+      addToast('error', '作業の開始に失敗しました。もう一度お試しください。');
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +57,7 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
 
   const handleGenerateProposal = async () => {
     if (!issue.targetFlowId) {
-      addToast('error', 'Please set a target flow before generating a proposal');
+      addToast('error', '対象フローを設定してから改善案を生成してください。');
       return;
     }
 
@@ -61,13 +69,15 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
       const data = await res.json();
 
       if (!data.ok) {
-        throw new Error(data.details || 'Failed to generate proposal');
+        const friendly = getFriendlyError(data.errorCode, data.details);
+        addToast(friendly.severity, formatFriendlyToast(friendly));
+        return;
       }
 
-      addToast('success', 'Proposal generated successfully');
+      addToast('success', 'AIが改善案を作成しました');
       router.refresh();
-    } catch (error) {
-      addToast('error', error instanceof Error ? error.message : 'Failed to generate proposal');
+    } catch {
+      addToast('error', '改善案の生成に失敗しました。もう一度お試しください。');
     } finally {
       setIsLoading(false);
     }
@@ -82,13 +92,15 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
       const data = await res.json();
 
       if (!data.ok) {
-        throw new Error(data.details || 'Failed to apply proposal');
+        const friendly = getFriendlyError(data.errorCode, data.details);
+        addToast(friendly.severity, formatFriendlyToast(friendly));
+        return;
       }
 
-      addToast('success', 'Proposal applied and committed');
+      addToast('success', '改善案を反映しました');
       router.refresh();
-    } catch (error) {
-      addToast('error', error instanceof Error ? error.message : 'Failed to apply proposal');
+    } catch {
+      addToast('error', '改善案の反映に失敗しました。もう一度お試しください。');
     } finally {
       setIsLoading(false);
     }
@@ -103,13 +115,15 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
       const data = await res.json();
 
       if (!data.ok) {
-        throw new Error(data.details || 'Failed to merge and close');
+        const friendly = getFriendlyError(data.errorCode, data.details);
+        addToast(friendly.severity, formatFriendlyToast(friendly));
+        return;
       }
 
-      addToast('success', 'Issue merged and closed');
+      addToast('success', '変更を確定しました');
       router.refresh();
-    } catch (error) {
-      addToast('error', error instanceof Error ? error.message : 'Failed to merge and close');
+    } catch {
+      addToast('error', '変更の確定に失敗しました。もう一度お試しください。');
     } finally {
       setIsLoading(false);
     }
@@ -126,28 +140,89 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
       const data = await res.json();
 
       if (!data.ok) {
-        throw new Error(data.details || 'Failed to reject issue');
+        const friendly = getFriendlyError(data.errorCode, data.details);
+        addToast(friendly.severity, formatFriendlyToast(friendly));
+        return;
       }
 
-      addToast('success', 'Issue rejected');
+      addToast('success', 'この課題を見送りにしました');
       router.refresh();
-    } catch (error) {
-      addToast('error', error instanceof Error ? error.message : 'Failed to reject issue');
+    } catch {
+      addToast('error', '操作に失敗しました。もう一度お試しください。');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const confirmDialogConfig = {
+    merge: {
+      title: '変更を確定しますか？',
+      description: 'この操作により改善内容が正式に反映されます。',
+      whatHappens: ['改善内容が正式なフローに反映されます', 'この課題は「完了」になります'],
+      confirmLabel: '変更を確定する',
+      confirmColor: 'green' as const,
+      onConfirm: handleMergeClose,
+    },
+    reject: {
+      title: 'この課題を見送りますか？',
+      description: 'この操作により課題が見送り（却下）になります。',
+      whatHappens: [
+        '改善案は反映されません',
+        'この課題は「見送り」になります',
+        '必要に応じて新しい課題を報告できます',
+      ],
+      confirmLabel: '見送りにする',
+      confirmColor: 'red' as const,
+      onConfirm: handleReject,
+    },
+    apply: {
+      title: '改善案を反映しますか？',
+      description: 'AIが提案した改善内容をフローに適用します。',
+      whatHappens: [
+        'AIの提案内容がフローに適用されます',
+        '適用後に「変更を確定」または「見送り」を選べます',
+      ],
+      confirmLabel: '反映する',
+      confirmColor: 'green' as const,
+      onConfirm: () => {
+        if (confirmDialog?.proposalId) {
+          handleApplyProposal(confirmDialog.proposalId);
+        }
+      },
+    },
+  };
+
+  const currentConfig = confirmDialog ? confirmDialogConfig[confirmDialog.type] : null;
+
   return (
-    <IssueDetail
-      issue={issue}
-      onBack={handleBack}
-      onStart={handleStart}
-      onGenerateProposal={handleGenerateProposal}
-      onApplyProposal={handleApplyProposal}
-      onMergeClose={handleMergeClose}
-      onReject={handleReject}
-      isLoading={isLoading}
-    />
+    <>
+      <IssueDetail
+        issue={issue}
+        onBack={handleBack}
+        onStart={handleStart}
+        onGenerateProposal={handleGenerateProposal}
+        onApplyProposal={proposalId => setConfirmDialog({ type: 'apply', proposalId })}
+        onMergeClose={() => setConfirmDialog({ type: 'merge' })}
+        onReject={() => setConfirmDialog({ type: 'reject' })}
+        isLoading={isLoading}
+      />
+
+      {currentConfig && (
+        <ConfirmDialog
+          isOpen={!!confirmDialog}
+          onConfirm={() => {
+            currentConfig.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+          title={currentConfig.title}
+          description={currentConfig.description}
+          whatHappens={currentConfig.whatHappens}
+          confirmLabel={currentConfig.confirmLabel}
+          confirmColor={currentConfig.confirmColor}
+          isLoading={isLoading}
+        />
+      )}
+    </>
   );
 }

@@ -9,6 +9,7 @@
 import React, { useState } from 'react';
 import { Check, ChevronDown, ChevronUp, Clock, Code } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import { useSimpleMode } from '@/lib/simple-mode-context';
 
 export interface ProposalData {
   id: string;
@@ -38,6 +39,7 @@ function formatDate(date: Date | string): string {
 }
 
 export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalCardProps) {
+  const { isSimpleMode } = useSimpleMode();
   const [showPatch, setShowPatch] = useState(false);
 
   return (
@@ -77,19 +79,23 @@ export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalC
                 hover:bg-green-700 disabled:opacity-50
                 transition-colors
               "
-              title="この改善案をGitブランチにコミットします"
+              title={
+                isSimpleMode ? '改善案を反映します' : 'この改善案をGitブランチにコミットします'
+              }
             >
               <Check className="w-4 h-4" />
               <span>
-                <span className="font-medium">適用する</span>
-                <span className="block text-xs text-green-200">ブランチにコミット</span>
+                <span className="font-medium">{isSimpleMode ? '反映する' : '適用する'}</span>
+                {!isSimpleMode && (
+                  <span className="block text-xs text-green-200">ブランチにコミット</span>
+                )}
               </span>
             </button>
           )}
         </div>
 
-        {/* Base Hash */}
-        {proposal.baseHash && (
+        {/* Base Hash (技術詳細モードのみ) */}
+        {proposal.baseHash && !isSimpleMode && (
           <div className="mt-2 text-xs text-gray-500 font-mono flex items-center gap-1">
             ベースハッシュ: {proposal.baseHash.substring(0, 12)}...
             <HelpTooltip content="この提案が生成された時点のフロー定義のバージョンです。フローが変更されている場合、この提案は古くなっている可能性があります。" />
@@ -110,33 +116,35 @@ export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalC
         </div>
       )}
 
-      {/* JSON Patch Toggle */}
-      <div className="border-t border-gray-200">
-        <button
-          type="button"
-          onClick={() => setShowPatch(!showPatch)}
-          className="
-            w-full flex items-center justify-between px-4 py-2
-            text-sm text-gray-600 hover:bg-gray-50
-            transition-colors
-          "
-        >
-          <span className="flex items-center gap-2">
-            <Code className="w-4 h-4" />
-            JSON Patchを表示
-            <HelpTooltip content="RFC 6902形式のJSON Patchです。YAMLフローファイルへの具体的な変更操作が定義されています。" />
-          </span>
-          {showPatch ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
+      {/* JSON Patch Toggle (技術詳細モードのみ) */}
+      {!isSimpleMode && (
+        <div className="border-t border-gray-200">
+          <button
+            type="button"
+            onClick={() => setShowPatch(!showPatch)}
+            className="
+              w-full flex items-center justify-between px-4 py-2
+              text-sm text-gray-600 hover:bg-gray-50
+              transition-colors
+            "
+          >
+            <span className="flex items-center gap-2">
+              <Code className="w-4 h-4" />
+              変更内容（技術詳細）を表示
+              <HelpTooltip content="フローファイルへの具体的な変更操作です。" />
+            </span>
+            {showPatch ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
 
-        {showPatch && (
-          <div className="px-4 pb-4">
-            <pre className="p-3 bg-gray-900 text-gray-100 rounded-lg text-xs overflow-x-auto">
-              {JSON.stringify(proposal.jsonPatch, null, 2)}
-            </pre>
-          </div>
-        )}
-      </div>
+          {showPatch && (
+            <div className="px-4 pb-4">
+              <pre className="p-3 bg-gray-900 text-gray-100 rounded-lg text-xs overflow-x-auto">
+                {JSON.stringify(proposal.jsonPatch, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

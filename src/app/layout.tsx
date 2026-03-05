@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { MainLayout } from '@/components/ui/MainLayout';
 import { ToastProvider } from '@/components/ui/Toast';
+import { SimpleModeProvider } from '@/lib/simple-mode-context';
 
 // Bootstrap (サーバーサイドでAuditLogリポジトリを初期化)
 import '@/lib/bootstrap';
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ja">
       <body className={inter.className}>
         <ToastProvider>
-          <MainLayout>{children}</MainLayout>
+          <SimpleModeProvider>
+            <MainLayout>{children}</MainLayout>
+          </SimpleModeProvider>
         </ToastProvider>
       </body>
     </html>

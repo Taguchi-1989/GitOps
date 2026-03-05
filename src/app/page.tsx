@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { listFlows } from '@/lib/flow-service';
+import { TaskQueue } from '@/components/ui/TaskQueue';
 import {
   FileText,
   AlertCircle,
@@ -165,16 +166,16 @@ function GettingStartedChecklist({
     },
     {
       done: hasIssues,
-      label: 'Issueを作成する',
-      description: '改善したい点や課題をIssueとして記録します',
+      label: '課題を報告する',
+      description: '改善したい点や課題を記録します',
       href: '/issues/new',
       icon: Plus,
       color: 'text-red-600 bg-red-50',
     },
     {
       done: hasInProgress,
-      label: '作業を開始する',
-      description: 'Issue詳細画面で「作業を開始」を押すとGitブランチが作成されます',
+      label: '改善を始める',
+      description: '課題の詳細画面で「改善を始める」を押すと作業スペースが準備されます',
       href: hasIssues ? '/issues' : undefined,
       icon: Play,
       color: 'text-blue-600 bg-blue-50',
@@ -189,8 +190,8 @@ function GettingStartedChecklist({
     },
     {
       done: hasMerged,
-      label: 'マージして完了する',
-      description: '改善案をメインブランチに統合して完了です',
+      label: '変更を確定して完了する',
+      description: '改善案を確定して完了です',
       href: hasProposed ? '/issues' : undefined,
       icon: GitMerge,
       color: 'text-green-600 bg-green-50',
@@ -281,10 +282,10 @@ function GettingStartedChecklist({
 function WorkflowOverview() {
   const steps = [
     { icon: Eye, label: 'フロー確認', color: 'bg-indigo-500', description: '業務フローを可視化' },
-    { icon: AlertCircle, label: 'Issue作成', color: 'bg-red-500', description: '課題を記録' },
-    { icon: Play, label: '作業開始', color: 'bg-blue-500', description: 'ブランチ作成' },
+    { icon: AlertCircle, label: '課題報告', color: 'bg-red-500', description: '課題を記録' },
+    { icon: Play, label: '改善開始', color: 'bg-blue-500', description: '作業準備' },
     { icon: Sparkles, label: 'AI提案', color: 'bg-purple-500', description: '改善案を生成' },
-    { icon: GitMerge, label: 'マージ', color: 'bg-green-500', description: '変更を統合' },
+    { icon: GitMerge, label: '確定', color: 'bg-green-500', description: '変更を確定' },
   ];
 
   return (
@@ -342,13 +343,24 @@ export default async function DashboardPage() {
         hasMerged={hasMerged}
       />
 
+      {/* やることリスト */}
+      <TaskQueue
+        recentIssues={recentIssues.map(i => ({
+          id: i.id,
+          humanId: i.humanId,
+          title: i.title,
+          status: i.status,
+        }))}
+        stats={{ open: stats.open, inProgress: stats.inProgress, proposed: stats.proposed }}
+      />
+
       {/* ワークフロー概要図 - 新規ユーザーの場合に表示 */}
       {isNewUser && <WorkflowOverview />}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="未対応のIssue"
+          title="未対応の課題"
           value={stats.open}
           icon={AlertCircle}
           color="bg-red-500"
@@ -362,18 +374,13 @@ export default async function DashboardPage() {
           href="/issues?status=in-progress"
         />
         <StatCard
-          title="提案済"
+          title="改善案あり"
           value={stats.proposed}
           icon={GitBranch}
           color="bg-yellow-500"
           href="/issues?status=proposed"
         />
-        <StatCard
-          title="完了（マージ済）"
-          value={stats.merged}
-          icon={CheckCircle}
-          color="bg-green-500"
-        />
+        <StatCard title="完了" value={stats.merged} icon={CheckCircle} color="bg-green-500" />
       </div>
 
       {/* Main Content Grid */}
@@ -381,7 +388,7 @@ export default async function DashboardPage() {
         {/* Recent Issues */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">最近のIssue</h2>
+            <h2 className="text-lg font-semibold text-gray-900">最近の課題</h2>
             <Link
               href="/issues"
               className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
@@ -393,12 +400,12 @@ export default async function DashboardPage() {
             {recentIssues.length === 0 ? (
               <div className="px-6 py-8 text-center">
                 <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-gray-500">まだIssueがありません</p>
+                <p className="text-gray-500">まだ課題がありません</p>
                 <Link
                   href="/issues/new"
                   className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-block"
                 >
-                  最初のIssueを作成する
+                  最初の課題を報告する
                 </Link>
               </div>
             ) : (
@@ -476,13 +483,13 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold">フローを改善しませんか？</h2>
-            <p className="mt-1 text-blue-100">Issueを作成して、改善の追跡を始めましょう</p>
+            <p className="mt-1 text-blue-100">課題を報告して、改善の追跡を始めましょう</p>
           </div>
           <Link
             href="/issues/new"
             className="px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
           >
-            Issueを作成
+            課題を報告する
           </Link>
         </div>
       </div>

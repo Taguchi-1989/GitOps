@@ -9,8 +9,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GitBranch, FileText, AlertCircle, Home, ClipboardList } from 'lucide-react';
+import { GitBranch, FileText, AlertCircle, Home, ClipboardList, Eye, EyeOff } from 'lucide-react';
 import { WelcomeGuide, WelcomeGuideButton } from './WelcomeGuide';
+import { useSimpleMode } from '@/lib/simple-mode-context';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -19,11 +20,12 @@ interface MainLayoutProps {
 const navigation = [
   { name: 'ダッシュボード', href: '/', icon: Home, description: 'プロジェクト概要' },
   { name: 'フロー', href: '/flows', icon: FileText, description: '業務フロー一覧' },
-  { name: 'Issue', href: '/issues', icon: AlertCircle, description: '課題・改善の管理' },
+  { name: '課題', href: '/issues', icon: AlertCircle, description: '課題・改善の管理' },
 ];
 
 export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
+  const { isSimpleMode, toggleSimpleMode } = useSimpleMode();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -84,6 +86,30 @@ export function MainLayout({ children }: MainLayoutProps) {
 
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800 space-y-2">
+          {/* かんたんモード トグル */}
+          <button
+            type="button"
+            onClick={toggleSimpleMode}
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-800"
+          >
+            {isSimpleMode ? (
+              <Eye className="w-4 h-4 text-blue-400" />
+            ) : (
+              <EyeOff className="w-4 h-4 text-gray-500" />
+            )}
+            <span className={isSimpleMode ? 'text-blue-400' : 'text-gray-400'}>かんたんモード</span>
+            <div
+              className={`ml-auto w-8 h-4 rounded-full transition-colors relative ${
+                isSimpleMode ? 'bg-blue-500' : 'bg-gray-600'
+              }`}
+            >
+              <div
+                className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
+                  isSimpleMode ? 'translate-x-4' : 'translate-x-0.5'
+                }`}
+              />
+            </div>
+          </button>
           <WelcomeGuideButton />
           <div className="flex items-center gap-2 px-3 py-2 text-gray-500 text-xs">
             <ClipboardList className="w-3.5 h-3.5" />
