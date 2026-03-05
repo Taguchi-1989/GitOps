@@ -38,17 +38,21 @@ export const API_ERROR_CODES = {
   // Issue
   INVALID_STATUS_TRANSITION: 'INVALID_STATUS_TRANSITION',
   ALREADY_MERGED: 'ALREADY_MERGED',
+
+  // Auth / Rate Limit
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
 } as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES];
 
 // --------------------------------------------------------
-// Helper Functions
+// Helper Functions (plain objects — for non-HTTP contexts)
 // --------------------------------------------------------
-export function successResponse<T>(data: T): ApiResponse<T> {
+export function makeSuccess<T>(data: T): ApiResponse<T> {
   return { ok: true, data };
 }
 
-export function errorResponse(errorCode: ApiErrorCode, details?: string): ApiResponse<never> {
+export function makeError(errorCode: ApiErrorCode, details?: string): ApiResponse<never> {
   return { ok: false, errorCode, details };
 }
