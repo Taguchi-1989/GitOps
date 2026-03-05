@@ -15,6 +15,8 @@ export const metadata = {
   description: 'Issue一覧',
 };
 
+export const dynamic = 'force-dynamic';
+
 async function getIssues() {
   const issues = await prisma.issue.findMany({
     orderBy: { updatedAt: 'desc' },

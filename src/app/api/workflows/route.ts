@@ -11,7 +11,13 @@ import {
 } from '@/core/orchestrator';
 import { getFlowYaml } from '@/lib/flow-service';
 import { parseFlowYaml } from '@/core/parser';
-import { successResponse, errorResponse, internalErrorResponse, parseBody } from '@/lib/api-utils';
+import {
+  successResponse,
+  errorResponse,
+  internalErrorResponse,
+  parseBody,
+  parsePaginationParams,
+} from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 import { generateTraceId } from '@/lib/trace-context';
 
@@ -66,7 +72,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const flowId = searchParams.get('flowId');
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const { limit } = parsePaginationParams(searchParams);
 
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
@@ -75,7 +81,7 @@ export async function GET(request: Request) {
     const executions = await prisma.workflowExecution.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: Math.min(limit, 100),
+      take: limit,
       include: {
         _count: {
           select: {

@@ -5,6 +5,7 @@
  * ノード単位で処理し、PostgreSQLにチェックポイントを保存
  */
 
+import { randomUUID } from 'node:crypto';
 import { CompiledWorkflow, CompiledNode } from './compiler';
 import { TaskExecutor } from './task-executor';
 import { TaskInvocation } from './schemas/micro-task';
@@ -86,7 +87,7 @@ export class WorkflowEngine {
     initiatorId: string,
     inputData: Record<string, unknown> = {}
   ): Promise<WorkflowState> {
-    const executionId = `wfe-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const executionId = `wfe-${randomUUID()}`;
 
     const state: WorkflowState = {
       executionId,

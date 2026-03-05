@@ -27,6 +27,8 @@ import {
   Plus,
 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 async function getDashboardStats() {
   const [issueStats, recentIssues, flows] = await Promise.all([
     prisma.issue.groupBy({

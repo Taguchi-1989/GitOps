@@ -91,3 +91,27 @@ export function sanitizeFlowId(flowId: string): string | null {
   }
   return flowId;
 }
+
+/**
+ * ページネーションパラメータを安全にパース
+ * NaN・負数・上限超過を防止
+ */
+export function parsePaginationParams(
+  searchParams: URLSearchParams,
+  defaults: { limit?: number; offset?: number } = {}
+): { limit: number; offset: number } {
+  const { limit: defaultLimit = 50, offset: defaultOffset = 0 } = defaults;
+
+  const rawLimit = searchParams.get('limit');
+  const rawOffset = searchParams.get('offset');
+
+  let limit = rawLimit ? parseInt(rawLimit, 10) : defaultLimit;
+  let offset = rawOffset ? parseInt(rawOffset, 10) : defaultOffset;
+
+  if (Number.isNaN(limit) || limit < 1) limit = defaultLimit;
+  if (Number.isNaN(offset) || offset < 0) offset = defaultOffset;
+
+  limit = Math.min(limit, 100);
+
+  return { limit, offset };
+}

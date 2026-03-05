@@ -7,7 +7,12 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { successResponse, internalErrorResponse, parseBody } from '@/lib/api-utils';
+import {
+  successResponse,
+  internalErrorResponse,
+  parseBody,
+  parsePaginationParams,
+} from '@/lib/api-utils';
 import { CreateIssueSchema } from '@/core/issue';
 import { generateHumanId } from '@/core/issue/humanId';
 import { auditLog } from '@/core/audit';
@@ -21,8 +26,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const targetFlowId = searchParams.get('targetFlowId');
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const { limit, offset } = parsePaginationParams(searchParams);
 
     const where: Record<string, unknown> = { deletedAt: null };
 

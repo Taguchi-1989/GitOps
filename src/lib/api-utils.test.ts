@@ -16,6 +16,7 @@ import {
   parseBody,
   sanitizeFlowId,
   getIdParam,
+  parsePaginationParams,
 } from './api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 
@@ -446,6 +447,59 @@ describe('api-utils', () => {
     it('should return null if id is empty string', () => {
       // 空文字はfalsy -> nullを返す
       expect(getIdParam({ id: '' })).toBeNull();
+    });
+  });
+
+  // --------------------------------------------------------
+  // parsePaginationParams
+  // --------------------------------------------------------
+  describe('parsePaginationParams', () => {
+    it('should return defaults when no params provided', () => {
+      const params = new URLSearchParams();
+      expect(parsePaginationParams(params)).toEqual({ limit: 50, offset: 0 });
+    });
+
+    it('should parse valid limit and offset', () => {
+      const params = new URLSearchParams({ limit: '20', offset: '10' });
+      expect(parsePaginationParams(params)).toEqual({ limit: 20, offset: 10 });
+    });
+
+    it('should use custom defaults', () => {
+      const params = new URLSearchParams();
+      expect(parsePaginationParams(params, { limit: 25, offset: 5 })).toEqual({
+        limit: 25,
+        offset: 5,
+      });
+    });
+
+    it('should fallback to default for NaN limit', () => {
+      const params = new URLSearchParams({ limit: 'abc', offset: '0' });
+      expect(parsePaginationParams(params)).toEqual({ limit: 50, offset: 0 });
+    });
+
+    it('should fallback to default for NaN offset', () => {
+      const params = new URLSearchParams({ limit: '10', offset: 'xyz' });
+      expect(parsePaginationParams(params)).toEqual({ limit: 10, offset: 0 });
+    });
+
+    it('should fallback to default for negative limit', () => {
+      const params = new URLSearchParams({ limit: '-5' });
+      expect(parsePaginationParams(params)).toEqual({ limit: 50, offset: 0 });
+    });
+
+    it('should fallback to default for negative offset', () => {
+      const params = new URLSearchParams({ offset: '-10' });
+      expect(parsePaginationParams(params)).toEqual({ limit: 50, offset: 0 });
+    });
+
+    it('should cap limit at 100', () => {
+      const params = new URLSearchParams({ limit: '999' });
+      expect(parsePaginationParams(params)).toEqual({ limit: 100, offset: 0 });
+    });
+
+    it('should fallback to default for zero limit', () => {
+      const params = new URLSearchParams({ limit: '0' });
+      expect(parsePaginationParams(params)).toEqual({ limit: 50, offset: 0 });
     });
   });
 });

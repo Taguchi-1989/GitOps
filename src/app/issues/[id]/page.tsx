@@ -11,6 +11,8 @@ import { prisma } from '@/lib/prisma';
 import { IssueDetailClient } from './IssueDetailClient';
 import { IssueStatus } from '@/core/issue';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   params: { id: string };
 }

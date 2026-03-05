@@ -6,7 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { successResponse, internalErrorResponse } from '@/lib/api-utils';
+import { successResponse, internalErrorResponse, parsePaginationParams } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,8 +20,7 @@ export async function GET(request: NextRequest) {
     const entityType = searchParams.get('entityType');
     const entityId = searchParams.get('entityId');
     const action = searchParams.get('action');
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const { limit, offset } = parsePaginationParams(searchParams);
 
     const where: Record<string, unknown> = {};
 
