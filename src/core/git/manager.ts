@@ -31,12 +31,16 @@ export interface BranchInfo {
   branches: Record<string, { current: boolean; commit: string }>;
 }
 
+const DEFAULT_MAIN_BRANCH = process.env.GIT_MAIN_BRANCH || 'main';
+
 class GitManager {
   private git: SimpleGit;
   private repoPath: string;
+  private mainBranch: string;
 
-  constructor(repoPath: string) {
+  constructor(repoPath: string, mainBranch = DEFAULT_MAIN_BRANCH) {
     this.repoPath = repoPath;
+    this.mainBranch = mainBranch;
     this.git = simpleGit(repoPath);
   }
 
@@ -186,7 +190,7 @@ class GitManager {
   }
 
   /**
-   * ブランチをmainにマージしてクローズ
+   * ブランチをメインブランチにマージしてクローズ
    * @param branchName クローズするブランチ名
    */
   async mergeAndClose(branchName: string): Promise<void> {
@@ -194,8 +198,8 @@ class GitManager {
     try {
       const originalBranch = (await this.git.status()).current;
 
-      // mainにチェックアウト
-      await this.git.checkout('main');
+      // メインブランチにチェックアウト
+      await this.git.checkout(this.mainBranch);
 
       try {
         // マージ
@@ -207,7 +211,7 @@ class GitManager {
         } catch {
           /* ignore */
         }
-        if (originalBranch && originalBranch !== 'main') {
+        if (originalBranch && originalBranch !== this.mainBranch) {
           try {
             await this.git.checkout(originalBranch);
           } catch {
@@ -250,7 +254,7 @@ class GitManager {
    * @param branchName ブランチ名
    * @param baseBranch 比較対象のブランチ（デフォルト: main）
    */
-  async hasCommits(branchName: string, baseBranch = 'main'): Promise<boolean> {
+  async hasCommits(branchName: string, baseBranch = this.mainBranch): Promise<boolean> {
     try {
       const log = await this.git.log([`${baseBranch}..${branchName}`]);
       return log.total > 0;
@@ -268,7 +272,7 @@ class GitManager {
     const lock = await gitLock.acquire(`cherryPick:${fromBranch}->${toBranch}`);
     try {
       // 取得元ブランチのコミットを取得
-      const log = await this.git.log([`main..${fromBranch}`]);
+      const log = await this.git.log([`${this.mainBranch}..${fromBranch}`]);
       const commits = log.all.map(c => c.hash);
 
       if (commits.length === 0) {

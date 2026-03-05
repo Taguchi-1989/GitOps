@@ -10,6 +10,7 @@ import { TaskExecutor } from './task-executor';
 import { TaskInvocation } from './schemas/micro-task';
 import { WorkflowStatus } from './schemas/execution';
 import { auditLog } from '../audit/logger';
+import { logger } from '@/lib/logger';
 
 // --------------------------------------------------------
 // Engine Types
@@ -462,6 +463,7 @@ export class WorkflowEngine {
     }
 
     // 評価不能な条件はfalse（安全側に倒す）
+    logger.warn({ condition }, 'Unrecognized condition expression, defaulting to false');
     return false;
   }
 }

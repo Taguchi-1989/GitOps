@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StatusBadge } from './StatusBadge';
 import { StatusLifecycle } from './StatusLifecycle';
 import { IssueCardData } from './IssueCard';
@@ -54,6 +54,31 @@ function formatDate(date: Date | string): string {
   });
 }
 
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  ISSUE_CREATE: '課題を作成',
+  ISSUE_UPDATE: '課題を更新',
+  ISSUE_START: '作業を開始',
+  ISSUE_CLOSE: '課題を完了',
+  ISSUE_DELETE: '課題を削除',
+  PROPOSAL_GENERATE: '改善案を生成',
+  PATCH_APPLY: '改善案を適用',
+  MERGE_CLOSE: 'マージして完了',
+  DUPLICATE_MERGE: '重複を統合',
+  GIT_COMMIT: 'コミット',
+  GIT_BRANCH_CREATE: 'ブランチ作成',
+  GIT_BRANCH_DELETE: 'ブランチ削除',
+};
+
+interface AuditLogItem {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  actor?: string;
+  payload?: Record<string, unknown>;
+  createdAt: string;
+}
+
 export function IssueDetail({
   issue,
   onBack,
@@ -65,8 +90,31 @@ export function IssueDetail({
   isLoading = false,
 }: IssueDetailProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'proposals' | 'history'>('details');
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   const { isSimpleMode } = useSimpleMode();
+
+  const fetchAuditLogs = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      const res = await fetch(`/api/audit?entityType=Issue&entityId=${issue.id}&limit=50`);
+      const data = await res.json();
+      if (data.ok && data.data?.logs) {
+        setAuditLogs(data.data.logs);
+      }
+    } catch {
+      // fail silently
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [issue.id]);
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchAuditLogs();
+    }
+  }, [activeTab, fetchAuditLogs]);
   const canStart = issue.status === 'new' || issue.status === 'triage';
   const canGenerateProposal = issue.status === 'in-progress';
   const canMergeOrReject = issue.status === 'proposed';
@@ -365,9 +413,40 @@ export function IssueDetail({
       )}
 
       {activeTab === 'history' && (
-        <div className="text-center py-12 text-gray-500">
-          <History className="w-8 h-8 mx-auto mb-3 text-gray-300" />
-          <p>監査ログがここに表示されます</p>
+        <div>
+          {auditLoading ? (
+            <div className="text-center py-12 text-gray-500">
+              <Loader2 className="w-6 h-6 mx-auto mb-3 animate-spin text-gray-400" />
+              <p>履歴を読み込み中...</p>
+            </div>
+          ) : auditLogs.length > 0 ? (
+            <div className="space-y-3">
+              {auditLogs.map(log => (
+                <div
+                  key={log.id}
+                  className="flex items-start gap-3 px-4 py-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="mt-0.5">
+                    <History className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">
+                      {AUDIT_ACTION_LABELS[log.action] || log.action}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {formatDate(log.createdAt)}
+                      {log.actor && ` — ${log.actor}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <History className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+              <p>まだ操作履歴がありません</p>
+            </div>
+          )}
         </div>
       )}
     </div>

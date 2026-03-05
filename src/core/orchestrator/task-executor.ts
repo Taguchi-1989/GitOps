@@ -8,6 +8,7 @@
 import OpenAI from 'openai';
 import { MicroTaskDefinition, TaskInvocation, TaskResult } from './schemas/micro-task';
 import { getTraceId } from '@/lib/trace-context';
+import { extractJson } from '@/lib/extract-json';
 
 export class TaskExecutionError extends Error {
   code: 'LLM_ERROR' | 'VALIDATION_ERROR' | 'TIMEOUT' | 'UNSUPPORTED_TYPE';
@@ -133,7 +134,15 @@ export class TaskExecutor {
           throw new TaskExecutionError('LLM_ERROR', 'Empty response from LLM');
         }
 
-        const output = this.extractJson(content);
+        let output: unknown;
+        try {
+          output = extractJson(content);
+        } catch {
+          throw new TaskExecutionError(
+            'VALIDATION_ERROR',
+            `Failed to extract JSON from LLM response: ${content.substring(0, 200)}`
+          );
+        }
         const usage = response.usage;
 
         return {
@@ -165,35 +174,6 @@ export class TaskExecutor {
     }
 
     throw new TaskExecutionError('LLM_ERROR', 'Unreachable');
-  }
-
-  private extractJson(content: string): unknown {
-    try {
-      return JSON.parse(content);
-    } catch {
-      const codeBlockMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-      if (codeBlockMatch) {
-        try {
-          return JSON.parse(codeBlockMatch[1].trim());
-        } catch {
-          // fall through
-        }
-      }
-
-      const braceMatch = content.match(/\{[\s\S]*\}/);
-      if (braceMatch) {
-        try {
-          return JSON.parse(braceMatch[0]);
-        } catch {
-          // fall through
-        }
-      }
-
-      throw new TaskExecutionError(
-        'VALIDATION_ERROR',
-        `Failed to extract JSON from LLM response: ${content.substring(0, 200)}`
-      );
-    }
   }
 }
 

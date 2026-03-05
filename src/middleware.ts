@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { auth } from '@/lib/auth';
+import { API_ERROR_CODES } from '@/core/types/api';
 
 // 許可するオリジン（環境変数で設定可能）
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
@@ -61,13 +62,14 @@ export default auth(async function middleware(request) {
 
     const config = isAuthRoute ? RATE_LIMITS.auth : isLlmRoute ? RATE_LIMITS.llm : RATE_LIMITS.api;
 
-    const result = checkRateLimit(`${clientIp}:${isLlmRoute ? 'llm' : 'api'}`, config);
+    const rateLimitKey = isAuthRoute ? 'auth' : isLlmRoute ? 'llm' : 'api';
+    const result = checkRateLimit(`${clientIp}:${rateLimitKey}`, config);
 
     if (!result.allowed) {
       const response = NextResponse.json(
         {
           ok: false,
-          errorCode: 'RATE_LIMIT_EXCEEDED',
+          errorCode: API_ERROR_CODES.RATE_LIMIT_EXCEEDED,
           details: `Too many requests. Try again in ${Math.ceil(result.resetMs / 1000)}s`,
         },
         { status: 429 }

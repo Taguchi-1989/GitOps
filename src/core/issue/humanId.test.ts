@@ -60,8 +60,14 @@ describe('titleToSlug', () => {
     expect(titleToSlug('Hello! World?')).toBe('hello-world');
   });
 
-  it('returns "update" for empty result', () => {
-    // Japanese-only title → no alpha chars → falls back to "update"
-    expect(titleToSlug('日本語タイトル')).toBe('update');
+  it('generates hash-based slug for Japanese-only titles', () => {
+    const slug = titleToSlug('日本語タイトル');
+    // Should produce a non-empty hash string (not generic "update")
+    expect(slug.length).toBeGreaterThan(0);
+    expect(slug).not.toBe('update');
+    // Same input should produce same hash
+    expect(titleToSlug('日本語タイトル')).toBe(slug);
+    // Different input should produce different hash
+    expect(titleToSlug('別のタイトル')).not.toBe(slug);
   });
 });

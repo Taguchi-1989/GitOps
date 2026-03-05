@@ -52,17 +52,29 @@ export function generateBranchName(issueHumanId: string, slug: string): string {
 
 /**
  * タイトルからスラグを生成
+ * 英数字がある場合はそれを使い、日本語のみの場合はハッシュでユニークなスラグを作る
  */
 export function titleToSlug(title: string): string {
-  // 日本語をローマ字に変換する代わりに、英数字のみ抽出
-  // 実際のプロダクションではwanakaなどのライブラリを使用
-  return (
-    title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
-      .substring(0, 30) || 'update'
-  );
+  // まず英数字部分を抽出
+  const asciiSlug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 30);
+
+  if (asciiSlug.length >= 3) {
+    return asciiSlug;
+  }
+
+  // 英数字が少ない（日本語タイトル等）場合、簡易ハッシュでユニークなスラグを生成
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    const char = title.charCodeAt(i);
+    hash = ((hash << 5) - hash + char) | 0;
+  }
+  const hashStr = Math.abs(hash).toString(36).substring(0, 8);
+  const prefix = asciiSlug ? `${asciiSlug}-` : '';
+  return `${prefix}${hashStr}`;
 }

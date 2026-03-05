@@ -10,6 +10,7 @@ import { ProposalOutputSchema, ProposalOutput, JsonPatch } from '../patch/types'
 import { checkForbiddenPaths } from '../patch/apply';
 import { buildFullPrompt } from './prompts';
 import { getTraceId } from '@/lib/trace-context';
+import { extractJson } from '@/lib/extract-json';
 
 export class LLMError extends Error {
   code: 'API_ERROR' | 'PARSE_ERROR' | 'VALIDATION_ERROR';
@@ -119,7 +120,12 @@ class LLMClient {
     }
 
     // JSONをパース（JSON mode非対応プロバイダー向けにフォールバック抽出）
-    const parsed = this.extractJson(content);
+    let parsed: unknown;
+    try {
+      parsed = extractJson(content);
+    } catch {
+      throw new LLMError('PARSE_ERROR', 'Failed to extract valid JSON from LLM response');
+    }
 
     const result = ProposalOutputSchema.safeParse(parsed);
     if (!result.success) {
@@ -130,40 +136,6 @@ class LLMClient {
     }
 
     return result.data;
-  }
-
-  /**
-   * レスポンスからJSONを抽出
-   * JSON modeが使える場合はそのままパース、
-   * 使えない場合はマークダウンコードブロックやテキスト中のJSON部分を抽出
-   */
-  private extractJson(content: string): unknown {
-    // まずそのままパースを試みる
-    try {
-      return JSON.parse(content);
-    } catch {
-      // フォールバック: ```json ... ``` ブロックを抽出
-      const codeBlockMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-      if (codeBlockMatch) {
-        try {
-          return JSON.parse(codeBlockMatch[1].trim());
-        } catch {
-          // fall through
-        }
-      }
-
-      // フォールバック: 最初の { ... } ブロックを抽出
-      const braceMatch = content.match(/\{[\s\S]*\}/);
-      if (braceMatch) {
-        try {
-          return JSON.parse(braceMatch[0]);
-        } catch {
-          // fall through
-        }
-      }
-
-      throw new LLMError('PARSE_ERROR', 'Failed to extract valid JSON from LLM response');
-    }
   }
 
   /**

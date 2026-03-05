@@ -32,29 +32,35 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 // prisma のモック
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    issue: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      count: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      findFirst: vi.fn(),
+vi.mock('@/lib/prisma', () => {
+  const issueModel = {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    count: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    findFirst: vi.fn(),
+  };
+
+  return {
+    prisma: {
+      issue: issueModel,
+      proposal: {
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+      },
+      auditLog: {
+        findMany: vi.fn(),
+        count: vi.fn(),
+      },
+      $queryRaw: vi.fn(),
+      // $transaction: コールバックに同じissueモデルを持つtxオブジェクトを渡す
+      $transaction: vi.fn((cb: (tx: any) => Promise<any>) => cb({ issue: issueModel })),
     },
-    proposal: {
-      findUnique: vi.fn(),
-      findFirst: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    },
-    auditLog: {
-      findMany: vi.fn(),
-      count: vi.fn(),
-    },
-    $queryRaw: vi.fn(),
-  },
-}));
+  };
+});
 
 // auditLog のモック
 vi.mock('@/core/audit', () => ({

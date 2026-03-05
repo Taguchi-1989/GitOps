@@ -72,43 +72,59 @@ export async function POST(request: NextRequest) {
     const { data, error } = await parseBody(request, CreateIssueSchema);
     if (error) return error;
 
-    // 次のhumanIdを取得
-    const lastIssue = await prisma.issue.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { humanId: true },
-    });
+    // humanId生成 + Issue作成をトランザクションで原子的に実行
+    // 同時リクエストによるhumanId重複を防ぐためリトライ付き
+    const MAX_RETRIES = 3;
+    let issue;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        issue = await prisma.$transaction(async tx => {
+          const lastIssue = await tx.issue.findFirst({
+            orderBy: { createdAt: 'desc' },
+            select: { humanId: true },
+          });
 
-    let nextSequence = 1;
-    if (lastIssue) {
-      const match = lastIssue.humanId.match(/ISS-(\d+)/);
-      if (match) {
-        nextSequence = parseInt(match[1], 10) + 1;
+          let nextSequence = 1;
+          if (lastIssue) {
+            const match = lastIssue.humanId.match(/ISS-(\d+)/);
+            if (match) {
+              nextSequence = parseInt(match[1], 10) + 1;
+            }
+          }
+
+          const humanId = generateHumanId(nextSequence);
+
+          return tx.issue.create({
+            data: {
+              humanId,
+              title: data.title,
+              description: data.description,
+              targetFlowId: data.targetFlowId,
+              targetNodeId: data.targetNodeId,
+              status: 'new',
+            },
+          });
+        });
+        break; // 成功
+      } catch (e: unknown) {
+        const isUniqueViolation =
+          e instanceof Error && 'code' in e && (e as { code: string }).code === 'P2002';
+        if (isUniqueViolation && attempt < MAX_RETRIES - 1) {
+          continue; // リトライ
+        }
+        throw e;
       }
     }
-
-    const humanId = generateHumanId(nextSequence);
-
-    // Issue作成
-    const issue = await prisma.issue.create({
-      data: {
-        humanId,
-        title: data.title,
-        description: data.description,
-        targetFlowId: data.targetFlowId,
-        targetNodeId: data.targetNodeId,
-        status: 'new',
-      },
-    });
 
     // 監査ログ
     await auditLog.record({
       action: 'ISSUE_CREATE',
       entityType: 'Issue',
-      entityId: issue.id,
-      payload: { humanId, title: data.title, targetFlowId: data.targetFlowId },
+      entityId: issue!.id,
+      payload: { humanId: issue!.humanId, title: data.title, targetFlowId: data.targetFlowId },
     });
 
-    return successResponse(issue, 201);
+    return successResponse(issue!, 201);
   } catch (error) {
     return internalErrorResponse(error);
   }
