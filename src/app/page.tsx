@@ -7,8 +7,6 @@
  * - ワークフロー概要図
  */
 
-export const dynamic = 'force-dynamic';
-
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { listFlows } from '@/lib/flow-service';

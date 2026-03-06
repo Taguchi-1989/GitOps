@@ -4,8 +4,6 @@
  * Issue詳細ページ
  */
 
-export const dynamic = 'force-dynamic';
-
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { IssueDetailClient } from './IssueDetailClient';

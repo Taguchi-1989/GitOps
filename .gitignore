@@ -37,6 +37,9 @@ yarn-error.log*
 coverage/
 .nyc_output/
 
+# Playwright
+.playwright-mcp/
+
 # Build outputs
 dist/
 *.tsbuildinfo
