@@ -67,3 +67,51 @@ erp:
   type: internal
   owner: IT部
   url: https://erp.internal.example.com
+
+cad:
+  id: cad
+  name: 3D CADシステム
+  description: 3Dモデリング・2D図面作成・干渉チェック・BOM出力を行う設計ツール
+  type: internal
+  owner: 設計部
+  url: https://cad.internal.example.com
+
+pdm:
+  id: pdm
+  name: 製品データ管理システム (PDM)
+  description: 設計データ・図面・BOM・変更履歴のバージョン管理を行うシステム
+  type: internal
+  owner: IT部
+  url: https://pdm.internal.example.com
+
+cae:
+  id: cae
+  name: CAE解析システム
+  description: FEA構造解析・熱解析・流体解析・最適化解析を行うシミュレーションツール
+  type: internal
+  owner: 設計部
+  url: https://cae.internal.example.com
+
+plm:
+  id: plm
+  name: 製品ライフサイクル管理 (PLM)
+  description: 製品企画から廃棄までのライフサイクル全体を管理するシステム
+  type: internal
+  owner: IT部
+  url: https://plm.internal.example.com
+
+standard-parts-db:
+  id: standard-parts-db
+  name: 規格品データベース
+  description: JIS/ISO規格品・メーカー標準品の仕様検索・選定支援データベース
+  type: internal
+  owner: 設計部
+  url: https://parts-db.internal.example.com
+
+risk-management:
+  id: risk-management
+  name: リスク管理システム
+  description: リスクアセスメント記録・危険源データベース・リスク低減施策の追跡管理を行うシステム
+  type: internal
+  owner: 安全衛生部
+  url: https://risk-mgmt.internal.example.com

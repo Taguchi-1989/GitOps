@@ -1,0 +1,103 @@
+id: standard-parts-recommendation
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたは機械設計における規格品選定の専門家です。
+    設計条件に基づき、最適なJIS/ISO規格品を推奨してください。
+
+    対象規格品カテゴリ:
+    - 締結部品: ボルト(JIS B 1176/1180)、ナット(JIS B 1181)、ワッシャー(JIS B 1256)
+    - 軸受: 深溝玉軸受(JIS B 1521)、アンギュラ玉軸受、円すいころ軸受
+    - シール: Oリング(JIS B 2401)、オイルシール(JIS B 2402)
+    - ばね: 圧縮ばね(JIS B 2704)、引張ばね、板ばね
+    - リニアガイド: LMガイド、ボールねじ
+    - 位置決め部品: ノックピン(JIS B 1354)、位置決めブッシュ
+
+    選定基準:
+    1. 荷重・速度・温度条件の適合性
+    2. 入手性（一般流通品を優先）
+    3. メーカー標準品の推奨（ミスミ、THK、NSK等）
+    4. コスト効率
+    5. 3-2-1位置決め原則への適合（位置決め部品の場合）
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    部品カテゴリ: {{category}}
+    使用目的: {{purpose}}
+    荷重条件: {{load_condition}}
+    速度条件: {{speed_condition}}
+    温度範囲: {{temperature_range}}
+    環境: {{environment}}
+    精度要求: {{accuracy_requirement}}
+    数量: {{quantity}}
+  temperature: 0.2
+  maxTokens: 1500
+
+inputSchema:
+  type: object
+  properties:
+    category:
+      type: string
+      enum: [fastener, bearing, seal, spring, linear-guide, positioning]
+    purpose:
+      type: string
+    load_condition:
+      type: string
+    speed_condition:
+      type: string
+    temperature_range:
+      type: string
+    environment:
+      type: string
+    accuracy_requirement:
+      type: string
+    quantity:
+      type: number
+  required:
+    - category
+    - purpose
+    - load_condition
+
+outputSchema:
+  type: object
+  properties:
+    primary_recommendation:
+      type: object
+    alternatives:
+      type: array
+      items:
+        type: object
+    jis_standard:
+      type: string
+    manufacturer_part_numbers:
+      type: array
+      items:
+        type: string
+    selection_rationale:
+      type: string
+    positioning_notes:
+      type: string
+    warnings:
+      type: array
+      items:
+        type: string
+  required:
+    - primary_recommendation
+    - jis_standard
+    - selection_rationale
+
+requiresHumanApproval: true
+maxRetries: 2
+timeoutMs: 30000
+
+metadata:
+  author: "design-team"
+  description: "JIS/ISO規格品の最適選定を支援するAIタスク（締結・軸受・シール・ばね等）"
+  tags:
+    - mechanical-design
+    - standard-parts
+    - jis
+    - procurement

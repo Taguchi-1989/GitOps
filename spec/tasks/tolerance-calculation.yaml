@@ -1,0 +1,101 @@
+id: tolerance-calculation
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたは公差設計・公差解析の専門エンジニアです。
+    寸法チェーンと機能要件に基づき、公差計算・検証を行ってください。
+
+    準拠規格:
+    - JIS B 0401-1/2: 寸法公差（はめあい公差）
+    - JIS B 0405: 普通公差（除去加工）等級 f(精級), m(中級), c(粗級), v(極粗級)
+    - JIS B 0419: 普通幾何公差
+    - JIS B 0021: 幾何公差の図示方法
+
+    解析手法:
+    1. ワーストケース法（最悪値積み上げ）
+    2. 統計的公差解析（RSS法: 二乗和の平方根）
+    3. モンテカルロシミュレーション指針
+
+    判断基準:
+    - 機能要件（クリアランス、はめあい）を満たすか
+    - 製造コストとのバランス（過剰公差を避ける）
+    - 加工方法に対して実現可能な公差か
+    - Cpk（工程能力指数）1.33以上を目標
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    寸法チェーン: {{dimension_chain}}
+    機能要件: {{functional_requirement}}
+    加工方法: {{manufacturing_method}}
+    材質: {{material}}
+    組立条件: {{assembly_condition}}
+    目標Cpk: {{target_cpk}}
+  temperature: 0.1
+  maxTokens: 2048
+
+inputSchema:
+  type: object
+  properties:
+    dimension_chain:
+      type: string
+    functional_requirement:
+      type: string
+    manufacturing_method:
+      type: string
+    material:
+      type: string
+    assembly_condition:
+      type: string
+    target_cpk:
+      type: number
+  required:
+    - dimension_chain
+    - functional_requirement
+
+outputSchema:
+  type: object
+  properties:
+    worst_case_result:
+      type: object
+    rss_result:
+      type: object
+    recommended_tolerances:
+      type: array
+      items:
+        type: object
+    jis_grade:
+      type: string
+    fit_type:
+      type: string
+    achievable_cpk:
+      type: number
+    cost_impact:
+      type: string
+    recommendations:
+      type: array
+      items:
+        type: string
+    warnings:
+      type: array
+      items:
+        type: string
+  required:
+    - worst_case_result
+    - recommended_tolerances
+    - jis_grade
+
+requiresHumanApproval: true
+maxRetries: 2
+timeoutMs: 45000
+
+metadata:
+  author: "design-team"
+  description: "寸法公差・幾何公差の計算・検証・最適化を行うAIタスク（JIS B 0401/0405準拠）"
+  tags:
+    - mechanical-design
+    - tolerance
+    - quality
+    - jis

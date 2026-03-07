@@ -1,0 +1,104 @@
+id: jig-concept-design
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたは機械設計における治具設計の専門家です。
+    製品の3Dモデルデータ・加工方法・生産数量に基づき、最適な治具構想を提案してください。
+
+    治具カテゴリ:
+    - 加工治具: バイス型、専用クランプ型、マグネット型、真空吸着型
+    - 検査治具: ゲージ型、当て板型、光学式
+    - 組立治具: 位置決め型、プレス型、回転型
+    - 溶接治具: 拘束型、ポジショナー型
+
+    設計基準:
+    1. ワーク保持力（クランプ力計算、切削抵抗に対する安全率2倍以上）
+    2. 位置決め精度（6点定位の原則、3-2-1原則）
+    3. 繰り返し精度（着脱再現性）
+    4. 作業性（セット時間、人間工学的配慮）
+    5. コスト（材料費・加工費・生産数量に見合う投資回収）
+    6. 耐久性（摩耗対策、焼入れ・表面処理の要否）
+
+    位置決め原則:
+    - 3-2-1原則: 基準面3点、側面2点、端面1点で6自由度を拘束
+    - ノックピン(JIS B 1354)による精密位置決め
+    - Vブロック・マンドレルによる円筒ワークの芯出し
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    製品名: {{product_name}}
+    加工方法: {{machining_method}}
+    ワーク材質: {{workpiece_material}}
+    ワーク形状概要: {{workpiece_shape}}
+    要求精度: {{required_accuracy}}
+    生産数量: {{production_volume}}
+    使用設備: {{equipment}}
+    特記事項: {{special_requirements}}
+  temperature: 0.3
+  maxTokens: 2000
+
+inputSchema:
+  type: object
+  properties:
+    product_name:
+      type: string
+    machining_method:
+      type: string
+      enum: [milling, turning, drilling, grinding, edm, welding, assembly, inspection]
+    workpiece_material:
+      type: string
+    workpiece_shape:
+      type: string
+    required_accuracy:
+      type: string
+    production_volume:
+      type: string
+    equipment:
+      type: string
+    special_requirements:
+      type: string
+  required:
+    - product_name
+    - machining_method
+    - workpiece_material
+
+outputSchema:
+  type: object
+  properties:
+    jig_type:
+      type: string
+    clamping_method:
+      type: object
+    positioning_method:
+      type: object
+    material_recommendation:
+      type: string
+    estimated_cost_range:
+      type: string
+    design_rationale:
+      type: string
+    warnings:
+      type: array
+      items:
+        type: string
+  required:
+    - jig_type
+    - clamping_method
+    - positioning_method
+    - design_rationale
+
+requiresHumanApproval: true
+maxRetries: 2
+timeoutMs: 30000
+
+metadata:
+  author: "design-team"
+  description: "加工・検査・組立用治具の構想設計をAIが支援するタスク（3-2-1原則・クランプ力計算）"
+  tags:
+    - mechanical-design
+    - jig
+    - fixture
+    - manufacturing

@@ -1,0 +1,269 @@
+id: mechanical-design-detail
+title: 詳細設計プロセス（AI支援）
+layer: L2
+updatedAt: '2026-03-07T00:00:00+09:00'
+
+nodes:
+  start_detail:
+    id: start_detail
+    type: start
+    label: 詳細設計開始
+    role: designer
+    system: pdm
+    meta:
+      description: DR2承認済み基本設計データをPDMからチェックアウト
+
+  ai_material_advisor:
+    id: ai_material_advisor
+    type: llm-task
+    label: AI材料選定アドバイザー
+    taskId: material-selection-advisor
+    system: standard-parts-db
+    meta:
+      description: 要件（荷重・環境・コスト）に基づきAIが最適材料を提案。JIS規格準拠
+
+  review_material:
+    id: review_material
+    type: human-review
+    label: 材料選定承認
+    role: design-leader
+    meta:
+      description: AI提案の材料選定を設計リーダーが確認・承認
+
+  create_3d_model:
+    id: create_3d_model
+    type: process
+    label: 詳細3Dモデル作成
+    role: designer
+    system: cad
+    meta:
+      description: 全部品の詳細3Dモデル作成。フィーチャー定義・拘束条件設定
+
+  ai_sheet_metal:
+    id: ai_sheet_metal
+    type: llm-task
+    label: AI板金板厚選定
+    taskId: sheet-metal-thickness
+    system: standard-parts-db
+    meta:
+      description: 板金部品の最適板厚をAIが提案。JIS G 4305準拠・曲げ加工性考慮
+
+  ai_standard_parts:
+    id: ai_standard_parts
+    type: llm-task
+    label: AI規格品選定
+    taskId: standard-parts-recommendation
+    system: standard-parts-db
+    meta:
+      description: ボルト・軸受・シール等の規格品をAIが推奨。JIS/ISO規格品DB参照
+
+  ai_jig_concept:
+    id: ai_jig_concept
+    type: llm-task
+    label: AI治具構想設計
+    taskId: jig-concept-design
+    system: cad
+    meta:
+      description: 加工・検査・組立用治具の構想をAIが提案。3-2-1位置決め原則・クランプ力計算
+
+  jig_detail_design:
+    id: jig_detail_design
+    type: process
+    label: 治具詳細3Dモデル作成
+    role: designer
+    system: cad
+    meta:
+      description: AI構想に基づき治具の詳細3Dモデルを作成。位置決め・クランプ機構の設計
+
+  review_jig_design:
+    id: review_jig_design
+    type: human-review
+    label: 治具設計承認
+    role: design-leader
+    meta:
+      description: 治具設計の妥当性（位置決め精度・クランプ力・作業性）を設計リーダーが承認
+
+  check_interference:
+    id: check_interference
+    type: process
+    label: 干渉チェック
+    role: designer
+    system: cad
+    meta:
+      description: CADの干渉チェック機能で部品間・治具間クリアランスを検証
+
+  interference_result:
+    id: interference_result
+    type: decision
+    label: 干渉判定
+    role: designer
+    meta:
+      description: 干渉チェック結果の合否判定
+
+  create_2d_drawings:
+    id: create_2d_drawings
+    type: process
+    label: 2D図面作成
+    role: designer
+    system: cad
+    meta:
+      description: JIS B 0001準拠の部品図・組立図・治具図を3Dモデルから作成
+
+  ai_tolerance:
+    id: ai_tolerance
+    type: llm-task
+    label: AI公差計算・検証
+    taskId: tolerance-calculation
+    system: cad
+    meta:
+      description: 寸法公差・幾何公差の妥当性をAIが検証。公差積み上げ解析実施
+
+  review_tolerance:
+    id: review_tolerance
+    type: human-review
+    label: 公差設計承認
+    role: quality-engineer
+    meta:
+      description: AI算出の公差解析結果を品質管理担当が確認・承認
+
+  register_bom:
+    id: register_bom
+    type: database
+    label: BOM登録
+    role: designer
+    system: pdm
+    meta:
+      description: 確定したBOM（部品構成表）をPDMに正式登録
+
+  ai_dr_checklist:
+    id: ai_dr_checklist
+    type: llm-task
+    label: AI設計審査チェックリスト生成
+    taskId: design-review-checklist
+    system: plm
+    meta:
+      description: DR3用チェックリストをAIが自動生成。過去DR指摘事項・規格要件を網羅
+
+  review_package:
+    id: review_package
+    type: human-review
+    label: DR3資料パッケージ承認
+    role: design-leader
+    meta:
+      description: DR3審査用の全資料パッケージ（図面・BOM・解析・チェックリスト）を承認
+
+  checkin_pdm:
+    id: checkin_pdm
+    type: process
+    label: PDMチェックイン
+    role: designer
+    system: pdm
+    meta:
+      description: 承認済み設計データをPDMにチェックイン・リビジョン更新
+
+  detail_complete:
+    id: detail_complete
+    type: end
+    label: 詳細設計完了
+    meta:
+      description: 詳細設計完了。DR3審査へ進む
+
+edges:
+  e1:
+    id: e1
+    from: start_detail
+    to: ai_material_advisor
+
+  e2:
+    id: e2
+    from: ai_material_advisor
+    to: review_material
+
+  e3:
+    id: e3
+    from: review_material
+    to: create_3d_model
+
+  e4:
+    id: e4
+    from: create_3d_model
+    to: ai_sheet_metal
+
+  e5:
+    id: e5
+    from: ai_sheet_metal
+    to: ai_standard_parts
+
+  e6:
+    id: e6
+    from: ai_standard_parts
+    to: ai_jig_concept
+
+  e7:
+    id: e7
+    from: ai_jig_concept
+    to: jig_detail_design
+
+  e8:
+    id: e8
+    from: jig_detail_design
+    to: review_jig_design
+
+  e9:
+    id: e9
+    from: review_jig_design
+    to: check_interference
+
+  e10:
+    id: e10
+    from: check_interference
+    to: interference_result
+
+  e11:
+    id: e11
+    from: interference_result
+    to: create_2d_drawings
+    label: 干渉なし
+    condition: interference == "none"
+
+  e12:
+    id: e12
+    from: interference_result
+    to: create_3d_model
+    label: 干渉あり(修正要)
+    condition: interference == "detected"
+
+  e13:
+    id: e13
+    from: create_2d_drawings
+    to: ai_tolerance
+
+  e14:
+    id: e14
+    from: ai_tolerance
+    to: review_tolerance
+
+  e15:
+    id: e15
+    from: review_tolerance
+    to: register_bom
+
+  e16:
+    id: e16
+    from: register_bom
+    to: ai_dr_checklist
+
+  e17:
+    id: e17
+    from: ai_dr_checklist
+    to: review_package
+
+  e18:
+    id: e18
+    from: review_package
+    to: checkin_pdm
+
+  e19:
+    id: e19
+    from: checkin_pdm
+    to: detail_complete

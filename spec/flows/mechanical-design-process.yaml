@@ -1,0 +1,231 @@
+id: mechanical-design-process
+title: 機械設計プロセスフロー
+layer: L1
+updatedAt: '2026-03-07T00:00:00+09:00'
+
+nodes:
+  receive_requirements:
+    id: receive_requirements
+    type: start
+    label: 設計要件受付
+    role: design-leader
+    system: plm
+    meta:
+      description: 顧客要求仕様書・製品企画書を受領し設計要件を確定する
+
+  conceptual_design:
+    id: conceptual_design
+    type: process
+    label: 構想設計
+    role: designer
+    system: cad
+    meta:
+      description: 機能要件から複数の設計コンセプトを立案しスケッチ・概略モデルを作成
+
+  dr1_review:
+    id: dr1_review
+    type: decision
+    label: DR1 構想設計審査
+    role: design-leader
+    system: plm
+    meta:
+      description: 構想設計の妥当性を審査。コンセプト承認・コスト概算・リスク評価
+
+  basic_design:
+    id: basic_design
+    type: process
+    label: 基本設計
+    role: designer
+    system: cad
+    meta:
+      description: 主要寸法・材料・機構の決定。基本3Dモデル作成とレイアウト検討
+
+  material_selection:
+    id: material_selection
+    type: process
+    label: 材料・規格品選定
+    role: designer
+    system: standard-parts-db
+    meta:
+      description: JIS規格に基づく材料選定、規格品（ボルト・ベアリング・スプリング等）の選定
+
+  dr2_review:
+    id: dr2_review
+    type: decision
+    label: DR2 基本設計審査
+    role: design-leader
+    system: plm
+    meta:
+      description: 基本設計の妥当性を審査。寸法整合性・材料適正・BOM精度を検証
+
+  detailed_design:
+    id: detailed_design
+    type: process
+    label: 詳細設計
+    role: designer
+    system: cad
+    meta:
+      description: 全部品の詳細3Dモデル作成・2D図面作成・公差設計・表面処理指定
+
+  cae_analysis:
+    id: cae_analysis
+    type: process
+    label: CAE解析・検証
+    role: designer
+    system: cae
+    meta:
+      description: FEA構造解析による強度検証・熱解析・振動解析を実施
+
+  dr3_review:
+    id: dr3_review
+    type: decision
+    label: DR3 詳細設計審査
+    role: design-leader
+    system: plm
+    meta:
+      description: 詳細設計の最終審査。図面品質・公差妥当性・CAE結果・製造可能性を検証
+
+  prototype_fabrication:
+    id: prototype_fabrication
+    type: process
+    label: 試作・評価
+    role: manufacturing-engineer
+    system: plm
+    meta:
+      description: 試作品の製作と機能試験・耐久試験・環境試験を実施
+
+  prototype_evaluation:
+    id: prototype_evaluation
+    type: decision
+    label: 試作評価判定
+    role: quality-engineer
+    system: plm
+    meta:
+      description: 試験結果に基づく合否判定。不合格時は設計手戻り
+
+  production_preparation:
+    id: production_preparation
+    type: process
+    label: 量産準備
+    role: manufacturing-engineer
+    system: plm
+    meta:
+      description: 量産用治具設計・工程設計・QC工程表作成・初品検査計画策定
+
+  final_approval:
+    id: final_approval
+    type: human-review
+    label: 量産移行承認
+    role: design-leader
+    system: plm
+    meta:
+      description: 量産移行の最終承認。全DR指摘事項のクローズ確認
+
+  design_complete:
+    id: design_complete
+    type: end
+    label: 設計完了・量産移行
+    meta:
+      description: 設計完了。量産部門へ正式に移管
+
+edges:
+  e1:
+    id: e1
+    from: receive_requirements
+    to: conceptual_design
+
+  e2:
+    id: e2
+    from: conceptual_design
+    to: dr1_review
+
+  e3:
+    id: e3
+    from: dr1_review
+    to: basic_design
+    label: 承認
+    condition: dr1_result == "approved"
+
+  e4:
+    id: e4
+    from: dr1_review
+    to: conceptual_design
+    label: 差戻し
+    condition: dr1_result == "rejected"
+
+  e5:
+    id: e5
+    from: basic_design
+    to: material_selection
+
+  e6:
+    id: e6
+    from: material_selection
+    to: dr2_review
+
+  e7:
+    id: e7
+    from: dr2_review
+    to: detailed_design
+    label: 承認
+    condition: dr2_result == "approved"
+
+  e8:
+    id: e8
+    from: dr2_review
+    to: basic_design
+    label: 差戻し
+    condition: dr2_result == "rejected"
+
+  e9:
+    id: e9
+    from: detailed_design
+    to: cae_analysis
+
+  e10:
+    id: e10
+    from: cae_analysis
+    to: dr3_review
+
+  e11:
+    id: e11
+    from: dr3_review
+    to: prototype_fabrication
+    label: 承認
+    condition: dr3_result == "approved"
+
+  e12:
+    id: e12
+    from: dr3_review
+    to: detailed_design
+    label: 差戻し
+    condition: dr3_result == "rejected"
+
+  e13:
+    id: e13
+    from: prototype_fabrication
+    to: prototype_evaluation
+
+  e14:
+    id: e14
+    from: prototype_evaluation
+    to: production_preparation
+    label: 合格
+    condition: evaluation_result == "pass"
+
+  e15:
+    id: e15
+    from: prototype_evaluation
+    to: detailed_design
+    label: 不合格(設計変更要)
+    condition: evaluation_result == "fail"
+
+  e16:
+    id: e16
+    from: production_preparation
+    to: final_approval
+
+  e17:
+    id: e17
+    from: final_approval
+    to: design_complete

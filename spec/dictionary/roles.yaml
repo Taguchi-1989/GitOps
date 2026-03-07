@@ -49,3 +49,52 @@ accounting:
   description: 請求、入金確認を担当する経理部門スタッフ
   department: 経理部
   contact: accounting@example.com
+
+designer:
+  id: designer
+  name: 設計者
+  description: 機械部品の設計・3D CADモデリング・図面作成を担当する設計技術者
+  department: 設計部
+  contact: design@example.com
+
+design-leader:
+  id: design-leader
+  name: 設計リーダー
+  description: 設計プロジェクトの統括・設計審査の主催・技術判断を担当するリーダー
+  department: 設計部
+  contact: design-lead@example.com
+
+quality-engineer:
+  id: quality-engineer
+  name: 品質管理担当
+  description: 設計品質の検証・公差解析・信頼性評価を担当する品質技術者
+  department: 品質保証部
+  contact: quality@example.com
+
+manufacturing-engineer:
+  id: manufacturing-engineer
+  name: 生産技術担当
+  description: 量産工程設計・治具設計・製造可能性評価を担当する生産技術者
+  department: 生産技術部
+  contact: manufacturing@example.com
+
+procurement-engineer:
+  id: procurement-engineer
+  name: 調達技術担当
+  description: 部品調達・サプライヤー評価・コスト見積を担当する調達担当者
+  department: 調達部
+  contact: procurement-eng@example.com
+
+safety-manager:
+  id: safety-manager
+  name: 安全管理者
+  description: 職場のリスクアセスメント統括・安全基準の策定・安全教育を担当する安全管理責任者
+  department: 安全衛生部
+  contact: safety@example.com
+
+work-supervisor:
+  id: work-supervisor
+  name: 作業責任者
+  description: 現場作業の計画・実施・監督を担当し、作業許可を発行する作業責任者
+  department: 製造部
+  contact: work-supervisor@example.com

@@ -1,0 +1,93 @@
+id: design-review-checklist
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたは機械設計の設計審査(DR: Design Review)の専門家です。
+    設計フェーズと製品情報に基づき、包括的なDRチェックリストを生成してください。
+
+    DRフェーズ定義:
+    - DR1(構想設計審査): コンセプト妥当性、要件充足度、リスク識別
+    - DR2(基本設計審査): 寸法整合性、材料選定、BOM精度、コスト
+    - DR3(詳細設計審査): 図面品質、公差、CAE結果、DFM、信頼性
+
+    チェック観点（DRBFM的アプローチ）:
+    1. 機能要件充足: 仕様書の全要件が設計に反映されているか
+    2. 安全性: 安全率、フェイルセーフ、FMEA考慮
+    3. 製造可能性(DFM): 加工法・組立手順の実現性
+    4. 品質: 公差設計、検査可能性、トレーサビリティ
+    5. コスト: 目標コスト達成度、VE(Value Engineering)機会
+    6. 信頼性: 寿命計算、疲労評価、環境耐性
+    7. 標準化: JIS規格準拠、社内標準準拠
+    8. 変更点管理: 前機種/類似製品からの変更点とリスク
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    DRフェーズ: {{dr_phase}}
+    製品名: {{product_name}}
+    製品カテゴリ: {{product_category}}
+    設計変更点: {{design_changes}}
+    過去DR指摘事項: {{past_dr_findings}}
+    特記事項: {{special_notes}}
+  temperature: 0.3
+  maxTokens: 2048
+
+inputSchema:
+  type: object
+  properties:
+    dr_phase:
+      type: string
+      enum: [DR1, DR2, DR3]
+    product_name:
+      type: string
+    product_category:
+      type: string
+    design_changes:
+      type: string
+    past_dr_findings:
+      type: string
+    special_notes:
+      type: string
+  required:
+    - dr_phase
+    - product_name
+
+outputSchema:
+  type: object
+  properties:
+    checklist:
+      type: array
+      items:
+        type: object
+    critical_items:
+      type: array
+      items:
+        type: string
+    recommended_reviewers:
+      type: array
+      items:
+        type: string
+    estimated_duration_hours:
+      type: number
+    reference_standards:
+      type: array
+      items:
+        type: string
+  required:
+    - checklist
+    - critical_items
+
+requiresHumanApproval: false
+maxRetries: 2
+timeoutMs: 30000
+
+metadata:
+  author: "design-team"
+  description: "設計審査(DR1/DR2/DR3)用チェックリストを自動生成するAIタスク"
+  tags:
+    - mechanical-design
+    - design-review
+    - quality
+    - checklist

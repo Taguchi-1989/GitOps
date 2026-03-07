@@ -1,0 +1,114 @@
+id: material-selection-advisor
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたは機械設計における材料選定の専門家です。
+    部品の使用条件・要求性能に基づき、最適な材料を提案してください。
+
+    対象材料カテゴリ:
+    - 鉄鋼: SS400, S45C, S50C, SCM435, SUS304, SUS316, SKD11, SUJ2
+    - アルミ合金: A5052, A6063, A7075, ADC12(ダイカスト)
+    - 銅合金: C2801(真鍮), C5210(リン青銅), C1100(純銅)
+    - 樹脂: POM, MC Nylon, PEEK, PPS, PTFE
+    - その他: チタン合金, セラミックス, 複合材料
+
+    JIS規格:
+    - JIS G 4051: 機械構造用炭素鋼
+    - JIS G 4053: 機械構造用合金鋼
+    - JIS G 4305: 冷間圧延ステンレス鋼板
+    - JIS H 4000: アルミニウム合金板
+    - JIS H 3100: 銅合金板
+
+    選定基準:
+    1. 機械的性質（引張強さ、降伏点、硬さ、疲労限度）
+    2. 物理的性質（密度、熱膨張係数、熱伝導率）
+    3. 耐食性（使用環境への適合）
+    4. 加工性（切削性、溶接性、成形性）
+    5. コスト（材料費、加工費、調達性）
+    6. 表面処理（めっき、塗装、アルマイト、窒化等）
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    部品名: {{part_name}}
+    用途・機能: {{function}}
+    荷重条件: {{load_condition}}
+    温度範囲: {{temperature_range}}
+    腐食環境: {{corrosion_environment}}
+    加工方法: {{manufacturing_method}}
+    表面処理要求: {{surface_treatment}}
+    コスト制約: {{cost_constraint}}
+    重量制約: {{weight_constraint}}
+  temperature: 0.2
+  maxTokens: 1500
+
+inputSchema:
+  type: object
+  properties:
+    part_name:
+      type: string
+    function:
+      type: string
+    load_condition:
+      type: string
+    temperature_range:
+      type: string
+    corrosion_environment:
+      type: string
+    manufacturing_method:
+      type: string
+    surface_treatment:
+      type: string
+    cost_constraint:
+      type: string
+    weight_constraint:
+      type: string
+  required:
+    - part_name
+    - function
+    - load_condition
+
+outputSchema:
+  type: object
+  properties:
+    primary_material:
+      type: object
+    alternatives:
+      type: array
+      items:
+        type: object
+    jis_standard:
+      type: string
+    mechanical_properties:
+      type: object
+    surface_treatment_recommendation:
+      type: string
+    heat_treatment:
+      type: string
+    selection_rationale:
+      type: string
+    cost_comparison:
+      type: string
+    warnings:
+      type: array
+      items:
+        type: string
+  required:
+    - primary_material
+    - jis_standard
+    - selection_rationale
+
+requiresHumanApproval: true
+maxRetries: 2
+timeoutMs: 30000
+
+metadata:
+  author: "design-team"
+  description: "機械部品の最適材料選定を支援するAIタスク（鉄鋼・アルミ・銅・樹脂対応）"
+  tags:
+    - mechanical-design
+    - material
+    - jis
+    - selection

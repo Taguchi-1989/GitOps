@@ -1,0 +1,97 @@
+id: sheet-metal-thickness
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたは板金設計の専門エンジニアです。
+    与えられた設計条件（荷重、スパン、材質、加工方法）に基づき、
+    最適な板厚をJIS規格の標準板厚から選定してください。
+
+    以下のJIS規格を参照してください:
+    - JIS G 4305: 冷間圧延ステンレス鋼板
+    - JIS G 3141: 冷間圧延鋼板(SPCC/SPCD/SPCE)
+    - JIS G 3131: 熱間圧延鋼板(SPHC/SPHD/SPHE)
+
+    標準板厚系列: 0.5, 0.6, 0.8, 1.0, 1.2, 1.5, 1.6, 2.0, 2.3, 2.5, 3.0, 3.2, 4.0, 4.5, 5.0, 6.0 mm
+
+    判断基準:
+    1. 必要強度（荷重条件から最小板厚を算出）
+    2. 曲げ加工性（最小曲げR = 板厚 x 材料係数）
+    3. コスト効率（標準板厚を優先、特注厚は避ける）
+    4. 溶接性（板厚差が大きい組合せは避ける）
+    5. 軽量化（必要以上に厚い板は避ける）
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    部品名: {{part_name}}
+    材質: {{material}}
+    用途: {{application}}
+    荷重条件: {{load_condition}}
+    加工方法: {{fabrication_method}}
+    スパン(mm): {{span_mm}}
+    環境条件: {{environment}}
+  temperature: 0.2
+  maxTokens: 1024
+
+inputSchema:
+  type: object
+  properties:
+    part_name:
+      type: string
+    material:
+      type: string
+    application:
+      type: string
+    load_condition:
+      type: string
+    fabrication_method:
+      type: string
+    span_mm:
+      type: number
+    environment:
+      type: string
+  required:
+    - part_name
+    - material
+    - load_condition
+
+outputSchema:
+  type: object
+  properties:
+    recommended_thickness_mm:
+      type: number
+    jis_standard:
+      type: string
+    calculation_basis:
+      type: string
+    minimum_bend_radius_mm:
+      type: number
+    alternative_thicknesses:
+      type: array
+      items:
+        type: object
+    cost_rating:
+      type: string
+    warnings:
+      type: array
+      items:
+        type: string
+  required:
+    - recommended_thickness_mm
+    - jis_standard
+    - calculation_basis
+
+requiresHumanApproval: true
+maxRetries: 2
+timeoutMs: 30000
+
+metadata:
+  author: "design-team"
+  description: "板金部品の最適板厚をJIS標準板厚系列から選定するAIタスク"
+  tags:
+    - mechanical-design
+    - sheet-metal
+    - jis
+    - material
