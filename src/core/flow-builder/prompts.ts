@@ -11,7 +11,7 @@
 // 共通: YAMLスキーマ仕様（全プロンプトで参照）
 // ========================================
 
-const YAML_SCHEMA_SPEC = `## YAMLフロー定義スキーマ
+export const YAML_SCHEMA_SPEC = `## YAMLフロー定義スキーマ
 
 フロー定義は以下の構造に厳密に従うこと:
 
@@ -102,7 +102,7 @@ graph TD
 // 共通: 禁止事項
 // ========================================
 
-const COMMON_CONSTRAINTS = `## 禁止事項（必ず守ること）
+export const COMMON_CONSTRAINTS = `## 禁止事項（必ず守ること）
 1. 使用可能なRoleリストにないroleを使用禁止（roleリストが提供されている場合）
 2. 使用可能なSystemリストにないsystemを使用禁止（systemリストが提供されている場合）
 3. ノードIDには必ずsnake_caseを使用すること（キャメルケースやハイフン区切り禁止）

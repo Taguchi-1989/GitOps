@@ -13,9 +13,10 @@ import { Flow } from '@/core/parser';
 interface FlowViewerClientProps {
   flow: Flow;
   mermaidContent: string;
+  yamlContent?: string;
 }
 
-export function FlowViewerClient({ flow, mermaidContent }: FlowViewerClientProps) {
+export function FlowViewerClient({ flow, mermaidContent, yamlContent }: FlowViewerClientProps) {
   const router = useRouter();
 
   const handleBack = () => {
@@ -39,6 +40,7 @@ export function FlowViewerClient({ flow, mermaidContent }: FlowViewerClientProps
     <FlowViewer
       flow={flow}
       mermaidContent={mermaidContent}
+      yamlContent={yamlContent}
       onBack={handleBack}
       onNodeClick={handleNodeClick}
       onCreateIssue={handleCreateIssue}

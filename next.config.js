@@ -32,9 +32,6 @@ const nextConfig = {
   // 厳格モード
   reactStrictMode: true,
 
-  // 出力設定（スタンドアロンビルド用）
-  output: 'standalone',
-
   // リダイレクト設定
   async redirects() {
     return [

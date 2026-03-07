@@ -5,7 +5,7 @@
  */
 
 import { notFound } from 'next/navigation';
-import { getFlow } from '@/lib/flow-service';
+import { getFlow, getFlowYaml } from '@/lib/flow-service';
 import { FlowViewerClient } from './FlowViewerClient';
 
 interface PageProps {
@@ -32,9 +32,15 @@ export default async function FlowDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  const yamlContent = await getFlowYaml(params.id);
+
   return (
     <div className="h-[calc(100vh-0px)]">
-      <FlowViewerClient flow={flowData.flow} mermaidContent={flowData.mermaid} />
+      <FlowViewerClient
+        flow={flowData.flow}
+        mermaidContent={flowData.mermaid}
+        yamlContent={yamlContent || undefined}
+      />
     </div>
   );
 }

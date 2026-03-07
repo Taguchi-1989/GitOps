@@ -39,6 +39,8 @@ export const AuditActionSchema = z.enum([
 
   // Flow lifecycle
   'FLOW_CREATE',
+  'FLOW_UPDATE',
+  'FLOW_IMPORT',
 
   // System operations
   'BACKUP_CREATE',

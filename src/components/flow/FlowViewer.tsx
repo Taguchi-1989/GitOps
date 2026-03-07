@@ -10,13 +10,15 @@
 
 import React, { useState } from 'react';
 import { MermaidViewer } from './MermaidViewer';
+import { FlowExportImport } from './FlowExportImport';
 import { Flow } from '@/core/parser';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
-import { ArrowLeft, FileText, Layers, Eye, Code, AlertCircle } from 'lucide-react';
+import { ArrowLeft, FileText, Layers, Eye, Code, AlertCircle, Upload } from 'lucide-react';
 
 interface FlowViewerProps {
   flow: Flow;
   mermaidContent: string;
+  yamlContent?: string;
   onBack?: () => void;
   onNodeClick?: (nodeId: string) => void;
   onCreateIssue?: (nodeId?: string) => void;
@@ -31,12 +33,13 @@ const layerLabels: Record<string, string> = {
 export function FlowViewer({
   flow,
   mermaidContent,
+  yamlContent,
   onBack,
   onNodeClick,
   onCreateIssue,
 }: FlowViewerProps) {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'diagram' | 'data'>('diagram');
+  const [activeTab, setActiveTab] = useState<'diagram' | 'data' | 'export-import'>('diagram');
 
   const nodeCount = Object.keys(flow.nodes).length;
   const edgeCount = Object.keys(flow.edges).length;
@@ -136,6 +139,23 @@ export function FlowViewer({
             <Code className="w-4 h-4 inline mr-1" />
             生データ
           </button>
+          {yamlContent && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('export-import')}
+              className={`
+                px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
+                ${
+                  activeTab === 'export-import'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }
+              `}
+            >
+              <Upload className="w-4 h-4 inline mr-1" />
+              エクスポート
+            </button>
+          )}
         </div>
       </div>
 
@@ -157,11 +177,17 @@ export function FlowViewer({
                 className="h-full"
               />
             </div>
-          ) : (
+          ) : activeTab === 'data' ? (
             <pre className="p-4 bg-gray-900 text-gray-100 rounded-lg text-sm overflow-x-auto">
               {JSON.stringify(flow, null, 2)}
             </pre>
-          )}
+          ) : yamlContent ? (
+            <FlowExportImport
+              flow={flow}
+              yamlContent={yamlContent}
+              onImportSuccess={() => window.location.reload()}
+            />
+          ) : null}
         </div>
 
         {/* Side Panel - Selected Node */}
