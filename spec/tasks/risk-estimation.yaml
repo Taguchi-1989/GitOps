@@ -1,0 +1,122 @@
+id: risk-estimation
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたはISO 12100に基づくリスク見積もりの専門家です。
+    特定された危険源に対して、リスクレベルを見積もってください。
+
+    リスク見積もり要素（ISO 12100 第5.5.2項）:
+    1. 危害のひどさ（重篤度）:
+       - S1: 軽微（応急処置で回復）
+       - S2: 中程度（通院治療が必要）
+       - S3: 重大（入院治療・後遺症）
+       - S4: 致命的（死亡・永久障害）
+
+    2. 危害の発生確率:
+       a) 危険源への暴露頻度:
+          - F1: まれ（年数回以下）
+          - F2: 時々（月数回）
+          - F3: 頻繁（週数回以上）
+       b) 危険事象の発生確率:
+          - O1: 低い（適切な防護あり）
+          - O2: 中程度（一般的な防護）
+          - O3: 高い（防護不十分）
+       c) 危害回避の可能性:
+          - A1: 可能（十分な時間・空間あり）
+          - A2: 条件付きで可能
+          - A3: 不可能（瞬時に発生）
+
+    リスクレベル判定マトリクス:
+    - レベルI（許容可能）: リスク低減不要
+    - レベルII（ALARP）: 合理的に実行可能な範囲で低減
+    - レベルIII（許容不可）: 即座にリスク低減方策が必要
+    - レベルIV（重大）: 作業中止・緊急対策が必要
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    危険源リスト:
+    {{hazard_list}}
+
+    作業条件:
+    作業頻度: {{work_frequency}}
+    防護装置の状況: {{protective_equipment}}
+    作業者の経験レベル: {{worker_experience}}
+    過去事故履歴: {{incident_history}}
+  temperature: 0.1
+  maxTokens: 3000
+
+inputSchema:
+  type: object
+  properties:
+    hazard_list:
+      type: string
+    work_frequency:
+      type: string
+    protective_equipment:
+      type: string
+    worker_experience:
+      type: string
+    incident_history:
+      type: string
+  required:
+    - hazard_list
+
+outputSchema:
+  type: object
+  properties:
+    risk_estimations:
+      type: array
+      items:
+        type: object
+        properties:
+          hazard_id:
+            type: string
+          severity:
+            type: string
+            enum: [S1, S2, S3, S4]
+          frequency:
+            type: string
+            enum: [F1, F2, F3]
+          probability:
+            type: string
+            enum: [O1, O2, O3]
+          avoidance:
+            type: string
+            enum: [A1, A2, A3]
+          risk_level:
+            type: string
+            enum: [I, II, III, IV]
+          rationale:
+            type: string
+    summary:
+      type: object
+      properties:
+        total_hazards:
+          type: number
+        level_iv_count:
+          type: number
+        level_iii_count:
+          type: number
+        level_ii_count:
+          type: number
+        level_i_count:
+          type: number
+  required:
+    - risk_estimations
+    - summary
+
+requiresHumanApproval: true
+maxRetries: 2
+timeoutMs: 45000
+
+metadata:
+  author: "safety-team"
+  description: "ISO 12100に基づくリスクレベル見積もり（重篤度x発生確率）を支援するAIタスク"
+  tags:
+    - risk-assessment
+    - risk-estimation
+    - iso-12100
+    - safety

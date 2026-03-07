@@ -1,0 +1,290 @@
+id: risk-assessment-detail
+title: リスクアセスメント詳細フロー（AI支援・ISO 12100準拠）
+layer: L2
+updatedAt: '2026-03-07T00:00:00+09:00'
+
+nodes:
+  start_detail:
+    id: start_detail
+    type: start
+    label: リスクアセスメント開始
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: リスクアセスメント対象作業の登録と基本情報入力
+
+  input_work_info:
+    id: input_work_info
+    type: process
+    label: 作業情報入力
+    role: work-supervisor
+    system: risk-management
+    meta:
+      description: 作業名・作業手順・使用機器・作業環境・作業者数・作業頻度を入力する
+      sla: 1営業日以内
+
+  ai_hazard_identification:
+    id: ai_hazard_identification
+    type: llm-task
+    label: AI危険源特定
+    taskId: hazard-identification
+    system: risk-management
+    meta:
+      description: 作業情報に基づきAIがISO 12100附属書Aの危険源カテゴリから該当する危険源を網羅的に提案する
+
+  review_hazards:
+    id: review_hazards
+    type: human-review
+    label: 危険源レビュー
+    role: safety-manager
+    meta:
+      description: AI提案の危険源リストを安全管理者が確認・追加・修正する
+
+  ai_risk_estimation:
+    id: ai_risk_estimation
+    type: llm-task
+    label: AIリスク見積もり
+    taskId: risk-estimation
+    system: risk-management
+    meta:
+      description: 確定した危険源リストに対しAIが重篤度・発生確率・回避可能性を見積もりリスクレベルを算出する
+
+  review_estimation:
+    id: review_estimation
+    type: human-review
+    label: リスク見積もりレビュー
+    role: safety-manager
+    meta:
+      description: AIが算出したリスクレベルを安全管理者が確認・修正する
+
+  evaluate_risk:
+    id: evaluate_risk
+    type: decision
+    label: リスク評価判定
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: リスクマトリクスに基づき許容可否を判定する
+
+  ai_risk_reduction:
+    id: ai_risk_reduction
+    type: llm-task
+    label: AIリスク低減方策提案
+    taskId: risk-reduction-advisor
+    system: risk-management
+    meta:
+      description: AIが3ステップメソッド（本質的安全設計・保護方策・使用上の情報）に基づくリスク低減方策を提案する
+
+  review_measures:
+    id: review_measures
+    type: human-review
+    label: 低減方策レビュー
+    role: safety-manager
+    meta:
+      description: AI提案のリスク低減方策を安全管理者が確認・選択・修正する
+
+  implement_measures:
+    id: implement_measures
+    type: process
+    label: 方策実施
+    role: work-supervisor
+    system: risk-management
+    meta:
+      description: 承認されたリスク低減方策を現場で実施する
+
+  record_measures:
+    id: record_measures
+    type: database
+    label: 対策記録
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 実施した低減方策をリスク管理システムに記録する
+
+  residual_risk_check:
+    id: residual_risk_check
+    type: decision
+    label: 残留リスク判定
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 方策実施後の残留リスクが許容水準に達したかを判定する
+
+  permit_work:
+    id: permit_work
+    type: human-review
+    label: 作業許可発行
+    role: work-supervisor
+    system: risk-management
+    meta:
+      description: リスクが許容水準に達したことを確認し作業許可を発行する
+
+  change_to_special_mgmt:
+    id: change_to_special_mgmt
+    type: process
+    label: 特別管理作業指定
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 残留リスクが高い作業を特別管理作業に指定し追加管理ルールを登録する
+
+  consider_alternatives:
+    id: consider_alternatives
+    type: process
+    label: 別手段検討
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 作業方法・使用機器の根本的見直しを実施する
+
+  implement_additional:
+    id: implement_additional
+    type: process
+    label: 追加対策実施
+    role: work-supervisor
+    system: risk-management
+    meta:
+      description: 追加の工学的対策・管理的対策・PPE追加等を実施する
+
+  finalize_record:
+    id: finalize_record
+    type: database
+    label: アセスメント記録確定
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: リスクアセスメント結果を正式記録として確定し次回見直し日を設定する
+
+  assessment_complete:
+    id: assessment_complete
+    type: end
+    label: リスクアセスメント完了
+    meta:
+      description: リスクアセスメント完了。記録保管・定期見直しスケジュール設定
+
+edges:
+  e1:
+    id: e1
+    from: start_detail
+    to: input_work_info
+
+  e2:
+    id: e2
+    from: input_work_info
+    to: ai_hazard_identification
+
+  e3:
+    id: e3
+    from: ai_hazard_identification
+    to: review_hazards
+
+  e4:
+    id: e4
+    from: review_hazards
+    to: ai_risk_estimation
+
+  e5:
+    id: e5
+    from: ai_risk_estimation
+    to: review_estimation
+
+  e6:
+    id: e6
+    from: review_estimation
+    to: evaluate_risk
+
+  e7:
+    id: e7
+    from: evaluate_risk
+    to: ai_risk_reduction
+    label: 許容不可
+    condition: risk_level == "unacceptable"
+
+  e8:
+    id: e8
+    from: evaluate_risk
+    to: permit_work
+    label: 許容可能
+    condition: risk_level == "acceptable"
+
+  e9:
+    id: e9
+    from: evaluate_risk
+    to: ai_risk_reduction
+    label: ALARP
+    condition: risk_level == "alarp"
+
+  e10:
+    id: e10
+    from: ai_risk_reduction
+    to: review_measures
+
+  e11:
+    id: e11
+    from: review_measures
+    to: implement_measures
+
+  e12:
+    id: e12
+    from: implement_measures
+    to: record_measures
+
+  e13:
+    id: e13
+    from: record_measures
+    to: residual_risk_check
+
+  e14:
+    id: e14
+    from: residual_risk_check
+    to: permit_work
+    label: 十分に低減
+    condition: residual_risk == "sufficient"
+
+  e15:
+    id: e15
+    from: residual_risk_check
+    to: change_to_special_mgmt
+    label: 特別管理
+    condition: residual_risk == "special_management"
+
+  e16:
+    id: e16
+    from: residual_risk_check
+    to: consider_alternatives
+    label: 別手段検討
+    condition: residual_risk == "alternatives_needed"
+
+  e17:
+    id: e17
+    from: residual_risk_check
+    to: implement_additional
+    label: 追加対策要
+    condition: residual_risk == "additional_needed"
+
+  e18:
+    id: e18
+    from: change_to_special_mgmt
+    to: permit_work
+
+  e19:
+    id: e19
+    from: consider_alternatives
+    to: ai_hazard_identification
+    label: 再アセスメント
+
+  e20:
+    id: e20
+    from: implement_additional
+    to: ai_risk_estimation
+    label: 再見積もり
+
+  e21:
+    id: e21
+    from: permit_work
+    to: finalize_record
+
+  e22:
+    id: e22
+    from: finalize_record
+    to: assessment_complete

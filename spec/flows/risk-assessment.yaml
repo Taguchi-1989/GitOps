@@ -1,0 +1,237 @@
+id: risk-assessment
+title: リスクアセスメントフロー（ISO 12100準拠）
+layer: L1
+updatedAt: '2026-03-07T00:00:00+09:00'
+
+nodes:
+  start_assessment:
+    id: start_assessment
+    type: start
+    label: リスクアセスメント開始
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 新規作業・変更作業のリスクアセスメントを開始する
+
+  gather_work_overview:
+    id: gather_work_overview
+    type: process
+    label: 作業概要の収集
+    role: work-supervisor
+    system: risk-management
+    meta:
+      description: 作業内容・手順・使用機器・作業環境・関係者を整理し記録する
+      sla: 1営業日以内
+
+  identify_hazards:
+    id: identify_hazards
+    type: process
+    label: 危険源の特定
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: ISO 12100附属書Aに基づき機械的・電気的・熱的・騒音・振動・放射・化学物質等の危険源を網羅的に特定する
+
+  estimate_risk:
+    id: estimate_risk
+    type: process
+    label: リスクの見積もり
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 特定された各危険源について危害のひどさ（重篤度）と危害の発生確率（頻度・回避可能性）を見積もる
+
+  evaluate_risk:
+    id: evaluate_risk
+    type: decision
+    label: リスクの評価
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 見積もったリスクが許容可能かを判定する。許容不可の場合はリスク低減方策へ進む
+
+  inherent_safe_design:
+    id: inherent_safe_design
+    type: process
+    label: 本質的安全設計
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 危険源そのものを除去または低減する設計方策を検討・実施する（3ステップメソッド第1ステップ）
+
+  protective_measures:
+    id: protective_measures
+    type: process
+    label: 保護方策の実施
+    role: work-supervisor
+    system: risk-management
+    meta:
+      description: ガード・保護装置・安全機能等の保護方策を検討・実施する（3ステップメソッド第2ステップ）
+
+  usage_information:
+    id: usage_information
+    type: process
+    label: 使用上の情報提供
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 警告表示・取扱説明書・教育訓練等の情報提供方策を策定する（3ステップメソッド第3ステップ）
+
+  risk_sufficient_check:
+    id: risk_sufficient_check
+    type: decision
+    label: 残留リスク判定
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: リスク低減方策実施後の残留リスクが十分に低減されたかを判定する
+
+  permit_work:
+    id: permit_work
+    type: human-review
+    label: 作業許可
+    role: work-supervisor
+    system: risk-management
+    meta:
+      description: リスクが許容水準に達したことを確認し作業許可を発行する
+
+  change_to_special_mgmt:
+    id: change_to_special_mgmt
+    type: process
+    label: 特別管理作業に変更
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 残留リスクが高い作業を特別管理作業に指定し追加の管理体制を構築する
+
+  consider_alternatives:
+    id: consider_alternatives
+    type: process
+    label: 別手段・制限の検討
+    role: safety-manager
+    system: risk-management
+    meta:
+      description: 作業方法の変更・使用機器の代替・作業範囲の制限など根本的な別手段を検討する
+
+  implement_additional:
+    id: implement_additional
+    type: process
+    label: 追加対策の実施
+    role: work-supervisor
+    system: risk-management
+    meta:
+      description: 追加の工学的対策・管理的対策・個人用保護具の追加等を実施する
+
+  assessment_complete:
+    id: assessment_complete
+    type: end
+    label: リスクアセスメント完了
+    meta:
+      description: リスクアセスメント完了。記録を保管し定期見直しスケジュールを設定する
+
+edges:
+  e1:
+    id: e1
+    from: start_assessment
+    to: gather_work_overview
+
+  e2:
+    id: e2
+    from: gather_work_overview
+    to: identify_hazards
+
+  e3:
+    id: e3
+    from: identify_hazards
+    to: estimate_risk
+
+  e4:
+    id: e4
+    from: estimate_risk
+    to: evaluate_risk
+
+  e5:
+    id: e5
+    from: evaluate_risk
+    to: inherent_safe_design
+    label: 許容不可
+    condition: risk_level == "unacceptable"
+
+  e6:
+    id: e6
+    from: evaluate_risk
+    to: permit_work
+    label: 許容可能
+    condition: risk_level == "acceptable"
+
+  e7:
+    id: e7
+    from: inherent_safe_design
+    to: protective_measures
+
+  e8:
+    id: e8
+    from: protective_measures
+    to: usage_information
+
+  e9:
+    id: e9
+    from: usage_information
+    to: risk_sufficient_check
+
+  e10:
+    id: e10
+    from: risk_sufficient_check
+    to: permit_work
+    label: 十分に低減
+    condition: residual_risk == "sufficient"
+
+  e11:
+    id: e11
+    from: risk_sufficient_check
+    to: change_to_special_mgmt
+    label: 特別管理
+    condition: residual_risk == "special_management"
+
+  e12:
+    id: e12
+    from: risk_sufficient_check
+    to: consider_alternatives
+    label: 別手段検討
+    condition: residual_risk == "alternatives_needed"
+
+  e13:
+    id: e13
+    from: risk_sufficient_check
+    to: implement_additional
+    label: 追加対策要
+    condition: residual_risk == "additional_needed"
+
+  e14:
+    id: e14
+    from: change_to_special_mgmt
+    to: permit_work
+
+  e15:
+    id: e15
+    from: consider_alternatives
+    to: identify_hazards
+    label: 再アセスメント
+
+  e16:
+    id: e16
+    from: implement_additional
+    to: estimate_risk
+    label: 再見積もり
+
+  e17:
+    id: e17
+    from: permit_work
+    to: assessment_complete
+
+  e18:
+    id: e18
+    from: evaluate_risk
+    to: usage_information
+    label: ALARP
+    condition: risk_level == "alarp"

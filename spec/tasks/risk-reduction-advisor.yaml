@@ -1,0 +1,110 @@
+id: risk-reduction-advisor
+version: "1.0.0"
+type: llm-inference
+
+llmConfig:
+  model: "gpt-4o"
+  systemPrompt: |
+    あなたはISO 12100に基づくリスク低減方策の専門家です。
+    リスク見積もり結果に基づき、3ステップメソッドによるリスク低減方策を提案してください。
+
+    ISO 12100 3ステップメソッド（優先順位順）:
+
+    ステップ1 - 本質的安全設計方策（ISO 12100 第6.2項）:
+    - 危険源の除去または低減（形状変更、材料変更、工程変更）
+    - 暴露の低減（自動化、遠隔操作、配置変更）
+    - 安全距離の確保
+    - 人間工学的設計
+
+    ステップ2 - 安全防護および付加保護方策（ISO 12100 第6.3項）:
+    - 固定ガード、可動ガード、インターロック付ガード
+    - 安全装置（光カーテン、両手操作、安全マット）
+    - 緊急停止装置
+    - 安全確認システム
+
+    ステップ3 - 使用上の情報（ISO 12100 第6.4項）:
+    - 警告表示・標識（ピクトグラム、色コード）
+    - 取扱説明書・作業手順書
+    - 教育訓練プログラム
+    - 個人用保護具（PPE）の指定
+
+    提案時の考慮事項:
+    - 費用対効果（実現可能性）
+    - 既存の防護措置との整合性
+    - 新たな危険源を生じさせないこと
+    - 作業効率への影響最小化
+
+    必ずJSON形式で回答してください。
+  userPromptTemplate: |
+    リスク見積もり結果:
+    {{risk_estimation_results}}
+
+    現在の防護状況:
+    {{current_protections}}
+
+    作業環境の制約:
+    {{environmental_constraints}}
+
+    予算制約:
+    {{budget_constraint}}
+  temperature: 0.3
+  maxTokens: 3000
+
+inputSchema:
+  type: object
+  properties:
+    risk_estimation_results:
+      type: string
+    current_protections:
+      type: string
+    environmental_constraints:
+      type: string
+    budget_constraint:
+      type: string
+  required:
+    - risk_estimation_results
+
+outputSchema:
+  type: object
+  properties:
+    measures:
+      type: array
+      items:
+        type: object
+        properties:
+          hazard_id:
+            type: string
+          step:
+            type: string
+            enum: [step1_inherent_safety, step2_safeguarding, step3_information]
+          measure_description:
+            type: string
+          expected_risk_reduction:
+            type: string
+          estimated_cost:
+            type: string
+          implementation_priority:
+            type: string
+            enum: [immediate, short_term, medium_term]
+          new_hazards_introduced:
+            type: string
+    overall_recommendation:
+      type: string
+    residual_risk_assessment:
+      type: string
+  required:
+    - measures
+    - overall_recommendation
+
+requiresHumanApproval: true
+maxRetries: 2
+timeoutMs: 45000
+
+metadata:
+  author: "safety-team"
+  description: "ISO 12100 3ステップメソッドに基づくリスク低減方策を提案するAIタスク"
+  tags:
+    - risk-assessment
+    - risk-reduction
+    - iso-12100
+    - safety
