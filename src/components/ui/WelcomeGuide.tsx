@@ -135,11 +135,11 @@ export function WelcomeGuide() {
       <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={handleClose} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in overflow-hidden">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in overflow-hidden">
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10"
+          className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 z-10"
         >
           <X className="w-5 h-5" />
         </button>
@@ -157,8 +157,11 @@ export function WelcomeGuide() {
         <div className="px-8 py-6">
           <ul className="space-y-3">
             {step.details.map((detail, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-medium mt-0.5">
+              <li
+                key={i}
+                className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300"
+              >
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs font-medium mt-0.5">
                   {i + 1}
                 </span>
                 {detail}
@@ -179,8 +182,8 @@ export function WelcomeGuide() {
                   i === currentStep
                     ? `${step.color} w-6`
                     : i < currentStep
-                      ? 'bg-gray-400'
-                      : 'bg-gray-200'
+                      ? 'bg-gray-400 dark:bg-gray-500'
+                      : 'bg-gray-200 dark:bg-gray-600'
                 }`}
               />
             ))}
@@ -191,7 +194,7 @@ export function WelcomeGuide() {
             {currentStep > 0 && (
               <button
                 onClick={handlePrev}
-                className="flex items-center gap-1 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-1 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 戻る
@@ -261,10 +264,10 @@ function WelcomeGuideReopen({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in overflow-hidden">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in overflow-hidden">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10"
+          className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 z-10"
         >
           <X className="w-5 h-5" />
         </button>
@@ -278,8 +281,11 @@ function WelcomeGuideReopen({ onClose }: { onClose: () => void }) {
         <div className="px-8 py-6">
           <ul className="space-y-3">
             {step.details.map((detail, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-medium mt-0.5">
+              <li
+                key={i}
+                className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300"
+              >
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs font-medium mt-0.5">
                   {i + 1}
                 </span>
                 {detail}
@@ -297,8 +303,8 @@ function WelcomeGuideReopen({ onClose }: { onClose: () => void }) {
                   i === currentStep
                     ? `${step.color} w-6`
                     : i < currentStep
-                      ? 'bg-gray-400'
-                      : 'bg-gray-200'
+                      ? 'bg-gray-400 dark:bg-gray-500'
+                      : 'bg-gray-200 dark:bg-gray-600'
                 }`}
               />
             ))}
@@ -307,7 +313,7 @@ function WelcomeGuideReopen({ onClose }: { onClose: () => void }) {
             {currentStep > 0 && (
               <button
                 onClick={handlePrev}
-                className="flex items-center gap-1 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-1 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 戻る

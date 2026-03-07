@@ -39,9 +39,9 @@ function getGuideForStatus(
     case 'triage':
       return {
         icon: Play,
-        iconColor: 'text-blue-600',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-200',
+        iconColor: 'text-blue-600 dark:text-blue-400',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/30',
+        borderColor: 'border-blue-200 dark:border-blue-800',
         title: 'まず「改善を始める」を押してください',
         description: '安全な作業スペースが自動的に準備されます。元のフローには影響しません。',
         actionHint: '上部の青いボタンを押してください',
@@ -50,9 +50,9 @@ function getGuideForStatus(
       if (hasProposals) {
         return {
           icon: Eye,
-          iconColor: 'text-purple-600',
-          bgColor: 'bg-purple-50',
-          borderColor: 'border-purple-200',
+          iconColor: 'text-purple-600 dark:text-purple-400',
+          bgColor: 'bg-purple-50 dark:bg-purple-900/30',
+          borderColor: 'border-purple-200 dark:border-purple-800',
           title: '改善案を確認してください',
           description:
             '「改善案」タブを開いて、AIが提案した内容を確認し「反映する」を押してください。',
@@ -60,9 +60,9 @@ function getGuideForStatus(
       }
       return {
         icon: Sparkles,
-        iconColor: 'text-purple-600',
-        bgColor: 'bg-purple-50',
-        borderColor: 'border-purple-200',
+        iconColor: 'text-purple-600 dark:text-purple-400',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/30',
+        borderColor: 'border-purple-200 dark:border-purple-800',
         title: '「AIで改善案を生成」を押してください',
         description: 'AIが課題の内容とフローを分析して、具体的な改善案を自動作成します。',
         actionHint: '上部の紫色のボタンを押してください',
@@ -71,18 +71,18 @@ function getGuideForStatus(
       if (!hasAppliedProposal) {
         return {
           icon: Eye,
-          iconColor: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-200',
+          iconColor: 'text-yellow-600 dark:text-yellow-400',
+          bgColor: 'bg-yellow-50 dark:bg-yellow-900/30',
+          borderColor: 'border-yellow-200 dark:border-yellow-800',
           title: '改善案を確認して反映してください',
           description: '「改善案」タブを開いて内容を確認し、「反映する」ボタンを押してください。',
         };
       }
       return {
         icon: CheckCircle,
-        iconColor: 'text-green-600',
-        bgColor: 'bg-green-50',
-        borderColor: 'border-green-200',
+        iconColor: 'text-green-600 dark:text-green-400',
+        bgColor: 'bg-green-50 dark:bg-green-900/30',
+        borderColor: 'border-green-200 dark:border-green-800',
         title: '「変更を確定する」で完了できます',
         description:
           '改善案が反映されています。問題なければ「変更を確定する」を押して完了してください。',
@@ -91,9 +91,9 @@ function getGuideForStatus(
     case 'merged':
       return {
         icon: CheckCircle,
-        iconColor: 'text-green-600',
-        bgColor: 'bg-green-50',
-        borderColor: 'border-green-200',
+        iconColor: 'text-green-600 dark:text-green-400',
+        bgColor: 'bg-green-50 dark:bg-green-900/30',
+        borderColor: 'border-green-200 dark:border-green-800',
         title: 'この課題は完了しました',
         description: '改善内容が正式にフローに反映されています。お疲れ様でした！',
       };
@@ -120,10 +120,10 @@ export function GuidedWorkflow({
           <Icon className={`w-5 h-5 ${guide.iconColor}`} />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-bold text-gray-900 mb-1">{guide.title}</h3>
-          <p className="text-sm text-gray-600">{guide.description}</p>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">{guide.title}</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{guide.description}</p>
           {guide.actionHint && (
-            <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
+            <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500 dark:text-gray-400">
               <Lightbulb className="w-3.5 h-3.5" />
               {guide.actionHint}
             </div>

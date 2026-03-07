@@ -46,7 +46,7 @@ export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalC
     <div
       className={`
       border rounded-lg overflow-hidden
-      ${proposal.isApplied ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}
+      ${proposal.isApplied ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'}
     `}
     >
       {/* Header */}
@@ -60,12 +60,12 @@ export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalC
                   適用済
                 </span>
               )}
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 <Clock className="w-3 h-3 inline mr-1" />
                 {formatDate(proposal.createdAt)}
               </span>
             </div>
-            <p className="text-gray-900">{proposal.intent}</p>
+            <p className="text-gray-900 dark:text-gray-100">{proposal.intent}</p>
           </div>
 
           {!proposal.isApplied && onApply && (
@@ -96,7 +96,7 @@ export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalC
 
         {/* Base Hash (技術詳細モードのみ) */}
         {proposal.baseHash && !isSimpleMode && (
-          <div className="mt-2 text-xs text-gray-500 font-mono flex items-center gap-1">
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 font-mono flex items-center gap-1">
             ベースハッシュ: {proposal.baseHash.substring(0, 12)}...
             <HelpTooltip content="この提案が生成された時点のフロー定義のバージョンです。フローが変更されている場合、この提案は古くなっている可能性があります。" />
           </div>
@@ -105,12 +105,14 @@ export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalC
 
       {/* Diff Preview */}
       {proposal.diffPreview && (
-        <div className="border-t border-gray-200">
+        <div className="border-t border-gray-200 dark:border-gray-700">
           <div className="px-4 pt-2 pb-1">
-            <p className="text-xs text-gray-500 font-medium">変更内容プレビュー</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              変更内容プレビュー
+            </p>
           </div>
           <div
-            className="diff-preview p-4 text-sm font-mono bg-gray-50"
+            className="diff-preview p-4 text-sm font-mono bg-gray-50 dark:bg-gray-900"
             dangerouslySetInnerHTML={{ __html: proposal.diffPreview }}
           />
         </div>
@@ -118,13 +120,13 @@ export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalC
 
       {/* JSON Patch Toggle (技術詳細モードのみ) */}
       {!isSimpleMode && (
-        <div className="border-t border-gray-200">
+        <div className="border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={() => setShowPatch(!showPatch)}
             className="
               w-full flex items-center justify-between px-4 py-2
-              text-sm text-gray-600 hover:bg-gray-50
+              text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700
               transition-colors
             "
           >

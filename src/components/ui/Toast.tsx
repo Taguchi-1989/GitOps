@@ -40,17 +40,20 @@ const icons: Record<ToastType, React.FC<{ className?: string }>> = {
 };
 
 const colors: Record<ToastType, string> = {
-  success: 'bg-green-50 border-green-200 text-green-800',
-  error: 'bg-red-50 border-red-200 text-red-800',
-  warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-  info: 'bg-blue-50 border-blue-200 text-blue-800',
+  success:
+    'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300',
+  error:
+    'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300',
+  warning:
+    'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300',
+  info: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300',
 };
 
 const iconColors: Record<ToastType, string> = {
-  success: 'text-green-500',
-  error: 'text-red-500',
-  warning: 'text-yellow-500',
-  info: 'text-blue-500',
+  success: 'text-green-500 dark:text-green-400',
+  error: 'text-red-500 dark:text-red-400',
+  warning: 'text-yellow-500 dark:text-yellow-400',
+  info: 'text-blue-500 dark:text-blue-400',
 };
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) {
@@ -73,7 +76,10 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
     >
       <Icon className={`w-5 h-5 flex-shrink-0 ${iconColors[toast.type]}`} />
       <p className="flex-1 text-sm">{toast.message}</p>
-      <button onClick={onRemove} className="flex-shrink-0 text-gray-400 hover:text-gray-600">
+      <button
+        onClick={onRemove}
+        className="flex-shrink-0 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
+      >
         <X className="w-4 h-4" />
       </button>
     </div>

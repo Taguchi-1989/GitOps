@@ -126,7 +126,7 @@ export function IssueDetail({
         {onBack && (
           <button
             onClick={onBack}
-            className="flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-4"
+            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             課題一覧に戻る
@@ -136,10 +136,12 @@ export function IssueDetail({
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <span className="text-lg font-mono text-gray-500">{issue.humanId}</span>
+              <span className="text-lg font-mono text-gray-500 dark:text-gray-400">
+                {issue.humanId}
+              </span>
               <StatusBadge status={issue.status} />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">{issue.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{issue.title}</h1>
           </div>
 
           {/* Actions */}
@@ -278,7 +280,7 @@ export function IssueDetail({
       <StatusLifecycle currentStatus={issue.status} className="mb-6" />
 
       {/* Meta Info */}
-      <div className="flex flex-wrap gap-4 mb-6 text-sm text-gray-600">
+      <div className="flex flex-wrap gap-4 mb-6 text-sm text-gray-600 dark:text-gray-400">
         {issue.targetFlowId && (
           <span className="flex items-center gap-1.5">
             <FileText className="w-4 h-4" />
@@ -286,7 +288,7 @@ export function IssueDetail({
               対象フロー: <span className="font-medium">{issue.targetFlowId}</span>
             </span>
             {issue.targetNodeId && (
-              <span className="text-gray-400"> &gt; {issue.targetNodeId}</span>
+              <span className="text-gray-400 dark:text-gray-500"> &gt; {issue.targetNodeId}</span>
             )}
           </span>
         )}
@@ -311,7 +313,7 @@ export function IssueDetail({
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
         <nav className="flex gap-4" aria-label="Tabs">
           <button
             onClick={() => setActiveTab('details')}
@@ -320,7 +322,7 @@ export function IssueDetail({
               ${
                 activeTab === 'details'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }
             `}
           >
@@ -333,7 +335,7 @@ export function IssueDetail({
               ${
                 activeTab === 'proposals'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }
             `}
           >
@@ -342,7 +344,7 @@ export function IssueDetail({
               <span
                 className={`
                 px-2 py-0.5 rounded-full text-xs
-                ${activeTab === 'proposals' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}
+                ${activeTab === 'proposals' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}
               `}
               >
                 {issue.proposals.length}
@@ -356,7 +358,7 @@ export function IssueDetail({
               ${
                 activeTab === 'history'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }
             `}
           >
@@ -385,12 +387,12 @@ export function IssueDetail({
               />
             ))
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              <Sparkles className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <Sparkles className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
               <p className="font-medium">まだ改善案がありません</p>
               {canGenerateProposal && onGenerateProposal ? (
                 <div className="mt-3">
-                  <p className="text-sm text-gray-400 mb-2">
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mb-2">
                     AIがフロー定義を分析し、この課題に対する改善案を自動生成します
                   </p>
                   <button
@@ -403,7 +405,7 @@ export function IssueDetail({
                   </button>
                 </div>
               ) : issue.status === 'new' || issue.status === 'triage' ? (
-                <p className="text-sm text-gray-400 mt-2">
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
                   まず「作業を開始」を押してから、改善案を生成できます
                 </p>
               ) : null}
@@ -415,8 +417,8 @@ export function IssueDetail({
       {activeTab === 'history' && (
         <div>
           {auditLoading ? (
-            <div className="text-center py-12 text-gray-500">
-              <Loader2 className="w-6 h-6 mx-auto mb-3 animate-spin text-gray-400" />
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <Loader2 className="w-6 h-6 mx-auto mb-3 animate-spin text-gray-400 dark:text-gray-500" />
               <p>履歴を読み込み中...</p>
             </div>
           ) : auditLogs.length > 0 ? (
@@ -424,16 +426,16 @@ export function IssueDetail({
               {auditLogs.map(log => (
                 <div
                   key={log.id}
-                  className="flex items-start gap-3 px-4 py-3 bg-gray-50 rounded-lg"
+                  className="flex items-start gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
                 >
                   <div className="mt-0.5">
-                    <History className="w-4 h-4 text-gray-400" />
+                    <History className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {AUDIT_ACTION_LABELS[log.action] || log.action}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {formatDate(log.createdAt)}
                       {log.actor && ` — ${log.actor}`}
                     </p>
@@ -442,8 +444,8 @@ export function IssueDetail({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              <History className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <History className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
               <p>まだ操作履歴がありません</p>
             </div>
           )}

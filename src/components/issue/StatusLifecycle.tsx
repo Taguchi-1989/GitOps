@@ -41,8 +41,8 @@ const lifecycleSteps: LifecycleStep[] = [
     hint: 'Issueを作成',
     simpleHint: '課題を報告',
     icon: AlertCircle,
-    color: 'text-gray-300',
-    activeColor: 'text-red-500 bg-red-50 border-red-200',
+    color: 'text-gray-300 dark:text-gray-600',
+    activeColor: 'text-red-500 bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800',
   },
   {
     status: 'in-progress',
@@ -50,8 +50,9 @@ const lifecycleSteps: LifecycleStep[] = [
     hint: '「作業を開始」を押す',
     simpleHint: '「改善を始める」を押してください',
     icon: Play,
-    color: 'text-gray-300',
-    activeColor: 'text-blue-500 bg-blue-50 border-blue-200',
+    color: 'text-gray-300 dark:text-gray-600',
+    activeColor:
+      'text-blue-500 bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800',
   },
   {
     status: 'proposed',
@@ -59,8 +60,9 @@ const lifecycleSteps: LifecycleStep[] = [
     hint: 'AIが改善案を生成',
     simpleHint: 'AIが改善案を生成',
     icon: Sparkles,
-    color: 'text-gray-300',
-    activeColor: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+    color: 'text-gray-300 dark:text-gray-600',
+    activeColor:
+      'text-yellow-600 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800',
   },
   {
     status: 'merged',
@@ -68,8 +70,9 @@ const lifecycleSteps: LifecycleStep[] = [
     hint: 'マージして完了',
     simpleHint: '変更を確定',
     icon: GitMerge,
-    color: 'text-gray-300',
-    activeColor: 'text-green-500 bg-green-50 border-green-200',
+    color: 'text-gray-300 dark:text-gray-600',
+    activeColor:
+      'text-green-500 bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800',
   },
 ];
 
@@ -91,13 +94,15 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
 
   if (isTerminal) {
     return (
-      <div className={`bg-white rounded-xl border border-gray-200 p-4 ${className}`}>
+      <div
+        className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 ${className}`}
+      >
         <div className="flex items-center gap-3">
           <div
             className={`p-2 rounded-lg border ${
               currentStatus === 'rejected'
-                ? 'text-gray-500 bg-gray-50 border-gray-200'
-                : 'text-purple-500 bg-purple-50 border-purple-200'
+                ? 'text-gray-500 bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-700'
+                : 'text-purple-500 bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800'
             }`}
           >
             {currentStatus === 'rejected' ? (
@@ -107,7 +112,7 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
             )}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {currentStatus === 'rejected'
                 ? isSimpleMode
                   ? 'この課題は見送りになりました'
@@ -116,7 +121,7 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
                   ? 'この課題は重複として統合されました'
                   : 'このIssueは重複として統合されました'}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {currentStatus === 'rejected'
                 ? isSimpleMode
                   ? '必要に応じて新しい課題を報告できます'
@@ -132,12 +137,14 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
   }
 
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 p-4 ${className}`}>
+    <div
+      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 ${className}`}
+    >
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-500">進行状況</h3>
+        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">進行状況</h3>
         {currentOrder < 3 && (
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-400 dark:text-gray-500">
             次のステップ:{' '}
             {isSimpleMode
               ? lifecycleSteps[currentOrder + 1]?.simpleHint
@@ -162,15 +169,19 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
                   className={`
                     w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all
                     ${isActive ? step.activeColor : ''}
-                    ${isPast ? 'text-green-500 bg-green-50 border-green-200' : ''}
-                    ${isFuture ? 'text-gray-300 bg-gray-50 border-gray-100' : ''}
+                    ${isPast ? 'text-green-500 bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800' : ''}
+                    ${isFuture ? 'text-gray-300 dark:text-gray-600 bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700' : ''}
                   `}
                 >
                   {isPast ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                 </div>
                 <span
                   className={`text-xs font-medium ${
-                    isActive ? 'text-gray-900' : isPast ? 'text-green-600' : 'text-gray-400'
+                    isActive
+                      ? 'text-gray-900 dark:text-gray-100'
+                      : isPast
+                        ? 'text-green-600'
+                        : 'text-gray-400 dark:text-gray-500'
                   }`}
                 >
                   {step.label}
@@ -181,7 +192,7 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
               {index < lifecycleSteps.length - 1 && (
                 <ArrowRight
                   className={`w-4 h-4 flex-shrink-0 mb-5 ${
-                    index < currentOrder ? 'text-green-400' : 'text-gray-200'
+                    index < currentOrder ? 'text-green-400' : 'text-gray-200 dark:text-gray-600'
                   }`}
                 />
               )}

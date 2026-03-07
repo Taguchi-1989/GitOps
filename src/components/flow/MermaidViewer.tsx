@@ -158,21 +158,21 @@ export function MermaidViewer({
   return (
     <div className={`relative ${className}`}>
       {/* Toolbar */}
-      <div className="absolute top-2 right-2 z-10 flex gap-1 bg-white/80 backdrop-blur-sm rounded-lg shadow-sm p-1">
+      <div className="absolute top-2 right-2 z-10 flex gap-1 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-sm p-1">
         <button
           onClick={handleZoomOut}
-          className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           title="縮小"
           aria-label="縮小"
         >
           <ZoomOut className="w-4 h-4" />
         </button>
-        <span className="px-2 py-1 text-sm text-gray-600 min-w-[3rem] text-center">
+        <span className="px-2 py-1 text-sm text-gray-600 dark:text-gray-400 min-w-[3rem] text-center">
           {Math.round(zoom * 100)}%
         </span>
         <button
           onClick={handleZoomIn}
-          className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           title="拡大"
           aria-label="拡大"
         >
@@ -180,7 +180,7 @@ export function MermaidViewer({
         </button>
         <button
           onClick={handleZoomReset}
-          className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           title="ズームリセット"
           aria-label="ズームリセット"
         >
@@ -188,7 +188,7 @@ export function MermaidViewer({
         </button>
         <button
           onClick={handleDownload}
-          className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           title="SVGダウンロード"
           aria-label="SVGダウンロード"
         >
@@ -198,7 +198,7 @@ export function MermaidViewer({
 
       {/* Content */}
       <div
-        className="overflow-auto border border-gray-200 rounded-lg bg-white"
+        className="overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
         style={{ maxHeight: '70vh' }}
       >
         {isRendering && (
@@ -208,7 +208,7 @@ export function MermaidViewer({
         )}
 
         {error && (
-          <div className="p-4 text-red-600 bg-red-50">
+          <div className="p-4 text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400">
             <strong>Render Error:</strong> {error}
             <pre className="mt-2 text-xs overflow-x-auto">{content}</pre>
           </div>

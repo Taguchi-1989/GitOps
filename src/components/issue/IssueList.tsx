@@ -68,8 +68,8 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Issue</h1>
-          <p className="text-sm text-gray-500 mt-0.5">課題や改善点の管理</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Issue</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">課題や改善点の管理</p>
         </div>
         {onCreateClick && (
           <button
@@ -89,7 +89,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex gap-4" aria-label="Tabs">
           {Object.entries(tabConfig).map(([key, config]) => (
             <button
@@ -102,7 +102,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
                 ${
                   activeTab === key
                     ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }
               `}
             >
@@ -110,7 +110,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
               <span
                 className={`
                 ml-2 px-2 py-0.5 rounded-full text-xs
-                ${activeTab === key ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}
+                ${activeTab === key ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}
               `}
               >
                 {counts[key as TabValue]}
@@ -122,7 +122,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           placeholder="Issueを検索..."
@@ -130,7 +130,9 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
           onChange={e => setSearchQuery(e.target.value)}
           className="
             w-full pl-10 pr-4 py-2
-            border border-gray-300 rounded-lg
+            border border-gray-300 dark:border-gray-600 rounded-lg
+            bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
+            placeholder:text-gray-400 dark:placeholder:text-gray-500
             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
           "
         />
@@ -142,7 +144,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
           Array.from({ length: 3 }).map((_, i) => <IssueCardSkeleton key={i} />)
         ) : filteredIssues.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-gray-400 text-lg mb-2">
+            <div className="text-gray-400 dark:text-gray-500 text-lg mb-2">
               {searchQuery ? '該当するIssueがありません' : 'まだIssueがありません'}
             </div>
             {!searchQuery && onCreateClick && (

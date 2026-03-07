@@ -87,15 +87,15 @@ function StatCard({
   const content = (
     <div
       className={`
-      bg-white rounded-xl border border-gray-200 p-6
-      hover:shadow-lg hover:border-gray-300 transition-all
+      bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6
+      hover:shadow-lg dark:shadow-gray-900/50 hover:border-gray-300 dark:hover:border-gray-600 transition-all
       ${href ? 'cursor-pointer' : ''}
     `}
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">{value}</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+          <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
         </div>
         <div className={`p-3 rounded-xl ${color}`}>
           <Icon className="w-6 h-6 text-white" />
@@ -120,13 +120,13 @@ function formatDate(date: Date): string {
 }
 
 const statusColors: Record<string, string> = {
-  new: 'bg-red-100 text-red-700',
-  triage: 'bg-orange-100 text-orange-700',
-  'in-progress': 'bg-blue-100 text-blue-700',
-  proposed: 'bg-yellow-100 text-yellow-700',
-  merged: 'bg-green-100 text-green-700',
-  rejected: 'bg-gray-100 text-gray-700',
-  'merged-duplicate': 'bg-purple-100 text-purple-700',
+  new: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+  triage: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+  'in-progress': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+  proposed: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+  merged: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+  rejected: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+  'merged-duplicate': 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
 };
 
 const statusLabels: Record<string, string> = {
@@ -162,7 +162,7 @@ function GettingStartedChecklist({
       description: '登録されている業務フローをダイアグラムで確認しましょう',
       href: '/flows',
       icon: Eye,
-      color: 'text-indigo-600 bg-indigo-50',
+      color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30',
     },
     {
       done: hasIssues,
@@ -170,7 +170,7 @@ function GettingStartedChecklist({
       description: '改善したい点や課題を記録します',
       href: '/issues/new',
       icon: Plus,
-      color: 'text-red-600 bg-red-50',
+      color: 'text-red-600 bg-red-50 dark:bg-red-900/30',
     },
     {
       done: hasInProgress,
@@ -178,7 +178,7 @@ function GettingStartedChecklist({
       description: '課題の詳細画面で「改善を始める」を押すと作業スペースが準備されます',
       href: hasIssues ? '/issues' : undefined,
       icon: Play,
-      color: 'text-blue-600 bg-blue-50',
+      color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/30',
     },
     {
       done: hasProposed,
@@ -186,7 +186,7 @@ function GettingStartedChecklist({
       description: 'AIがフロー定義の改善案を自動で作成します',
       href: hasInProgress ? '/issues' : undefined,
       icon: Sparkles,
-      color: 'text-purple-600 bg-purple-50',
+      color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30',
     },
     {
       done: hasMerged,
@@ -194,7 +194,7 @@ function GettingStartedChecklist({
       description: '改善案を確定して完了です',
       href: hasProposed ? '/issues' : undefined,
       icon: GitMerge,
-      color: 'text-green-600 bg-green-50',
+      color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30',
     },
   ];
 
@@ -204,29 +204,31 @@ function GettingStartedChecklist({
   if (allDone) return null;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">はじめてガイド</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              はじめてガイド
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               FlowOpsの基本的な流れを体験してみましょう
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="w-32 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full transition-all duration-500"
                 style={{ width: `${(completedCount / steps.length) * 100}%` }}
               />
             </div>
-            <span className="text-sm text-gray-500 font-medium">
+            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
               {completedCount}/{steps.length}
             </span>
           </div>
         </div>
       </div>
-      <div className="divide-y divide-gray-50">
+      <div className="divide-y divide-gray-50 dark:divide-gray-700">
         {steps.map((step, i) => {
           const Icon = step.icon;
           const isNext = !step.done && (i === 0 || steps[i - 1].done);
@@ -234,12 +236,14 @@ function GettingStartedChecklist({
             <div
               key={i}
               className={`px-6 py-4 flex items-center gap-4 transition-colors ${
-                isNext ? 'bg-blue-50/30' : ''
+                isNext ? 'bg-blue-50/30 dark:bg-blue-900/20' : ''
               } ${step.done ? 'opacity-60' : ''}`}
             >
               <div
                 className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
-                  step.done ? 'bg-green-100 text-green-600' : step.color
+                  step.done
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                    : step.color
                 }`}
               >
                 {step.done ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
@@ -247,16 +251,18 @@ function GettingStartedChecklist({
 
               <div className="flex-1 min-w-0">
                 <p
-                  className={`text-sm font-medium ${step.done ? 'text-gray-500 line-through' : 'text-gray-900'}`}
+                  className={`text-sm font-medium ${step.done ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-900 dark:text-gray-100'}`}
                 >
                   {step.label}
                   {isNext && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
                       次のステップ
                     </span>
                   )}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {step.description}
+                </p>
               </div>
 
               {!step.done && step.href && (
@@ -289,8 +295,10 @@ function WorkflowOverview() {
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 className="text-sm font-medium text-gray-500 mb-4">FlowOps ワークフロー</h3>
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">
+        FlowOps ワークフロー
+      </h3>
       <div className="flex items-center justify-between gap-1">
         {steps.map((step, i) => {
           const Icon = step.icon;
@@ -302,11 +310,13 @@ function WorkflowOverview() {
                 >
                   <Icon className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xs font-medium text-gray-700">{step.label}</span>
-                <span className="text-xs text-gray-400">{step.description}</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {step.label}
+                </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{step.description}</span>
               </div>
               {i < steps.length - 1 && (
-                <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0 mb-8" />
+                <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mb-8" />
               )}
             </div>
           );
@@ -330,8 +340,8 @@ export default async function DashboardPage() {
     <div className="p-6 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">ダッシュボード</h1>
-        <p className="mt-1 text-gray-500">FlowOps プロジェクトの概要</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">ダッシュボード</h1>
+        <p className="mt-1 text-gray-500 dark:text-gray-400">FlowOps プロジェクトの概要</p>
       </div>
 
       {/* はじめてガイド（チェックリスト） */}
@@ -386,9 +396,9 @@ export default async function DashboardPage() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Issues */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">最近の課題</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">最近の課題</h2>
             <Link
               href="/issues"
               className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
@@ -396,11 +406,11 @@ export default async function DashboardPage() {
               すべて表示 <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {recentIssues.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-gray-500">まだ課題がありません</p>
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                <p className="text-gray-500 dark:text-gray-400">まだ課題がありません</p>
                 <Link
                   href="/issues/new"
                   className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-block"
@@ -413,20 +423,26 @@ export default async function DashboardPage() {
                 <Link
                   key={issue.id}
                   href={`/issues/${issue.id}`}
-                  className="block px-6 py-4 hover:bg-gray-50 transition-colors"
+                  className="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-mono text-gray-500">{issue.humanId}</span>
+                      <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
+                        {issue.humanId}
+                      </span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[issue.status]}`}
                       >
                         {statusLabels[issue.status] || issue.status}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-400">{formatDate(issue.updatedAt)}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      {formatDate(issue.updatedAt)}
+                    </span>
                   </div>
-                  <p className="mt-1 text-sm text-gray-900 truncate">{issue.title}</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 truncate">
+                    {issue.title}
+                  </p>
                 </Link>
               ))
             )}
@@ -434,9 +450,9 @@ export default async function DashboardPage() {
         </div>
 
         {/* Flows */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">フロー</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">フロー</h2>
             <Link
               href="/flows"
               className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
@@ -444,13 +460,15 @@ export default async function DashboardPage() {
               すべて表示 <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {flows.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-gray-500">まだフローがありません</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  <code className="bg-gray-100 px-1.5 py-0.5 rounded">spec/flows/</code>{' '}
+                <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                <p className="text-gray-500 dark:text-gray-400">まだフローがありません</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                    spec/flows/
+                  </code>{' '}
                   にYAMLファイルを追加してください
                 </p>
               </div>
@@ -459,16 +477,18 @@ export default async function DashboardPage() {
                 <Link
                   key={flow.id}
                   href={`/flows/${flow.id}`}
-                  className="block px-6 py-4 hover:bg-gray-50 transition-colors"
+                  className="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900">{flow.title}</span>
+                      <FileText className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {flow.title}
+                      </span>
                     </div>
-                    <span className="text-xs text-gray-400">{flow.layer}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{flow.layer}</span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     {flow.nodeCount} ノード / {flow.edgeCount} エッジ
                   </p>
                 </Link>
@@ -487,7 +507,7 @@ export default async function DashboardPage() {
           </div>
           <Link
             href="/issues/new"
-            className="px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+            className="px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
           >
             課題を報告する
           </Link>

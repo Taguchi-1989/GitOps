@@ -4,6 +4,7 @@ import './globals.css';
 import { MainLayout } from '@/components/ui/MainLayout';
 import { ToastProvider } from '@/components/ui/Toast';
 import { SimpleModeProvider } from '@/lib/simple-mode-context';
+import { ThemeProvider } from '@/lib/theme-context';
 
 // Bootstrap (サーバーサイドでAuditLogリポジトリを初期化)
 import '@/lib/bootstrap';
@@ -17,13 +18,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja">
+    <html lang="ja" suppressHydrationWarning>
       <body className={inter.className}>
-        <ToastProvider>
-          <SimpleModeProvider>
-            <MainLayout>{children}</MainLayout>
-          </SimpleModeProvider>
-        </ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <SimpleModeProvider>
+              <MainLayout>{children}</MainLayout>
+            </SimpleModeProvider>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -48,31 +48,36 @@ export function ConfirmDialog({
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 animate-fade-in">
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 animate-fade-in">
         {/* Close button */}
         <button
           type="button"
           onClick={onCancel}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+          className="absolute top-3 right-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="p-6">
           {/* Title */}
-          <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-          <p className="text-sm text-gray-600 mb-4">{description}</p>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{description}</p>
 
           {/* What happens */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">この操作で何が起きるか</span>
+              <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                この操作で何が起きるか
+              </span>
             </div>
             <ul className="space-y-1.5">
               {whatHappens.map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-blue-800">
-                  <span className="text-blue-400 mt-0.5">•</span>
+                <li
+                  key={i}
+                  className="flex items-start gap-2 text-sm text-blue-800 dark:text-blue-300"
+                >
+                  <span className="text-blue-400 dark:text-blue-500 mt-0.5">•</span>
                   {item}
                 </li>
               ))}
@@ -85,7 +90,7 @@ export function ConfirmDialog({
               type="button"
               onClick={onCancel}
               disabled={isLoading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
             >
               キャンセル
             </button>

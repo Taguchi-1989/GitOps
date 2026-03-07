@@ -9,9 +9,20 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GitBranch, FileText, AlertCircle, Home, ClipboardList, Eye, EyeOff } from 'lucide-react';
+import {
+  GitBranch,
+  FileText,
+  AlertCircle,
+  Home,
+  ClipboardList,
+  Eye,
+  EyeOff,
+  Sun,
+  Moon,
+} from 'lucide-react';
 import { WelcomeGuide, WelcomeGuideButton } from './WelcomeGuide';
 import { useSimpleMode } from '@/lib/simple-mode-context';
+import { useTheme } from '@/lib/theme-context';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -26,9 +37,10 @@ const navigation = [
 export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { isSimpleMode, toggleSimpleMode } = useSimpleMode();
+  const { isDark, toggleTheme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Welcome Guide (初回表示) */}
       <WelcomeGuide />
 
@@ -86,6 +98,30 @@ export function MainLayout({ children }: MainLayoutProps) {
 
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800 space-y-2">
+          {/* ダークモード トグル */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-800"
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4 text-yellow-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-gray-500" />
+            )}
+            <span className={isDark ? 'text-yellow-400' : 'text-gray-400'}>ダークモード</span>
+            <div
+              className={`ml-auto w-8 h-4 rounded-full transition-colors relative ${
+                isDark ? 'bg-yellow-500' : 'bg-gray-600'
+              }`}
+            >
+              <div
+                className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
+                  isDark ? 'translate-x-4' : 'translate-x-0.5'
+                }`}
+              />
+            </div>
+          </button>
           {/* かんたんモード トグル */}
           <button
             type="button"

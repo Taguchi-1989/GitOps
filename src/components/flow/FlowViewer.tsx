@@ -51,12 +51,12 @@ export function FlowViewer({
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-white">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-3"
+            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-3"
           >
             <ArrowLeft className="w-4 h-4" />
             フロー一覧に戻る
@@ -65,8 +65,8 @@ export function FlowViewer({
 
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{flow.title}</h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{flow.title}</h1>
+            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
               <span className="flex items-center gap-1.5">
                 <FileText className="w-4 h-4" />
                 {flow.id}.yaml
@@ -105,7 +105,7 @@ export function FlowViewer({
         </div>
 
         {/* Tabs */}
-        <div className="mt-4 flex gap-4 border-b border-gray-200 -mb-px">
+        <div className="mt-4 flex gap-4 border-b border-gray-200 dark:border-gray-700 -mb-px">
           <button
             type="button"
             onClick={() => setActiveTab('diagram')}
@@ -114,7 +114,7 @@ export function FlowViewer({
               ${
                 activeTab === 'diagram'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }
             `}
           >
@@ -129,7 +129,7 @@ export function FlowViewer({
               ${
                 activeTab === 'data'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }
             `}
           >
@@ -142,11 +142,11 @@ export function FlowViewer({
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Main Area */}
-        <div className="flex-1 p-4 overflow-auto bg-gray-50">
+        <div className="flex-1 p-4 overflow-auto bg-gray-50 dark:bg-gray-900">
           {activeTab === 'diagram' ? (
             <div>
               {!selectedNode && (
-                <p className="text-sm text-gray-400 mb-3 text-center">
+                <p className="text-sm text-gray-400 dark:text-gray-500 mb-3 text-center">
                   ノードをクリックすると詳細が表示されます
                 </p>
               )}
@@ -166,14 +166,14 @@ export function FlowViewer({
 
         {/* Side Panel - Selected Node */}
         {selectedNodeData && (
-          <div className="w-80 flex-shrink-0 border-l border-gray-200 bg-white overflow-y-auto">
+          <div className="w-80 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-y-auto">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">ノード詳細</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">ノード詳細</h3>
                 <button
                   type="button"
                   onClick={() => setSelectedNode(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
                   aria-label="ノード詳細パネルを閉じる"
                 >
                   ✕
@@ -182,33 +182,37 @@ export function FlowViewer({
 
               <dl className="space-y-3 text-sm">
                 <div>
-                  <dt className="text-gray-500">ID</dt>
-                  <dd className="font-mono text-gray-900">{selectedNodeData.id}</dd>
+                  <dt className="text-gray-500 dark:text-gray-400">ID</dt>
+                  <dd className="font-mono text-gray-900 dark:text-gray-100">
+                    {selectedNodeData.id}
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">タイプ</dt>
-                  <dd className="capitalize text-gray-900">{selectedNodeData.type}</dd>
+                  <dt className="text-gray-500 dark:text-gray-400">タイプ</dt>
+                  <dd className="capitalize text-gray-900 dark:text-gray-100">
+                    {selectedNodeData.type}
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">ラベル</dt>
-                  <dd className="text-gray-900">{selectedNodeData.label}</dd>
+                  <dt className="text-gray-500 dark:text-gray-400">ラベル</dt>
+                  <dd className="text-gray-900 dark:text-gray-100">{selectedNodeData.label}</dd>
                 </div>
                 {selectedNodeData.role && (
                   <div>
-                    <dt className="text-gray-500">担当</dt>
-                    <dd className="text-gray-900">{selectedNodeData.role}</dd>
+                    <dt className="text-gray-500 dark:text-gray-400">担当</dt>
+                    <dd className="text-gray-900 dark:text-gray-100">{selectedNodeData.role}</dd>
                   </div>
                 )}
                 {selectedNodeData.system && (
                   <div>
-                    <dt className="text-gray-500">システム</dt>
-                    <dd className="text-gray-900">{selectedNodeData.system}</dd>
+                    <dt className="text-gray-500 dark:text-gray-400">システム</dt>
+                    <dd className="text-gray-900 dark:text-gray-100">{selectedNodeData.system}</dd>
                   </div>
                 )}
                 {selectedNodeData.meta && Object.keys(selectedNodeData.meta).length > 0 && (
                   <div>
-                    <dt className="text-gray-500">メタデータ</dt>
-                    <dd className="font-mono text-xs bg-gray-50 p-2 rounded">
+                    <dt className="text-gray-500 dark:text-gray-400">メタデータ</dt>
+                    <dd className="font-mono text-xs bg-gray-50 dark:bg-gray-900 p-2 rounded">
                       {JSON.stringify(selectedNodeData.meta, null, 2)}
                     </dd>
                   </div>
@@ -217,16 +221,21 @@ export function FlowViewer({
 
               {/* Connected Edges */}
               <div className="mt-6">
-                <h4 className="font-medium text-gray-900 mb-2">接続先</h4>
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">接続先</h4>
                 <ul className="space-y-2 text-sm">
                   {Object.values(flow.edges)
                     .filter(e => e.from === selectedNode || e.to === selectedNode)
                     .map(edge => (
-                      <li key={edge.id} className="flex items-center gap-2 text-gray-600">
+                      <li
+                        key={edge.id}
+                        className="flex items-center gap-2 text-gray-600 dark:text-gray-400"
+                      >
                         <span className="font-mono text-xs">
                           {edge.from} → {edge.to}
                         </span>
-                        {edge.label && <span className="text-gray-400">({edge.label})</span>}
+                        {edge.label && (
+                          <span className="text-gray-400 dark:text-gray-500">({edge.label})</span>
+                        )}
                       </li>
                     ))}
                 </ul>
