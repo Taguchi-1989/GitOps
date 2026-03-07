@@ -65,6 +65,8 @@ nodes:
     system: cad
     meta:
       description: 加工・検査・組立用治具の構想をAIが提案。3-2-1位置決め原則・クランプ力計算
+      group: jig_design
+      groupLabel: 治具設計
 
   jig_detail_design:
     id: jig_detail_design
@@ -74,6 +76,8 @@ nodes:
     system: cad
     meta:
       description: AI構想に基づき治具の詳細3Dモデルを作成。位置決め・クランプ機構の設計
+      group: jig_design
+      groupLabel: 治具設計
 
   review_jig_design:
     id: review_jig_design
@@ -82,6 +86,8 @@ nodes:
     role: design-leader
     meta:
       description: 治具設計の妥当性（位置決め精度・クランプ力・作業性）を設計リーダーが承認
+      group: jig_design
+      groupLabel: 治具設計
 
   check_interference:
     id: check_interference

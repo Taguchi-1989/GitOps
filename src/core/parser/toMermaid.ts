@@ -83,34 +83,33 @@ export function flowToMermaid(flow: Flow, options: MermaidOptions = {}): string 
   lines.push(`graph ${direction}`);
   lines.push('');
 
+  // meta.group でグループ情報を収集
+  const groupedNodeIds = new Map<string, string>();
+  for (const [nodeId, node] of Object.entries(flow.nodes)) {
+    const meta = node.meta as Record<string, unknown> | undefined;
+    const groupId = meta?.group as string | undefined;
+    if (groupId) {
+      groupedNodeIds.set(nodeId, groupId);
+    }
+  }
+
   // ノード定義
   lines.push('  %% Nodes');
   for (const [nodeId, node] of Object.entries(flow.nodes)) {
-    const shape = getNodeShape(node.type);
-    const prefixedId = `${nodeIdPrefix}${nodeId}`;
-    const label = escapeLabel(node.label);
-
-    // ノード定義
-    lines.push(`  ${prefixedId}${shape.open}"${label}"${shape.close}`);
-
-    // クリックハンドラー（オプション）
-    if (includeClickHandlers) {
-      lines.push(`  click ${prefixedId} callback "${nodeId}"`);
-    }
+    const isGrouped = groupedNodeIds.has(nodeId);
+    lines.push(renderNodeLine(node, nodeId, nodeIdPrefix, includeClickHandlers, isGrouped));
   }
   lines.push('');
 
   // エッジ定義
   lines.push('  %% Edges');
-  for (const [edgeId, edge] of Object.entries(flow.edges)) {
+  for (const edge of Object.values(flow.edges)) {
     const fromId = `${nodeIdPrefix}${edge.from}`;
     const toId = `${nodeIdPrefix}${edge.to}`;
 
     if (edge.label) {
-      // ラベル付きエッジ
       lines.push(`  ${fromId} -->|"${escapeLabel(edge.label)}"| ${toId}`);
     } else {
-      // ラベルなしエッジ
       lines.push(`  ${fromId} --> ${toId}`);
     }
   }
@@ -128,15 +127,45 @@ export function flowToMermaid(flow: Flow, options: MermaidOptions = {}): string 
     lines.push('  classDef humanReviewNode fill:#14b8a6,stroke:#0d9488,color:#fff');
     lines.push('');
 
-    // クラス適用
+    // グループノード用のハイライトスタイル
+    if (groupedNodeIds.size > 0) {
+      lines.push(
+        '  classDef groupHighlight fill:#d97706,stroke:#f59e0b,stroke-width:4px,color:#fff,stroke-dasharray:0'
+      );
+    }
+    lines.push('');
+
+    // クラス適用（グループノードはハイライトクラスを使用）
     for (const [nodeId, node] of Object.entries(flow.nodes)) {
       const prefixedId = `${nodeIdPrefix}${nodeId}`;
-      const nodeClass = getNodeClass(node.type);
-      lines.push(`  class ${prefixedId} ${nodeClass}`);
+      if (groupedNodeIds.has(nodeId)) {
+        lines.push(`  class ${prefixedId} groupHighlight`);
+      } else {
+        const nodeClass = getNodeClass(node.type);
+        lines.push(`  class ${prefixedId} ${nodeClass}`);
+      }
     }
   }
 
   return lines.join('\n');
+}
+
+function renderNodeLine(
+  node: Node,
+  nodeId: string,
+  nodeIdPrefix: string,
+  includeClickHandlers: boolean,
+  isGrouped: boolean = false
+): string {
+  const shape = getNodeShape(node.type);
+  const prefixedId = `${nodeIdPrefix}${nodeId}`;
+  const label = escapeLabel(node.label);
+  const classSuffix = isGrouped ? ':::groupHighlight' : '';
+  let line = `  ${prefixedId}${shape.open}"${label}"${shape.close}${classSuffix}`;
+  if (includeClickHandlers) {
+    line += `\n  click ${prefixedId} callback "${nodeId}"`;
+  }
+  return line;
 }
 
 /**
