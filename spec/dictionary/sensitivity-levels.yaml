@@ -1,0 +1,58 @@
+# GPTsiteki 機密分類レベル定義 (Section 8.2)
+#
+# フロー抽象度 (FlowLayer: L0=WHY, L1=WHO/WHAT, L2=HOW) とは別概念。
+# こちらはデータ・情報の機密度を表す。
+
+L0:
+  id: L0
+  name: 公開情報
+  description: 外部公開可能な情報。制限なし。
+  aiUsageAllowed: true
+  abstractionRequired: false
+  exportAllowed: true
+  auditLevel: minimal
+
+L1:
+  id: L1
+  name: 社内一般
+  description: 社内で広く共有される一般的な業務情報。
+  aiUsageAllowed: true
+  abstractionRequired: false
+  exportAllowed: true
+  auditLevel: standard
+
+L2:
+  id: L2
+  name: 部門限定
+  description: 特定部門内でのみ共有される情報。
+  aiUsageAllowed: true
+  abstractionRequired: false
+  exportAllowed: true
+  auditLevel: standard
+
+L3:
+  id: L3
+  name: 機密情報
+  description: アクセス権限が制限される機密情報。持出不可。
+  aiUsageAllowed: true
+  abstractionRequired: false
+  exportAllowed: false
+  auditLevel: enhanced
+
+L4:
+  id: L4
+  name: 高機密情報
+  description: AI利用時は抽象化が必須。閲覧ログを厳格に記録。
+  aiUsageAllowed: true
+  abstractionRequired: true
+  exportAllowed: false
+  auditLevel: strict
+
+L5:
+  id: L5
+  name: 極秘情報
+  description: 危険パラメータ・中核ノウハウ・配合条件等。AI利用不可。閉域/ローカル限定。
+  aiUsageAllowed: false
+  abstractionRequired: true
+  exportAllowed: false
+  auditLevel: maximum

@@ -88,6 +88,51 @@ describe('MicroTaskDefinitionSchema', () => {
       expect(result.success).toBe(true);
     }
   });
+
+  it('should accept task with dataGovernance', () => {
+    const result = MicroTaskDefinitionSchema.safeParse({
+      ...validTask,
+      dataGovernance: {
+        maxSensitivityInput: 'L3',
+        maxSensitivityOutput: 'L2',
+        requiresAbstractionPreprocessing: true,
+        provenanceTracking: true,
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept task without dataGovernance (backward compatible)', () => {
+    const result = MicroTaskDefinitionSchema.safeParse(validTask);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dataGovernance).toBeUndefined();
+    }
+  });
+
+  it('should apply dataGovernance defaults', () => {
+    const result = MicroTaskDefinitionSchema.safeParse({
+      ...validTask,
+      dataGovernance: {},
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dataGovernance?.maxSensitivityInput).toBe('L2');
+      expect(result.data.dataGovernance?.maxSensitivityOutput).toBe('L2');
+      expect(result.data.dataGovernance?.requiresAbstractionPreprocessing).toBe(false);
+      expect(result.data.dataGovernance?.provenanceTracking).toBe(true);
+    }
+  });
+
+  it('should reject invalid sensitivity level in dataGovernance', () => {
+    const result = MicroTaskDefinitionSchema.safeParse({
+      ...validTask,
+      dataGovernance: {
+        maxSensitivityInput: 'L9',
+      },
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('TaskInvocationSchema', () => {

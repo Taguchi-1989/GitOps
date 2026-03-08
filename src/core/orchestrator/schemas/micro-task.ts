@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { SensitivityLevelSchema } from '../../parser/schema';
 
 // --------------------------------------------------------
 // Task Types
@@ -75,6 +76,16 @@ export const MicroTaskDefinitionSchema = z.object({
   requiresHumanApproval: z.boolean().default(false),
   maxRetries: z.number().int().min(0).max(5).default(2),
   timeoutMs: z.number().positive().default(30000),
+
+  // GPTsiteki: データガバナンス設定
+  dataGovernance: z
+    .object({
+      maxSensitivityInput: SensitivityLevelSchema.default('L2'), // 入力データの最大機密レベル
+      maxSensitivityOutput: SensitivityLevelSchema.default('L2'), // 出力データの最大機密レベル
+      requiresAbstractionPreprocessing: z.boolean().default(false), // LLM投入前に抽象化が必要か
+      provenanceTracking: z.boolean().default(true), // 来歴追跡を行うか
+    })
+    .optional(),
 
   // メタデータ
   metadata: TaskMetadataSchema,

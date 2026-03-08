@@ -1,0 +1,38 @@
+# ISO 12100 危害源カテゴリ網羅性チェック
+#
+# リスクアセスメント（spec/flows/risk-assessment.yaml）の
+# hazard-identification タスク出力が全カテゴリを考慮しているか検証する。
+
+id: iso-12100-coverage-check
+version: 1.0.0
+title: ISO 12100 危害源カテゴリ網羅性チェック
+description: ハザード識別結果が10カテゴリ全てを検討しているか確認する
+
+ruleType: completeness
+severity: warning
+appliesTo:
+  taskId: hazard-identification
+  outputField: hazards
+
+ruleLogic:
+  requiredCategories:
+    - mechanical
+    - electrical
+    - thermal
+    - noise
+    - vibration
+    - radiation
+    - materials
+    - ergonomic
+    - slip-trip-fall
+    - combination
+  field: hazards[].category
+  minimumCoverage: 0.8  # 80%以上のカテゴリをカバーすること
+
+metadata:
+  author: system
+  description: ISO 12100準拠のリスクアセスメントにおいて、全危害源カテゴリが網羅されているかを検証する
+  tags:
+    - iso-12100
+    - risk-assessment
+    - completeness
