@@ -604,4 +604,137 @@ describe('AuditLogger', () => {
       });
     });
   });
+
+  describe('logDataAction()', () => {
+    it('should send entityType "DataObject" for DATA_ACCESS action', async () => {
+      const logger = new AuditLogger();
+      const mockRepo = createMockRepository();
+      vi.mocked(mockRepo.create).mockResolvedValue({
+        id: 'audit-log-20',
+        actor: 'you',
+        action: 'DATA_ACCESS',
+        entityType: 'DataObject',
+        entityId: 'obj-001',
+        payload: { purpose: 'quality-check' },
+        createdAt: new Date(),
+        traceId: null,
+      });
+      logger.setRepository(mockRepo);
+
+      await logger.logDataAction('DATA_ACCESS', 'obj-001', { purpose: 'quality-check' });
+
+      expect(mockRepo.create).toHaveBeenCalledWith({
+        action: 'DATA_ACCESS',
+        entityType: 'DataObject',
+        entityId: 'obj-001',
+        payload: { purpose: 'quality-check' },
+        actor: 'you',
+      });
+    });
+
+    it('should send entityType "DataObject" for DATA_EXPORT action', async () => {
+      const logger = new AuditLogger();
+      const mockRepo = createMockRepository();
+      vi.mocked(mockRepo.create).mockResolvedValue({
+        id: 'audit-log-21',
+        actor: 'you',
+        action: 'DATA_EXPORT',
+        entityType: 'DataObject',
+        entityId: 'obj-002',
+        payload: {},
+        createdAt: new Date(),
+        traceId: null,
+      });
+      logger.setRepository(mockRepo);
+
+      await logger.logDataAction('DATA_EXPORT', 'obj-002');
+
+      expect(mockRepo.create).toHaveBeenCalledWith({
+        action: 'DATA_EXPORT',
+        entityType: 'DataObject',
+        entityId: 'obj-002',
+        actor: 'you',
+      });
+    });
+
+    it('should send entityType "DataObject" for ABSTRACTION_APPLIED action', async () => {
+      const logger = new AuditLogger();
+      const mockRepo = createMockRepository();
+      vi.mocked(mockRepo.create).mockResolvedValue({
+        id: 'audit-log-22',
+        actor: 'you',
+        action: 'ABSTRACTION_APPLIED',
+        entityType: 'DataObject',
+        entityId: 'obj-003',
+        payload: { policyType: 'masking' },
+        createdAt: new Date(),
+        traceId: null,
+      });
+      logger.setRepository(mockRepo);
+
+      await logger.logDataAction('ABSTRACTION_APPLIED', 'obj-003', { policyType: 'masking' });
+
+      expect(mockRepo.create).toHaveBeenCalledWith({
+        action: 'ABSTRACTION_APPLIED',
+        entityType: 'DataObject',
+        entityId: 'obj-003',
+        payload: { policyType: 'masking' },
+        actor: 'you',
+      });
+    });
+
+    it('should send entityType "DataObject" for PROVENANCE_RECORDED action', async () => {
+      const logger = new AuditLogger();
+      const mockRepo = createMockRepository();
+      vi.mocked(mockRepo.create).mockResolvedValue({
+        id: 'audit-log-23',
+        actor: 'you',
+        action: 'PROVENANCE_RECORDED',
+        entityType: 'DataObject',
+        entityId: 'obj-004',
+        payload: {},
+        createdAt: new Date(),
+        traceId: null,
+      });
+      logger.setRepository(mockRepo);
+
+      await logger.logDataAction('PROVENANCE_RECORDED', 'obj-004');
+
+      expect(mockRepo.create).toHaveBeenCalledWith({
+        action: 'PROVENANCE_RECORDED',
+        entityType: 'DataObject',
+        entityId: 'obj-004',
+        actor: 'you',
+      });
+    });
+
+    it('should send entityType "DataObject" for ACCESS_POLICY_CHANGE action', async () => {
+      const logger = new AuditLogger();
+      const mockRepo = createMockRepository();
+      vi.mocked(mockRepo.create).mockResolvedValue({
+        id: 'audit-log-24',
+        actor: 'you',
+        action: 'ACCESS_POLICY_CHANGE',
+        entityType: 'DataObject',
+        entityId: 'obj-005',
+        payload: { from: 'policy-L2', to: 'policy-L4' },
+        createdAt: new Date(),
+        traceId: null,
+      });
+      logger.setRepository(mockRepo);
+
+      await logger.logDataAction('ACCESS_POLICY_CHANGE', 'obj-005', {
+        from: 'policy-L2',
+        to: 'policy-L4',
+      });
+
+      expect(mockRepo.create).toHaveBeenCalledWith({
+        action: 'ACCESS_POLICY_CHANGE',
+        entityType: 'DataObject',
+        entityId: 'obj-005',
+        payload: { from: 'policy-L2', to: 'policy-L4' },
+        actor: 'you',
+      });
+    });
+  });
 });

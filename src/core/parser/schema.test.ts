@@ -10,6 +10,11 @@ import {
   DataLayerSchema,
   ExportPolicySchema,
   SensitivityLevelDefinitionSchema,
+  ApprovalStatusSchema,
+  CarrierConstraintSchema,
+  AccessControlSchema,
+  AccessPolicyDefinitionSchema,
+  AuditLevelSchema,
 } from './schema';
 
 const validNode = {
@@ -267,5 +272,157 @@ describe('FlowSchema', () => {
       expect(result.data.ownerOrg).toBeUndefined();
       expect(result.data.sensitivityLevel).toBeUndefined();
     }
+  });
+
+  it('accepts flow with accessControl', () => {
+    const result = FlowSchema.safeParse({
+      ...validFlow,
+      accessControl: {
+        ownerUser: 'tanaka',
+        purposeOfUse: '品質管理',
+        viewingQualification: ['quality-engineer', 'manager'],
+        approvalStatus: 'approved',
+        validFrom: '2026-01-01T00:00:00Z',
+        validUntil: '2027-01-01T00:00:00Z',
+        carrierConstraint: 'internal-network',
+        reverseReferable: true,
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts flow without accessControl (backward compatible)', () => {
+    const result = FlowSchema.safeParse(validFlow);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.accessControl).toBeUndefined();
+    }
+  });
+});
+
+describe('ApprovalStatusSchema', () => {
+  it('accepts all valid statuses', () => {
+    for (const s of ['draft', 'pending-review', 'approved', 'rejected', 'expired', 'revoked']) {
+      expect(ApprovalStatusSchema.safeParse(s).success).toBe(true);
+    }
+  });
+
+  it('rejects invalid status', () => {
+    expect(ApprovalStatusSchema.safeParse('unknown').success).toBe(false);
+  });
+});
+
+describe('CarrierConstraintSchema', () => {
+  it('accepts all valid constraints', () => {
+    for (const c of [
+      'none',
+      'internal-network',
+      'physical-media',
+      'closed-network',
+      'local-only',
+    ]) {
+      expect(CarrierConstraintSchema.safeParse(c).success).toBe(true);
+    }
+  });
+
+  it('rejects invalid constraint', () => {
+    expect(CarrierConstraintSchema.safeParse('outer-space').success).toBe(false);
+  });
+});
+
+describe('AccessControlSchema', () => {
+  it('accepts full access control object', () => {
+    const result = AccessControlSchema.safeParse({
+      ownerUser: 'tanaka',
+      purposeOfUse: '品質管理',
+      viewingQualification: ['quality-engineer'],
+      approvalStatus: 'approved',
+      validFrom: '2026-01-01T00:00:00Z',
+      validUntil: '2027-01-01T00:00:00Z',
+      carrierConstraint: 'closed-network',
+      reverseReferable: false,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts empty object (all fields optional)', () => {
+    const result = AccessControlSchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  it('applies default for reverseReferable', () => {
+    const result = AccessControlSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.reverseReferable).toBe(true);
+    }
+  });
+
+  it('rejects invalid approvalStatus', () => {
+    expect(AccessControlSchema.safeParse({ approvalStatus: 'invalid' }).success).toBe(false);
+  });
+
+  it('rejects invalid carrierConstraint', () => {
+    expect(AccessControlSchema.safeParse({ carrierConstraint: 'invalid' }).success).toBe(false);
+  });
+});
+
+describe('AuditLevelSchema', () => {
+  it('accepts all audit levels', () => {
+    for (const l of ['minimal', 'standard', 'enhanced', 'strict', 'maximum']) {
+      expect(AuditLevelSchema.safeParse(l).success).toBe(true);
+    }
+  });
+
+  it('rejects invalid level', () => {
+    expect(AuditLevelSchema.safeParse('extreme').success).toBe(false);
+  });
+});
+
+describe('AccessPolicyDefinitionSchema', () => {
+  const validPolicy = {
+    id: 'policy-L3-confidential',
+    name: '機密情報ポリシー',
+    description: '権限保持者のみ。持出不可。',
+    sensitivityLevel: 'L3',
+    carrierConstraint: 'internal-network',
+    aiUsageAllowed: true,
+    abstractionRequired: false,
+    exportPolicy: 'prohibited',
+    auditLevel: 'enhanced',
+    reverseReferable: true,
+  };
+
+  it('accepts a valid policy definition', () => {
+    const result = AccessPolicyDefinitionSchema.safeParse(validPolicy);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid sensitivityLevel', () => {
+    expect(
+      AccessPolicyDefinitionSchema.safeParse({ ...validPolicy, sensitivityLevel: 'L9' }).success
+    ).toBe(false);
+  });
+
+  it('rejects invalid carrierConstraint', () => {
+    expect(
+      AccessPolicyDefinitionSchema.safeParse({ ...validPolicy, carrierConstraint: 'cloud' }).success
+    ).toBe(false);
+  });
+
+  it('rejects invalid exportPolicy', () => {
+    expect(
+      AccessPolicyDefinitionSchema.safeParse({ ...validPolicy, exportPolicy: 'maybe' }).success
+    ).toBe(false);
+  });
+
+  it('rejects invalid auditLevel', () => {
+    expect(
+      AccessPolicyDefinitionSchema.safeParse({ ...validPolicy, auditLevel: 'extreme' }).success
+    ).toBe(false);
+  });
+
+  it('rejects missing required fields', () => {
+    expect(AccessPolicyDefinitionSchema.safeParse({ id: 'test' }).success).toBe(false);
   });
 });

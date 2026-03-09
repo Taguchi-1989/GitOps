@@ -22,5 +22,8 @@ export * from './audit';
 // LLM Integration
 export * from './llm';
 
+// Data Object Model (GPTsiteki)
+export * from './data';
+
 // API Types
 export * from './types/api';

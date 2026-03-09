@@ -1,0 +1,77 @@
+# GPTsiteki Section 8.5 デフォルトアクセスポリシー定義
+#
+# sensitivity-levels.yaml と組み合わせて使用する。
+# 各ポリシーは属性ベースアクセス制御 (ABAC) の基本テンプレート。
+# FlowSchema.accessControl.accessPolicyRef や DataObject.accessPolicyRef から参照される。
+
+policy-L0-public:
+  id: policy-L0-public
+  name: 公開情報ポリシー
+  description: 制限なし。社外公開可能。
+  sensitivityLevel: L0
+  carrierConstraint: none
+  aiUsageAllowed: true
+  abstractionRequired: false
+  exportPolicy: unrestricted
+  auditLevel: minimal
+  reverseReferable: true
+
+policy-L1-internal:
+  id: policy-L1-internal
+  name: 社内一般ポリシー
+  description: 社内共有可能。社外持出は要確認。
+  sensitivityLevel: L1
+  carrierConstraint: none
+  aiUsageAllowed: true
+  abstractionRequired: false
+  exportPolicy: internal-only
+  auditLevel: standard
+  reverseReferable: true
+
+policy-L2-department:
+  id: policy-L2-department
+  name: 部門限定ポリシー
+  description: 所属部門メンバーのみ閲覧可。
+  sensitivityLevel: L2
+  carrierConstraint: internal-network
+  aiUsageAllowed: true
+  abstractionRequired: false
+  exportPolicy: internal-only
+  auditLevel: standard
+  reverseReferable: true
+
+policy-L3-confidential:
+  id: policy-L3-confidential
+  name: 機密情報ポリシー
+  description: 権限保持者のみ。持出不可。
+  sensitivityLevel: L3
+  carrierConstraint: internal-network
+  aiUsageAllowed: true
+  abstractionRequired: false
+  exportPolicy: prohibited
+  auditLevel: enhanced
+  reverseReferable: true
+
+policy-L4-high-confidential:
+  id: policy-L4-high-confidential
+  name: 高機密情報ポリシー
+  description: AI利用時は抽象化必須。厳格ログ記録。
+  sensitivityLevel: L4
+  carrierConstraint: closed-network
+  aiUsageAllowed: true
+  abstractionRequired: true
+  exportPolicy: abstracted-only
+  auditLevel: strict
+  reverseReferable: false
+
+policy-L5-top-secret:
+  id: policy-L5-top-secret
+  name: 極秘情報ポリシー
+  description: AI利用不可。閉域/ローカル限定。物理持出禁止。
+  sensitivityLevel: L5
+  carrierConstraint: local-only
+  aiUsageAllowed: false
+  abstractionRequired: true
+  exportPolicy: prohibited
+  auditLevel: maximum
+  reverseReferable: false

@@ -137,6 +137,27 @@ class AuditLogger {
   }
 
   /**
+   * データガバナンス関連のログを記録するヘルパー (GPTsiteki Section 8.6)
+   */
+  async logDataAction(
+    action:
+      | 'DATA_ACCESS'
+      | 'DATA_EXPORT'
+      | 'ABSTRACTION_APPLIED'
+      | 'PROVENANCE_RECORDED'
+      | 'ACCESS_POLICY_CHANGE',
+    entityId: string,
+    payload?: Record<string, unknown>
+  ): Promise<void> {
+    await this.record({
+      action,
+      entityType: 'DataObject',
+      entityId,
+      payload,
+    });
+  }
+
+  /**
    * ワークフロー関連のログを記録するヘルパー
    */
   async logWorkflowAction(

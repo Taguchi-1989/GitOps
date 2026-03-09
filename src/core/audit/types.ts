@@ -44,6 +44,13 @@ export const AuditActionSchema = z.enum([
 
   // System operations
   'BACKUP_CREATE',
+
+  // GPTsiteki Section 8.6: データガバナンス監査アクション
+  'DATA_ACCESS', // データオブジェクトへのアクセス
+  'DATA_EXPORT', // データの外部持出/エクスポート
+  'ABSTRACTION_APPLIED', // 抽象化処理の適用
+  'PROVENANCE_RECORDED', // 来歴情報の記録
+  'ACCESS_POLICY_CHANGE', // アクセスポリシーの変更
 ]);
 
 export type AuditAction = z.infer<typeof AuditActionSchema>;
@@ -58,6 +65,9 @@ export const AuditEntityTypeSchema = z.enum([
   'Evidence',
   'System',
   'WorkflowExecution',
+
+  // GPTsiteki Section 8.6
+  'DataObject',
 ]);
 
 export type AuditEntityType = z.infer<typeof AuditEntityTypeSchema>;

@@ -83,6 +83,46 @@ export const DataLayerSchema = z.enum([
 export type DataLayer = z.infer<typeof DataLayerSchema>;
 
 // --------------------------------------------------------
+// Approval Status (GPTsiteki Section 8.5: 承認状態)
+// --------------------------------------------------------
+export const ApprovalStatusSchema = z.enum([
+  'draft', // 下書き
+  'pending-review', // レビュー待ち
+  'approved', // 承認済み
+  'rejected', // 否認
+  'expired', // 有効期限切れ
+  'revoked', // 取消済み
+]);
+export type ApprovalStatus = z.infer<typeof ApprovalStatusSchema>;
+
+// --------------------------------------------------------
+// Carrier Constraint (GPTsiteki Section 8.5: 輸出/持出制約)
+// --------------------------------------------------------
+export const CarrierConstraintSchema = z.enum([
+  'none', // 制約なし
+  'internal-network', // 社内ネットワーク限定
+  'physical-media', // 物理媒体持出禁止
+  'closed-network', // 閉域ネットワーク限定
+  'local-only', // ローカル端末限定
+]);
+export type CarrierConstraint = z.infer<typeof CarrierConstraintSchema>;
+
+// --------------------------------------------------------
+// Access Control Policy (GPTsiteki Section 8.5: 属性ベースアクセス制御)
+// --------------------------------------------------------
+export const AccessControlSchema = z.object({
+  ownerUser: z.string().optional(), // 所有者
+  purposeOfUse: z.string().optional(), // 利用目的
+  viewingQualification: z.array(z.string()).optional(), // 閲覧資格（資格名リスト）
+  approvalStatus: ApprovalStatusSchema.optional(), // 承認状態
+  validFrom: z.string().optional(), // 有効期限開始 (ISO 8601)
+  validUntil: z.string().optional(), // 有効期限終了 (ISO 8601)
+  carrierConstraint: CarrierConstraintSchema.optional(), // 輸出/持出制約
+  reverseReferable: z.boolean().default(true), // 逆引き可否（フロー単位ではデフォルトtrue。抽象化データはAbstractionMetadata側でfalse）
+});
+export type AccessControl = z.infer<typeof AccessControlSchema>;
+
+// --------------------------------------------------------
 // Node Types
 // --------------------------------------------------------
 export const NodeTypeSchema = z.enum([
@@ -140,6 +180,7 @@ export const FlowSchema = z.object({
   businessPurpose: z.string().optional(), // この業務フローが存在する理由
   ownerOrg: z.string().optional(), // 責任組織
   sensitivityLevel: SensitivityLevelSchema.optional(), // フロー全体のデフォルト機密レベル
+  accessControl: AccessControlSchema.optional(), // GPTsiteki Section 8.5: 属性ベースアクセス制御
 
   nodes: z.record(NodeIDSchema, NodeSchema), // 【重要】配列ではなくRecord/Map
   edges: z.record(EdgeIDSchema, EdgeSchema), // 【追補A案採用】edgesもRecord
@@ -189,6 +230,9 @@ export const SystemSchema = z.object({
   description: z.string().optional(),
 });
 
+export const AuditLevelSchema = z.enum(['minimal', 'standard', 'enhanced', 'strict', 'maximum']);
+export type AuditLevel = z.infer<typeof AuditLevelSchema>;
+
 export const SensitivityLevelDefinitionSchema = z.object({
   id: SensitivityLevelSchema,
   name: z.string(),
@@ -196,17 +240,34 @@ export const SensitivityLevelDefinitionSchema = z.object({
   aiUsageAllowed: z.boolean(),
   abstractionRequired: z.boolean(),
   exportAllowed: z.boolean(),
-  auditLevel: z.enum(['minimal', 'standard', 'enhanced', 'strict', 'maximum']).optional(),
+  auditLevel: AuditLevelSchema.optional(),
+});
+
+// GPTsiteki Section 8.5: アクセスポリシー定義スキーマ
+// spec/dictionary/access-policies.yaml のバリデーション用
+export const AccessPolicyDefinitionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  sensitivityLevel: SensitivityLevelSchema,
+  carrierConstraint: CarrierConstraintSchema,
+  aiUsageAllowed: z.boolean(),
+  abstractionRequired: z.boolean(),
+  exportPolicy: ExportPolicySchema,
+  auditLevel: AuditLevelSchema,
+  reverseReferable: z.boolean(),
 });
 
 export type Role = z.infer<typeof RoleSchema>;
 export type System = z.infer<typeof SystemSchema>;
 export type SensitivityLevelDefinition = z.infer<typeof SensitivityLevelDefinitionSchema>;
+export type AccessPolicyDefinition = z.infer<typeof AccessPolicyDefinitionSchema>;
 
 export const DictionarySchema = z.object({
   roles: z.record(z.string(), RoleSchema),
   systems: z.record(z.string(), SystemSchema),
   sensitivityLevels: z.record(z.string(), SensitivityLevelDefinitionSchema).optional(),
+  accessPolicies: z.record(z.string(), AccessPolicyDefinitionSchema).optional(),
 });
 
 export type Dictionary = z.infer<typeof DictionarySchema>;
