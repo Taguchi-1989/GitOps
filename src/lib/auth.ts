@@ -16,6 +16,9 @@ const LoginSchema = z.object({
   password: z.string().min(1),
 });
 
+// ユーザー不在時のbcrypt比較で使うダミーハッシュ（cost=10、"never-matches" をハッシュ化した値）
+const DUMMY_BCRYPT_HASH = '$2b$10$C6UzMDM.H6dfI/f/IKcEeO3OEl6j9JJpT0Br8cXBIE/9MjLJ7FNSi';
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     signIn: '/login',
@@ -79,10 +82,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email: parsed.data.email },
         });
 
-        if (!user) return null;
+        // タイミング攻撃対策: ユーザー不在でも bcrypt.compare を必ず実行し、
+        // レスポンス時間から存在を推定できないようにする。
+        const hashToCompare = user?.hashedPassword ?? DUMMY_BCRYPT_HASH;
+        const passwordMatch = await bcrypt.compare(parsed.data.password, hashToCompare);
 
-        const passwordMatch = await bcrypt.compare(parsed.data.password, user.hashedPassword);
-        if (!passwordMatch) return null;
+        if (!user || !passwordMatch) return null;
 
         return {
           id: user.id,

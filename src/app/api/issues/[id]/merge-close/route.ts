@@ -27,7 +27,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const issue = await prisma.issue.findUnique({
-      where: { id: params.id },
+      where: { id: params.id, deletedAt: null },
     });
 
     if (!issue) {

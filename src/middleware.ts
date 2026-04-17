@@ -29,12 +29,22 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   return headers;
 }
 
+// プロキシ配下で `x-forwarded-for` を信頼するかどうか（デフォルト: false）。
+// 直接公開している環境では、ヘッダー偽装でレート制限を回避できるため信頼しない。
+const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
+
 function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
+  if (TRUST_PROXY) {
+    const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+    if (forwarded) return forwarded;
+
+    const realIp = request.headers.get('x-real-ip')?.trim();
+    if (realIp) return realIp;
+  }
+
+  // Next.js が付与する接続元IP（Node/Edge 双方で ip プロパティを参照）
+  const directIp = (request as unknown as { ip?: string }).ip;
+  return directIp || 'unknown';
 }
 
 export default auth(async function middleware(request) {
@@ -44,25 +54,17 @@ export default auth(async function middleware(request) {
   // --- Trace ID: リクエストに一意のIDを付与 ---
   const traceId = request.headers.get('x-trace-id') || crypto.randomUUID();
 
-  // --- CORS: プリフライトリクエスト ---
-  if (request.method === 'OPTIONS' && pathname.startsWith('/api')) {
-    const preflightResponse = new NextResponse(null, {
-      status: 204,
-      headers: getCorsHeaders(origin),
-    });
-    preflightResponse.headers.set('X-Trace-Id', traceId);
-    return preflightResponse;
-  }
-
-  // --- レート制限（API のみ） ---
+  // --- レート制限（API のみ。OPTIONS も含めてフラッディング対策） ---
   if (pathname.startsWith('/api')) {
     const clientIp = getClientIp(request);
+    const isOptions = request.method === 'OPTIONS';
     const isLlmRoute = pathname.includes('/proposals/generate');
     const isAuthRoute = pathname.startsWith('/api/auth');
 
     const config = isAuthRoute ? RATE_LIMITS.auth : isLlmRoute ? RATE_LIMITS.llm : RATE_LIMITS.api;
 
-    const rateLimitKey = isAuthRoute ? 'auth' : isLlmRoute ? 'llm' : 'api';
+    // OPTIONSはメソッド別のバケットに分けて、通常APIのウィンドウを消費しないようにする
+    const rateLimitKey = isOptions ? 'options' : isAuthRoute ? 'auth' : isLlmRoute ? 'llm' : 'api';
     const result = checkRateLimit(`${clientIp}:${rateLimitKey}`, config);
 
     if (!result.allowed) {
@@ -80,6 +82,17 @@ export default auth(async function middleware(request) {
         response.headers.set(k, v);
       }
       return response;
+    }
+
+    // CORSプリフライトは rate-limit 通過後に 204 を返す
+    if (isOptions) {
+      const preflightResponse = new NextResponse(null, {
+        status: 204,
+        headers: getCorsHeaders(origin),
+      });
+      preflightResponse.headers.set('X-Trace-Id', traceId);
+      preflightResponse.headers.set('X-RateLimit-Remaining', String(result.remaining));
+      return preflightResponse;
     }
 
     // レート制限ヘッダーを付与するためレスポンスを通過後に加工

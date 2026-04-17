@@ -39,7 +39,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // 重複Issue（統合される側）を取得
     const duplicate = await prisma.issue.findUnique({
-      where: { id: params.id },
+      where: { id: params.id, deletedAt: null },
     });
 
     if (!duplicate) {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // 統合先Issue（正として残る側）を取得
     const canonical = await prisma.issue.findUnique({
-      where: { id: data.canonicalId },
+      where: { id: data.canonicalId, deletedAt: null },
     });
 
     if (!canonical) {
@@ -81,7 +81,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (duplicate.branchName) {
       const hasCommits = await git.hasCommits(duplicate.branchName);
 
-      if (hasCommits && canonical.branchName) {
+      if (hasCommits) {
+        if (!canonical.branchName) {
+          // 統合先にブランチが無いとcherry-pickできず、ブランチ削除でコミットが失われる。
+          // 利用者が気付けるよう 409 を返して中断する。
+          return errorResponse(
+            API_ERROR_CODES.INVALID_STATUS_TRANSITION,
+            `Duplicate issue has commits on branch '${duplicate.branchName}' but canonical issue '${canonical.humanId}' has no branch to cherry-pick into. Start the canonical issue first.`,
+            409
+          );
+        }
         // 統合先にブランチがあればcherry-pick
         cherryPickedCommits = await git.cherryPick(duplicate.branchName, canonical.branchName);
       }

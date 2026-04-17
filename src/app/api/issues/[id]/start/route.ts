@@ -16,6 +16,7 @@ import { API_ERROR_CODES } from '@/core/types/api';
 import { generateBranchName, titleToSlug } from '@/core/issue/humanId';
 import { getGitManager } from '@/core/git';
 import { auditLog } from '@/core/audit';
+import { logger } from '@/lib/logger';
 
 interface RouteParams {
   params: { id: string };
@@ -28,7 +29,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const issue = await prisma.issue.findUnique({
-      where: { id: params.id },
+      where: { id: params.id, deletedAt: null },
     });
 
     if (!issue) {
@@ -61,14 +62,32 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const git = getGitManager();
     await git.createBranch(branchName);
 
-    // DB更新（Git操作成功後のみ）
-    const updatedIssue = await prisma.issue.update({
-      where: { id: params.id },
-      data: {
-        status: 'in-progress',
-        branchName,
-      },
-    });
+    // DB更新（Git操作成功後のみ）。失敗したら作成済みブランチを削除して
+    // 孤立ブランチ + 未更新Issue の状態を残さない。
+    let updatedIssue;
+    try {
+      updatedIssue = await prisma.issue.update({
+        where: { id: params.id },
+        data: {
+          status: 'in-progress',
+          branchName,
+        },
+      });
+    } catch (dbError) {
+      try {
+        await git.deleteBranch(branchName, true);
+        logger.warn(
+          { err: dbError, issueId: params.id, branchName },
+          'DB update failed after branch creation; deleted orphaned branch'
+        );
+      } catch (deleteError) {
+        logger.error(
+          { dbError, deleteError, issueId: params.id, branchName },
+          'Failed to delete branch after DB update failure - manual cleanup required'
+        );
+      }
+      throw dbError;
+    }
 
     // 監査ログ
     await auditLog.logGitAction('GIT_BRANCH_CREATE', issue.id, { branchName });

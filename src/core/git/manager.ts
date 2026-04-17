@@ -220,16 +220,23 @@ class GitManager {
         await this.git.merge([branchName]);
       } catch (error) {
         // マージ失敗時: abortして元のブランチに復帰
+        // 復旧失敗もログに記録し、リポジトリ状態の不整合を検知可能にする
         try {
           await this.git.merge(['--abort']);
-        } catch {
-          /* ignore */
+        } catch (abortError) {
+          logger.error(
+            { err: abortError, branch: branchName },
+            'Failed to abort merge during recovery - repository may be in conflicted state'
+          );
         }
         if (originalBranch && originalBranch !== this.mainBranch) {
           try {
             await this.git.checkout(originalBranch);
-          } catch {
-            /* ignore */
+          } catch (checkoutError) {
+            logger.error(
+              { err: checkoutError, originalBranch, mainBranch: this.mainBranch },
+              'Failed to restore original branch after merge abort - repository left on main branch'
+            );
           }
         }
         throw error;
@@ -298,9 +305,26 @@ class GitManager {
       await this.git.checkout(toBranch);
 
       // 各コミットをcherry-pick（古い順に）
-      for (const hash of commits.reverse()) {
-        await this.git.raw(['cherry-pick', hash]);
-        logger.info({ hash }, 'Cherry-picked commit');
+      try {
+        for (const hash of commits.reverse()) {
+          await this.git.raw(['cherry-pick', hash]);
+          logger.info({ hash }, 'Cherry-picked commit');
+        }
+      } catch (error) {
+        // cherry-pick失敗時: リポジトリを中途半端なマージ状態のままにしない
+        try {
+          await this.git.raw(['cherry-pick', '--abort']);
+          logger.warn(
+            { err: error, fromBranch, toBranch },
+            'Cherry-pick failed; aborted cherry-pick to restore clean state'
+          );
+        } catch (abortError) {
+          logger.error(
+            { err: error, abortError, fromBranch, toBranch },
+            'Cherry-pick failed and abort also failed - repository may be in inconsistent state'
+          );
+        }
+        throw error;
       }
 
       return commits;
