@@ -18,6 +18,7 @@ import { applyPatchesToFlow, sha256, PatchApplyError, JsonPatch } from '@/core/p
 import { stringifyFlow } from '@/core/parser';
 import { getGitManager } from '@/core/git';
 import { auditLog } from '@/core/audit';
+import { logger } from '@/lib/logger';
 
 interface RouteParams {
   params: { id: string };
@@ -83,9 +84,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // パッチを適用
+    let patches: JsonPatch[];
     let patchedFlow;
     try {
-      const patches = JSON.parse(proposal.jsonPatch) as JsonPatch[];
+      patches = JSON.parse(proposal.jsonPatch) as JsonPatch[];
       const result = applyPatchesToFlow(flowData.flow, patches);
       patchedFlow = result.flow;
     } catch (error) {
@@ -94,6 +96,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           API_ERROR_CODES.PATCH_APPLY_FAILED,
           `Patch apply failed: ${error.message}`,
           400
+        );
+      }
+      if (error instanceof SyntaxError) {
+        return errorResponse(
+          API_ERROR_CODES.VALIDATION_ERROR,
+          `Stored proposal patch is not valid JSON: ${error.message}`,
+          500
         );
       }
       throw error;
@@ -113,20 +122,43 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       [filePath]
     );
 
-    // DB更新（Git操作成功後のみ）
-    const updatedProposal = await prisma.proposal.update({
-      where: { id: params.id },
-      data: {
-        isApplied: true,
-        appliedAt: new Date(),
-      },
-    });
+    // DB更新（Git操作成功後のみ）。
+    // 失敗時はGitコミットを巻き戻し、DBとファイルシステム/Gitの整合性を保つ。
+    let updatedProposal;
+    try {
+      updatedProposal = await prisma.proposal.update({
+        where: { id: params.id },
+        data: {
+          isApplied: true,
+          appliedAt: new Date(),
+        },
+      });
+    } catch (dbError) {
+      try {
+        await git.revertLastCommit();
+        logger.warn(
+          { err: dbError, proposalId: params.id, commitHash: commitResult.hash },
+          'DB update failed after git commit; reverted commit to maintain consistency'
+        );
+      } catch (revertError) {
+        logger.error(
+          {
+            dbError,
+            revertError,
+            proposalId: params.id,
+            commitHash: commitResult.hash,
+          },
+          'Failed to revert git commit after DB update failure - manual intervention required'
+        );
+      }
+      throw dbError;
+    }
 
-    // 監査ログ
+    // 監査ログ（既にパース済みのpatchesを再利用 - 再パース時の例外リスクを排除）
     await auditLog.logProposalAction('PATCH_APPLY', proposal.id, {
       issueId: proposal.issueId,
       commitHash: commitResult.hash,
-      patchCount: (JSON.parse(proposal.jsonPatch) as JsonPatch[]).length,
+      patchCount: patches.length,
     });
 
     await auditLog.logGitAction('GIT_COMMIT', proposal.issueId, {

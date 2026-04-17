@@ -106,22 +106,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       logger.warn({ err: e }, 'Failed to generate diff preview');
     }
 
-    // Proposalを保存
-    const proposal = await prisma.proposal.create({
-      data: {
-        issueId: issue.id,
-        intent: proposalOutput.intent,
-        jsonPatch: JSON.stringify(proposalOutput.patches),
-        diffPreview,
-        baseHash,
-        targetFlowId: issue.targetFlowId,
-      },
-    });
+    // Proposal作成とIssueステータス更新を同一トランザクションで実行
+    // （片方だけ成功するとデッドステートになるため）
+    const proposal = await prisma.$transaction(async tx => {
+      const created = await tx.proposal.create({
+        data: {
+          issueId: issue.id,
+          intent: proposalOutput.intent,
+          jsonPatch: JSON.stringify(proposalOutput.patches),
+          diffPreview,
+          baseHash,
+          targetFlowId: issue.targetFlowId,
+        },
+      });
 
-    // Issueステータスを更新
-    await prisma.issue.update({
-      where: { id: params.id },
-      data: { status: 'proposed' },
+      await tx.issue.update({
+        where: { id: params.id },
+        data: { status: 'proposed' },
+      });
+
+      return created;
     });
 
     // 監査ログ

@@ -176,6 +176,20 @@ class GitManager {
   }
 
   /**
+   * 直前のコミットを取り消す（`git reset --hard HEAD~1`）。
+   * DB更新など下流処理が失敗した際の補償アクションとして使用する。
+   */
+  async revertLastCommit(): Promise<void> {
+    const lock = await gitLock.acquire('revertLastCommit');
+    try {
+      await this.git.reset(['--hard', 'HEAD~1']);
+      logger.warn('Reverted last commit via git reset --hard HEAD~1');
+    } finally {
+      lock.release();
+    }
+  }
+
+  /**
    * ブランチをマージ
    * @param branchName マージするブランチ名
    */

@@ -24,8 +24,8 @@ vi.mock('@/lib/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }));
 
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
+vi.mock('@/lib/prisma', () => {
+  const mockPrisma: any = {
     issue: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -37,8 +37,10 @@ vi.mock('@/lib/prisma', () => ({
     proposal: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     auditLog: { findMany: vi.fn(), count: vi.fn() },
     $queryRaw: vi.fn(),
-  },
-}));
+  };
+  mockPrisma.$transaction = vi.fn(async (fn: any) => fn(mockPrisma));
+  return { prisma: mockPrisma };
+});
 
 vi.mock('@/core/audit', () => ({
   auditLog: {
