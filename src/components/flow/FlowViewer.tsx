@@ -9,11 +9,21 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { MermaidViewer } from './MermaidViewer';
 import { FlowExportImport } from './FlowExportImport';
 import { Flow } from '@/core/parser';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { ArrowLeft, FileText, Layers, Eye, Code, AlertCircle, Upload } from 'lucide-react';
+
+const FlowCanvas = dynamic(() => import('./editor/FlowCanvas').then(m => m.FlowCanvas), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-64 text-gray-400 dark:text-gray-500">
+      ダイアグラムを読み込み中...
+    </div>
+  ),
+});
 
 interface FlowViewerProps {
   flow: Flow;
@@ -164,18 +174,21 @@ export function FlowViewer({
         {/* Main Area */}
         <div className="flex-1 p-4 overflow-auto bg-gray-50 dark:bg-gray-900">
           {activeTab === 'diagram' ? (
-            <div>
+            <div className="h-full flex flex-col">
               {!selectedNode && (
                 <p className="text-sm text-gray-400 dark:text-gray-500 mb-3 text-center">
                   ノードをクリックすると詳細が表示されます
                 </p>
               )}
-              <MermaidViewer
-                content={mermaidContent}
-                onNodeClick={handleNodeClick}
-                selectedNodeId={selectedNode}
-                className="h-full"
-              />
+              <div className="flex-1 min-h-[400px]">
+                <FlowCanvas
+                  key={flow.id}
+                  flow={flow}
+                  onNodeClick={handleNodeClick}
+                  selectedNodeId={selectedNode}
+                  className="h-full"
+                />
+              </div>
             </div>
           ) : activeTab === 'data' ? (
             <pre className="p-4 bg-gray-900 text-gray-100 rounded-lg text-sm overflow-x-auto">
