@@ -6,8 +6,13 @@ const NODE_HEIGHT = 60;
 
 /**
  * Apply dagre automatic layout to React Flow nodes and edges.
- * Nodes that already have a position set in meta.position will use that position;
- * others will be positioned by dagre.
+ * Nodes that already have a non-zero position stored in data.meta.position
+ * retain their existing position; only nodes without a persisted position are
+ * placed by dagre.
+ *
+ * Note: this function is only called when at least one node lacks a position.
+ * When all nodes have persisted positions, converters.ts skips this function
+ * entirely and uses the persisted positions directly.
  */
 export function applyDagreLayout(
   nodes: FlowNode[],
@@ -33,6 +38,16 @@ export function applyDagreLayout(
   dagre.layout(dagreGraph);
 
   return nodes.map(node => {
+    // If this node already has a persisted position in meta, preserve it.
+    const metaPos = node.data.meta?.position as Record<string, unknown> | undefined;
+    if (metaPos && typeof metaPos.x === 'number' && typeof metaPos.y === 'number') {
+      return {
+        ...node,
+        position: { x: metaPos.x, y: metaPos.y },
+      };
+    }
+
+    // Otherwise use the dagre-computed position.
     const nodeWithPosition = dagreGraph.node(node.id);
     return {
       ...node,

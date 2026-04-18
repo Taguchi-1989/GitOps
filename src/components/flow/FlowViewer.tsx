@@ -182,6 +182,7 @@ export function FlowViewer({
               )}
               <div className="flex-1 min-h-[400px]">
                 <FlowCanvas
+                  key={flow.id}
                   flow={flow}
                   onNodeClick={handleNodeClick}
                   selectedNodeId={selectedNode}

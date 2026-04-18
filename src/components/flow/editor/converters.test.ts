@@ -138,6 +138,63 @@ describe('flowToReactFlow -> reactFlowToFlow round-trip', () => {
     expect(typeof pos.y).toBe('number');
   });
 
+  it('preserves dataClassification on nodes across round-trip', () => {
+    const flowWithClassification: Flow = {
+      ...sampleFlow,
+      nodes: {
+        ...sampleFlow.nodes,
+        n2: {
+          id: 'n2',
+          type: 'process',
+          label: 'Process A',
+          role: 'developer',
+          system: 'app',
+          dataClassification: {
+            sensitivityLevel: 'L3',
+            aiUsageAllowed: false,
+            abstractionRequired: true,
+            exportPolicy: 'internal-only',
+          },
+        },
+      },
+    };
+    const { nodes, edges } = flowToReactFlow(flowWithClassification);
+    const restored = reactFlowToFlow(nodes, edges, {
+      id: flowWithClassification.id,
+      title: flowWithClassification.title,
+      layer: flowWithClassification.layer,
+      updatedAt: flowWithClassification.updatedAt,
+    });
+    expect(restored.nodes['n2'].dataClassification?.sensitivityLevel).toBe('L3');
+    expect(restored.nodes['n2'].dataClassification?.aiUsageAllowed).toBe(false);
+    expect(restored.nodes['n2'].dataClassification?.exportPolicy).toBe('internal-only');
+  });
+
+  it('preserves dataLayer on edges across round-trip', () => {
+    const flowWithDataLayer: Flow = {
+      ...sampleFlow,
+      edges: {
+        ...sampleFlow.edges,
+        e3: {
+          id: 'e3',
+          from: 'n3',
+          to: 'n4',
+          condition: 'valid === true',
+          label: 'Yes',
+          dataLayer: 'abstracted-semantic',
+        },
+      },
+    };
+    const { nodes, edges } = flowToReactFlow(flowWithDataLayer);
+    const restored = reactFlowToFlow(nodes, edges, {
+      id: flowWithDataLayer.id,
+      title: flowWithDataLayer.title,
+      layer: flowWithDataLayer.layer,
+      updatedAt: flowWithDataLayer.updatedAt,
+    });
+    expect(restored.edges['e3'].dataLayer).toBe('abstracted-semantic');
+  });
+
   it('no data loss for role, system, taskId', () => {
     const { nodes, edges } = flowToReactFlow(sampleFlow);
     const restored = reactFlowToFlow(nodes, edges, {
@@ -170,5 +227,27 @@ describe('flowToReactFlow with pre-positioned nodes', () => {
       expect(typeof node.position.x).toBe('number');
       expect(typeof node.position.y).toBe('number');
     }
+  });
+
+  it('preserves exact persisted positions when all nodes have meta.position', () => {
+    const allPositionedFlow: Flow = {
+      ...sampleFlow,
+      nodes: {
+        n1: { id: 'n1', type: 'start', label: 'Start', meta: { position: { x: 10, y: 20 } } },
+        n2: { id: 'n2', type: 'process', label: 'Process', meta: { position: { x: 200, y: 300 } } },
+        n3: { id: 'n3', type: 'end', label: 'End', meta: { position: { x: 400, y: 500 } } },
+      },
+      edges: {
+        e1: { id: 'e1', from: 'n1', to: 'n2' },
+        e2: { id: 'e2', from: 'n2', to: 'n3' },
+      },
+    };
+    const { nodes } = flowToReactFlow(allPositionedFlow);
+    const n1 = nodes.find(n => n.id === 'n1');
+    const n2 = nodes.find(n => n.id === 'n2');
+    const n3 = nodes.find(n => n.id === 'n3');
+    expect(n1?.position).toEqual({ x: 10, y: 20 });
+    expect(n2?.position).toEqual({ x: 200, y: 300 });
+    expect(n3?.position).toEqual({ x: 400, y: 500 });
   });
 });

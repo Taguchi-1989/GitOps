@@ -17,6 +17,7 @@ import '@xyflow/react/dist/style.css';
 import type { Flow } from '@/core/parser/schema';
 import { flowToReactFlow } from './converters';
 import { CustomNode } from './CustomNode';
+import { NODE_STYLE_MAP } from './node-styles';
 import type { FlowNode, FlowNodeData } from './types';
 
 // Cast required: @xyflow/react NodeTypes expects ComponentType<NodeProps<Node>>
@@ -73,16 +74,7 @@ export function FlowCanvas({ flow, onNodeClick, selectedNodeId, className }: Flo
         <MiniMap
           nodeColor={node => {
             const data = node.data as FlowNodeData;
-            const colorMap: Record<string, string> = {
-              start: '#10b981',
-              end: '#ef4444',
-              process: '#3b82f6',
-              decision: '#f59e0b',
-              database: '#8b5cf6',
-              'llm-task': '#ec4899',
-              'human-review': '#14b8a6',
-            };
-            return colorMap[data?.nodeType ?? ''] ?? '#6b7280';
+            return NODE_STYLE_MAP[data?.nodeType]?.hexColor ?? '#6b7280';
           }}
           zoomable
           pannable

@@ -3,22 +3,23 @@ import type { FlowNode, FlowEdge } from './types';
 import { applyDagreLayout } from './layout';
 
 /**
+ * Extract a numeric {x, y} position from a node's meta.position, or null if absent/invalid.
+ */
+function extractPosition(node: FlowSchemaNode): { x: number; y: number } | null {
+  const pos = node.meta?.position as Record<string, unknown> | undefined;
+  if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+    return { x: pos.x, y: pos.y };
+  }
+  return null;
+}
+
+/**
  * Convert a Flow (YAML schema) to React Flow nodes and edges.
  * Positions are taken from node.meta.position if available; otherwise dagre layout is applied.
  */
 export function flowToReactFlow(flow: Flow): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const nodes: FlowNode[] = Object.values(flow.nodes).map((node: FlowSchemaNode) => {
-    const hasPosition =
-      node.meta?.position &&
-      typeof (node.meta.position as Record<string, unknown>).x === 'number' &&
-      typeof (node.meta.position as Record<string, unknown>).y === 'number';
-
-    const position = hasPosition
-      ? {
-          x: (node.meta!.position as { x: number; y: number }).x,
-          y: (node.meta!.position as { x: number; y: number }).y,
-        }
-      : { x: 0, y: 0 };
+    const position = extractPosition(node) ?? { x: 0, y: 0 };
 
     return {
       id: node.id,
@@ -30,6 +31,7 @@ export function flowToReactFlow(flow: Flow): { nodes: FlowNode[]; edges: FlowEdg
         role: node.role,
         system: node.system,
         taskId: node.taskId,
+        dataClassification: node.dataClassification,
         meta: node.meta,
       },
     };
@@ -42,14 +44,12 @@ export function flowToReactFlow(flow: Flow): { nodes: FlowNode[]; edges: FlowEdg
     label: edge.label,
     data: {
       condition: edge.condition,
+      dataLayer: edge.dataLayer,
     },
   }));
 
   // If any node lacks a persisted position, apply dagre layout to all nodes
-  const needsLayout = Object.values(flow.nodes).some(
-    node =>
-      !node.meta?.position || typeof (node.meta.position as Record<string, unknown>).x !== 'number'
-  );
+  const needsLayout = Object.values(flow.nodes).some(node => extractPosition(node) === null);
 
   const finalNodes = needsLayout ? applyDagreLayout(nodes, edges) : nodes;
 
@@ -68,7 +68,7 @@ export function reactFlowToFlow(
 ): Flow {
   const flowNodes: Record<string, FlowSchemaNode> = {};
   for (const node of nodes) {
-    const { label, nodeType, role, system, taskId, meta, ...rest } = node.data;
+    const { label, nodeType, role, system, taskId, dataClassification, meta, ...rest } = node.data;
     void rest;
     flowNodes[node.id] = {
       id: node.id,
@@ -77,6 +77,7 @@ export function reactFlowToFlow(
       ...(role !== undefined && { role }),
       ...(system !== undefined && { system }),
       ...(taskId !== undefined && { taskId }),
+      ...(dataClassification !== undefined && { dataClassification }),
       meta: {
         ...(meta ?? {}),
         position: { x: node.position.x, y: node.position.y },
@@ -92,6 +93,7 @@ export function reactFlowToFlow(
       to: edge.target,
       ...(edge.label !== undefined && { label: String(edge.label) }),
       ...(edge.data?.condition !== undefined && { condition: edge.data.condition }),
+      ...(edge.data?.dataLayer !== undefined && { dataLayer: edge.data.dataLayer }),
     };
   }
 

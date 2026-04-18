@@ -14,7 +14,7 @@ import {
   LucideIcon,
 } from 'lucide-react';
 import { NODE_STYLE_MAP } from './node-styles';
-import type { FlowNodeData, FlowNode } from './types';
+import type { FlowNode } from './types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Play,
@@ -57,8 +57,7 @@ function getShapeStyle(shape: string): React.CSSProperties {
 }
 
 export function CustomNode({ data, selected }: NodeProps<FlowNode>) {
-  const nodeData = data as FlowNodeData;
-  const style = NODE_STYLE_MAP[nodeData.nodeType] ?? NODE_STYLE_MAP['process'];
+  const style = NODE_STYLE_MAP[data.nodeType] ?? NODE_STYLE_MAP['process'];
   const Icon = ICON_MAP[style.icon];
   const shapeStyle = getShapeStyle(style.shape);
 
@@ -91,12 +90,10 @@ export function CustomNode({ data, selected }: NodeProps<FlowNode>) {
       >
         {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
         <span className="text-xs font-medium text-center leading-tight max-w-[120px] break-words">
-          {nodeData.label}
+          {data.label}
         </span>
-        {nodeData.role && (
-          <span className="text-[10px] opacity-80 text-center leading-tight">
-            ({nodeData.role})
-          </span>
+        {data.role && (
+          <span className="text-[10px] opacity-80 text-center leading-tight">({data.role})</span>
         )}
       </div>
 
