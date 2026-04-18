@@ -26,7 +26,9 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@prisma/client": "^5.10.0",
     "@types/bcryptjs": "^2.4.6",
+    "@xyflow/react": "^12.10.2",
     "bcryptjs": "^3.0.3",
+    "dagre": "^0.8.5",
     "lucide-react": "^0.312.0",
     "mermaid": "^10.7.0",
     "next": "^14.2.35",
@@ -41,6 +43,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/dagre": "^0.7.54",
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
@@ -61,7 +64,7 @@
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
       "prettier --write",
-      "eslint --fix --max-warnings=0"
+      "eslint --fix --max-warnings=0 --resolve-plugins-relative-to ."
     ],
     "src/**/*.css": [
       "prettier --write"
