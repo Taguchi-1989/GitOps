@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -11,6 +11,10 @@ import {
   useEdgesState,
   type NodeTypes,
   type NodeMouseHandler,
+  type EdgeMouseHandler,
+  type OnConnect,
+  type OnNodesChange,
+  type OnEdgesChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -18,7 +22,7 @@ import type { Flow } from '@/core/parser/schema';
 import { flowToReactFlow } from './converters';
 import { CustomNode } from './CustomNode';
 import { NODE_STYLE_MAP } from './node-styles';
-import type { FlowNode, FlowNodeData } from './types';
+import type { FlowNode, FlowEdge, FlowNodeData } from './types';
 
 // Cast required: @xyflow/react NodeTypes expects ComponentType<NodeProps<Node>>
 // but CustomNode is typed as NodeProps<FlowNode> (a subtype). The cast is safe.
@@ -29,14 +33,36 @@ const nodeTypes: NodeTypes = {
 interface FlowCanvasProps {
   flow: Flow;
   onNodeClick?: (nodeId: string) => void;
+  onEdgeClick?: (edgeId: string) => void;
   selectedNodeId?: string | null;
   className?: string;
+  // Editable mode props
+  editable?: boolean;
+  nodes?: FlowNode[];
+  edges?: FlowEdge[];
+  onNodesChange?: OnNodesChange<FlowNode>;
+  onEdgesChange?: OnEdgesChange<FlowEdge>;
+  onConnect?: OnConnect;
+  onDeleteSelected?: () => void;
 }
 
-export function FlowCanvas({ flow, onNodeClick, selectedNodeId, className }: FlowCanvasProps) {
+export function FlowCanvas({
+  flow,
+  onNodeClick,
+  onEdgeClick,
+  selectedNodeId,
+  className,
+  editable = false,
+  nodes: externalNodes,
+  edges: externalEdges,
+  onNodesChange: externalOnNodesChange,
+  onEdgesChange: externalOnEdgesChange,
+  onConnect,
+  onDeleteSelected,
+}: FlowCanvasProps) {
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => flowToReactFlow(flow), [flow]);
 
-  // Inject selected state into node data
+  // Inject selected state into node data (view-only mode)
   const nodesWithSelection = useMemo(
     () =>
       initialNodes.map(node => ({
@@ -46,8 +72,13 @@ export function FlowCanvas({ flow, onNodeClick, selectedNodeId, className }: Flo
     [initialNodes, selectedNodeId]
   );
 
-  const [nodes, , onNodesChange] = useNodesState<FlowNode>(nodesWithSelection);
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+  const [internalNodes, , internalOnNodesChange] = useNodesState<FlowNode>(nodesWithSelection);
+  const [internalEdges, , internalOnEdgesChange] = useEdgesState(initialEdges);
+
+  const nodes = externalNodes ?? internalNodes;
+  const edges = externalEdges ?? internalEdges;
+  const onNodesChange = externalOnNodesChange ?? internalOnNodesChange;
+  const onEdgesChange = externalOnEdgesChange ?? internalOnEdgesChange;
 
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_event, node) => {
@@ -56,6 +87,34 @@ export function FlowCanvas({ flow, onNodeClick, selectedNodeId, className }: Flo
     [onNodeClick]
   );
 
+  const handleEdgeClick: EdgeMouseHandler = useCallback(
+    (_event, edge) => {
+      onEdgeClick?.(edge.id);
+    },
+    [onEdgeClick]
+  );
+
+  // Delete key handler for editable mode
+  useEffect(() => {
+    if (!editable || !onDeleteSelected) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Only fire if not focused on an input/textarea
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+        onDeleteSelected();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editable, onDeleteSelected]);
+
   return (
     <div className={`w-full h-full min-h-[400px] ${className ?? ''}`}>
       <ReactFlow
@@ -63,13 +122,19 @@ export function FlowCanvas({ flow, onNodeClick, selectedNodeId, className }: Flo
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnect={editable ? onConnect : undefined}
         onNodeClick={handleNodeClick}
+        onEdgeClick={handleEdgeClick}
         nodeTypes={nodeTypes}
+        nodesDraggable={editable}
+        nodesConnectable={editable}
+        elementsSelectable={editable}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.3}
         maxZoom={2}
         attributionPosition="bottom-right"
+        deleteKeyCode={null}
       >
         <MiniMap
           nodeColor={node => {
