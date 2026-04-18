@@ -42,6 +42,10 @@ export const API_ERROR_CODES = {
   // Auth / Rate Limit
   UNAUTHORIZED: 'UNAUTHORIZED',
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
+
+  // Data Governance
+  ACCESS_DENIED: 'ACCESS_DENIED',
+  DATA_GOVERNANCE_VIOLATION: 'DATA_GOVERNANCE_VIOLATION',
 } as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES];

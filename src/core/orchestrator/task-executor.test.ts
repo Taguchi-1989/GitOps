@@ -295,3 +295,128 @@ describe('createTaskExecutor', () => {
     expect(executor).toBeInstanceOf(TaskExecutor);
   });
 });
+
+describe('Data Governance Check', () => {
+  it('should pass when no dataGovernance is set (backward compat)', async () => {
+    const executor = createExecutor();
+    mockLlmResponse('{"result": "ok"}');
+
+    const task = makeTask(); // no dataGovernance
+    const result = await executor.execute(task as any, makeInvocation() as any);
+
+    expect(result.status).toBe('success');
+  });
+
+  it('should pass when input data has no sensitivityLevel', async () => {
+    const executor = createExecutor();
+    mockLlmResponse('{"result": "ok"}');
+
+    const task = makeTask({
+      dataGovernance: {
+        maxSensitivityInput: 'L2',
+        maxSensitivityOutput: 'L2',
+        requiresAbstractionPreprocessing: false,
+        provenanceTracking: true,
+      },
+    });
+    const result = await executor.execute(task as any, makeInvocation() as any);
+
+    expect(result.status).toBe('success');
+  });
+
+  it('should fail when input exceeds maxSensitivityInput', async () => {
+    const executor = createExecutor();
+
+    const task = makeTask({
+      dataGovernance: {
+        maxSensitivityInput: 'L2',
+        maxSensitivityOutput: 'L2',
+        requiresAbstractionPreprocessing: false,
+        provenanceTracking: true,
+      },
+    });
+
+    const invocation = makeInvocation({
+      input: {
+        data: {
+          objectId: 'obj-001',
+          objectType: 'document',
+          sensitivityLevel: 'L4',
+          createdAt: '2026-03-09T10:00:00+09:00',
+          updatedAt: '2026-03-09T10:00:00+09:00',
+          meta: { secret: 'value' },
+        },
+      },
+    });
+
+    const result = await executor.execute(task as any, invocation as any);
+
+    expect(result.status).toBe('failure');
+    expect(result.error?.code).toBe('DATA_GOVERNANCE_VIOLATION');
+    expect(result.error?.message).toContain('L4');
+    expect(result.error?.message).toContain('L2');
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('should abstract input when requiresAbstractionPreprocessing is true', async () => {
+    const executor = createExecutor();
+    mockLlmResponse('{"result": "abstracted"}');
+
+    const task = makeTask({
+      dataGovernance: {
+        maxSensitivityInput: 'L2',
+        maxSensitivityOutput: 'L2',
+        requiresAbstractionPreprocessing: true,
+        provenanceTracking: true,
+      },
+    });
+
+    const invocation = makeInvocation({
+      input: {
+        data: {
+          objectId: 'obj-high-001',
+          objectType: 'document',
+          sensitivityLevel: 'L4',
+          createdAt: '2026-03-09T10:00:00+09:00',
+          updatedAt: '2026-03-09T10:00:00+09:00',
+          meta: { secret: 'hidden-value' },
+        },
+      },
+    });
+
+    const result = await executor.execute(task as any, invocation as any);
+
+    expect(result.status).toBe('success');
+    expect(mockCreate).toHaveBeenCalledOnce();
+  });
+
+  it('should allow input within maxSensitivityInput', async () => {
+    const executor = createExecutor();
+    mockLlmResponse('{"result": "ok"}');
+
+    const task = makeTask({
+      dataGovernance: {
+        maxSensitivityInput: 'L3',
+        maxSensitivityOutput: 'L3',
+        requiresAbstractionPreprocessing: false,
+        provenanceTracking: true,
+      },
+    });
+
+    const invocation = makeInvocation({
+      input: {
+        data: {
+          objectId: 'obj-low-001',
+          objectType: 'document',
+          sensitivityLevel: 'L2',
+          createdAt: '2026-03-09T10:00:00+09:00',
+          updatedAt: '2026-03-09T10:00:00+09:00',
+        },
+      },
+    });
+
+    const result = await executor.execute(task as any, invocation as any);
+
+    expect(result.status).toBe('success');
+  });
+});

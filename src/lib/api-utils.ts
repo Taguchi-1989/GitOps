@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { ZodError, ZodSchema } from 'zod';
+import { ZodError, type ZodType } from 'zod';
 import { ApiResponse, API_ERROR_CODES, ApiErrorCode } from '@/core/types/api';
 import { logger } from '@/lib/logger';
 
@@ -55,7 +55,7 @@ export function validationErrorResponse(error: ZodError): NextResponse<ApiRespon
  */
 export async function parseBody<T>(
   request: Request,
-  schema: ZodSchema<T>
+  schema: ZodType<T, any, any>
 ): Promise<{ data: T; error: null } | { data: null; error: NextResponse<ApiResponse<never>> }> {
   try {
     const body = await request.json();

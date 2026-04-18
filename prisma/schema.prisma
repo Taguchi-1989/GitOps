@@ -221,3 +221,138 @@ model ApprovalRequest {
   @@index([workflowId])
   @@index([status])
 }
+
+// --------------------------------------------------------
+// Data Object（GPTsiteki Section 10.5 データオブジェクト）
+// --------------------------------------------------------
+model DataObject {
+  id       String @id @default(cuid())
+  objectId String @unique // ビジネスID (e.g., "obj-2026-000123")
+
+  parentId        String? // 親DataObjectのobjectId
+  objectType      String // document, fragment, semantic-object, evidence-link, transformation-event
+  sensitivityLevel String @default("L1") // L0-L5
+  sourceHash      String?
+  owner           String?
+  version         String?
+
+  accessPolicyRef String? // access-policies.yaml のキー参照
+  contentRef      String?
+  exportPolicy    String  @default("unrestricted")
+
+  semanticTags    Json? // String[] as JSON
+  provenanceRef   String?
+  validationRef   String?
+  validationStatus String? // unverified, machine-verified, human-verified, official
+
+  fragmentType       String?
+  semanticObjectType String?
+  abstractionMetadata    Json? // AbstractionMetadata as JSON
+  outputArtifactMetadata Json? // OutputArtifactMetadata as JSON
+  meta                   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  crossRefsAsSource      CrossReference[]      @relation("SourceObject")
+  crossRefsAsTarget      CrossReference[]      @relation("TargetObject")
+  evidenceLinksAsClaim   DataEvidenceLink[]    @relation("ClaimObject")
+  evidenceLinksAsEvidence DataEvidenceLink[]    @relation("EvidenceObject")
+  transformationInputs   TransformationInput[]
+  transformationOutputs  TransformationOutput[]
+
+  @@index([objectType])
+  @@index([sensitivityLevel])
+  @@index([parentId])
+  @@index([owner])
+  @@index([validationStatus])
+}
+
+// --------------------------------------------------------
+// Cross Reference（GPTsiteki Section 10.6 横断参照）
+// --------------------------------------------------------
+model CrossReference {
+  id             String @id @default(cuid())
+  refId          String @unique // ビジネスID (e.g., "xref-001")
+  sourceObjectId String
+  targetObjectId String
+  referenceType  String // cites, derived-from, related-to, supersedes, contradicts, abstracts
+  description    String?
+
+  sourceObject DataObject @relation("SourceObject", fields: [sourceObjectId], references: [objectId])
+  targetObject DataObject @relation("TargetObject", fields: [targetObjectId], references: [objectId])
+
+  createdAt DateTime @default(now())
+
+  @@index([sourceObjectId])
+  @@index([targetObjectId])
+  @@index([referenceType])
+}
+
+// --------------------------------------------------------
+// Data Evidence Link（GPTsiteki Section 10.2 根拠リンク）
+// --------------------------------------------------------
+model DataEvidenceLink {
+  id               String @id @default(cuid())
+  linkId           String @unique // ビジネスID (e.g., "el-001")
+  claimObjectId    String
+  evidenceObjectId String
+  relationshipType String // supports, contradicts, supplements, derives-from, references
+  confidence       Float?
+  description      String?
+
+  claimObject    DataObject @relation("ClaimObject", fields: [claimObjectId], references: [objectId])
+  evidenceObject DataObject @relation("EvidenceObject", fields: [evidenceObjectId], references: [objectId])
+
+  createdAt DateTime @default(now())
+
+  @@index([claimObjectId])
+  @@index([evidenceObjectId])
+  @@index([relationshipType])
+}
+
+// --------------------------------------------------------
+// Transformation Event（GPTsiteki Section 10.2 変換イベント）
+// --------------------------------------------------------
+model TransformationEvent {
+  id         String   @id @default(cuid())
+  eventId    String   @unique // ビジネスID (e.g., "te-001")
+  type       String // ocr, extraction, conversion, summarization, verification, approval, abstraction
+  executedBy String
+  executedAt DateTime
+  parameters Json?
+  confidence Float?
+  metadata   Json?
+
+  inputs  TransformationInput[]
+  outputs TransformationOutput[]
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([executedAt])
+}
+
+// --------------------------------------------------------
+// Transformation M:N Junction Tables
+// --------------------------------------------------------
+model TransformationInput {
+  id                    String              @id @default(cuid())
+  transformationEventId String
+  dataObjectId          String
+  event                 TransformationEvent @relation(fields: [transformationEventId], references: [id], onDelete: Cascade)
+  dataObject            DataObject          @relation(fields: [dataObjectId], references: [objectId])
+
+  @@unique([transformationEventId, dataObjectId])
+}
+
+model TransformationOutput {
+  id                    String              @id @default(cuid())
+  transformationEventId String
+  dataObjectId          String
+  event                 TransformationEvent @relation(fields: [transformationEventId], references: [id], onDelete: Cascade)
+  dataObject            DataObject          @relation(fields: [dataObjectId], references: [objectId])
+
+  @@unique([transformationEventId, dataObjectId])
+}

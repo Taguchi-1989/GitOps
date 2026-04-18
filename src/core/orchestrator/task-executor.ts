@@ -9,12 +9,32 @@ import OpenAI from 'openai';
 import { MicroTaskDefinition, TaskInvocation, TaskResult } from './schemas/micro-task';
 import { getTraceId } from '@/lib/trace-context';
 import { extractJson } from '@/lib/extract-json';
+import { abstractionEngine } from '@/core/data/abstraction';
+
+const LEVEL_ORDER: Record<string, number> = {
+  L0: 0,
+  L1: 1,
+  L2: 2,
+  L3: 3,
+  L4: 4,
+  L5: 5,
+};
 
 export class TaskExecutionError extends Error {
-  code: 'LLM_ERROR' | 'VALIDATION_ERROR' | 'TIMEOUT' | 'UNSUPPORTED_TYPE';
+  code:
+    | 'LLM_ERROR'
+    | 'VALIDATION_ERROR'
+    | 'TIMEOUT'
+    | 'UNSUPPORTED_TYPE'
+    | 'DATA_GOVERNANCE_VIOLATION';
 
   constructor(
-    code: 'LLM_ERROR' | 'VALIDATION_ERROR' | 'TIMEOUT' | 'UNSUPPORTED_TYPE',
+    code:
+      | 'LLM_ERROR'
+      | 'VALIDATION_ERROR'
+      | 'TIMEOUT'
+      | 'UNSUPPORTED_TYPE'
+      | 'DATA_GOVERNANCE_VIOLATION',
     message: string
   ) {
     super(message);
@@ -56,6 +76,28 @@ export class TaskExecutor {
   async execute(task: MicroTaskDefinition, invocation: TaskInvocation): Promise<TaskResult> {
     const startTime = Date.now();
     const traceId = invocation.traceId || getTraceId() || '';
+
+    // データガバナンスチェック (GPTsiteki)
+    if (task.dataGovernance) {
+      const govResult = this.checkDataGovernance(task, invocation);
+      if (!govResult.allowed) {
+        return {
+          traceId,
+          executionId: invocation.executionId,
+          taskId: task.id,
+          status: 'failure',
+          output: {},
+          metadata: { durationMs: Date.now() - startTime },
+          error: {
+            code: 'DATA_GOVERNANCE_VIOLATION',
+            message: govResult.reason,
+          },
+        };
+      }
+      if (govResult.processedInput) {
+        invocation = { ...invocation, input: govResult.processedInput };
+      }
+    }
 
     try {
       switch (task.type) {
@@ -174,6 +216,58 @@ export class TaskExecutor {
     }
 
     throw new TaskExecutionError('LLM_ERROR', 'Unreachable');
+  }
+
+  /**
+   * データガバナンスチェック
+   *
+   * タスク定義の dataGovernance に基づき、入力データの機密レベルを検証。
+   * 必要に応じて抽象化前処理を実行する。
+   */
+  private checkDataGovernance(
+    task: MicroTaskDefinition,
+    invocation: TaskInvocation
+  ): { allowed: boolean; reason: string; processedInput?: Record<string, unknown> } {
+    const governance = task.dataGovernance!;
+    const maxInputLevel = LEVEL_ORDER[governance.maxSensitivityInput] ?? 2;
+
+    // 入力データ内の sensitivityLevel フィールドを持つオブジェクトをチェック
+    const processedInput: Record<string, unknown> = { ...invocation.input };
+    let abstracted = false;
+
+    for (const [key, value] of Object.entries(invocation.input)) {
+      if (
+        value &&
+        typeof value === 'object' &&
+        'sensitivityLevel' in (value as Record<string, unknown>)
+      ) {
+        const objLevel =
+          LEVEL_ORDER[(value as Record<string, unknown>).sensitivityLevel as string] ?? 0;
+
+        if (objLevel > maxInputLevel) {
+          if (governance.requiresAbstractionPreprocessing) {
+            // 抽象化前処理を実行
+            const result = abstractionEngine.abstract(
+              value as Parameters<typeof abstractionEngine.abstract>[0],
+              'masking'
+            );
+            processedInput[key] = result.abstractedObject;
+            abstracted = true;
+          } else {
+            return {
+              allowed: false,
+              reason: `Input '${key}' has sensitivity level ${(value as Record<string, unknown>).sensitivityLevel} exceeding max ${governance.maxSensitivityInput}`,
+            };
+          }
+        }
+      }
+    }
+
+    return {
+      allowed: true,
+      reason: 'ok',
+      processedInput: abstracted ? processedInput : undefined,
+    };
   }
 }
 
