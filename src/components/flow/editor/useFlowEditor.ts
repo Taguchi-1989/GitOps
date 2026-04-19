@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -30,6 +30,12 @@ export function useFlowEditor(initialFlow: Flow) {
   const [isDirty, setIsDirty] = useState(false);
   const [undoStack, setUndoStack] = useState<Snapshot[]>([]);
   const [redoStack, setRedoStack] = useState<Snapshot[]>([]);
+
+  // Refs to always access current values inside callbacks (avoids stale closures)
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
 
   const pushUndo = useCallback((snap: Snapshot) => {
     setUndoStack(prev => {
@@ -71,7 +77,7 @@ export function useFlowEditor(initialFlow: Flow) {
         setEdges(prevEdges => {
           pushUndo({ nodes: prevNodes, edges: prevEdges });
           const newEdge: FlowEdge = {
-            id: `edge_${connection.source}_${connection.target}`,
+            id: `edge_${crypto.randomUUID()}`,
             source: connection.source,
             target: connection.target,
             sourceHandle: connection.sourceHandle ?? undefined,
@@ -95,9 +101,8 @@ export function useFlowEditor(initialFlow: Flow) {
           pushUndo({ nodes: prevNodes, edges: prevEdges });
           return prevEdges;
         });
-        const timestamp = Date.now();
         const newNode: FlowNode = {
-          id: `node_${timestamp}`,
+          id: `node_${crypto.randomUUID()}`,
           type: 'customNode',
           position: { x: 200, y: 200 },
           data: {
@@ -134,14 +139,14 @@ export function useFlowEditor(initialFlow: Flow) {
       const snap = prev[prev.length - 1];
       const rest = prev.slice(0, prev.length - 1);
       setNodes(cur => {
-        setRedoStack(r => [...r, { nodes: cur, edges: edges }]);
+        setRedoStack(r => [...r, { nodes: cur, edges: edgesRef.current }]);
         return snap.nodes;
       });
       setEdges(snap.edges);
       setIsDirty(true);
       return rest;
     });
-  }, [edges]);
+  }, []);
 
   const redo = useCallback(() => {
     setRedoStack(prev => {
@@ -149,26 +154,20 @@ export function useFlowEditor(initialFlow: Flow) {
       const snap = prev[prev.length - 1];
       const rest = prev.slice(0, prev.length - 1);
       setNodes(cur => {
-        setUndoStack(u => [...u, { nodes: cur, edges: edges }]);
+        setUndoStack(u => [...u, { nodes: cur, edges: edgesRef.current }]);
         return snap.nodes;
       });
       setEdges(snap.edges);
       setIsDirty(true);
       return rest;
     });
-  }, [edges]);
+  }, []);
 
   const autoLayout = useCallback(() => {
-    setNodes(prevNodes => {
-      setEdges(prevEdges => {
-        pushUndo({ nodes: prevNodes, edges: prevEdges });
-        const laid = applyDagreLayout(prevNodes, prevEdges);
-        setNodes(laid);
-        setIsDirty(true);
-        return prevEdges;
-      });
-      return prevNodes;
-    });
+    pushUndo({ nodes: nodesRef.current, edges: edgesRef.current });
+    const laid = applyDagreLayout(nodesRef.current, edgesRef.current);
+    setNodes(laid);
+    setIsDirty(true);
   }, [pushUndo]);
 
   const updateNode = useCallback(

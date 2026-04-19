@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { NodeProps } from '@xyflow/react';
 import {
@@ -48,33 +48,6 @@ export function CustomNode({ data, selected }: NodeProps<FlowNode>) {
   const shapeClass = getShapeClass(style.shape);
   const isDiamond = style.shape === 'diamond';
 
-  // Inline label editing state
-  const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(data.label);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Sync label when data changes externally
-  useEffect(() => {
-    if (!editing) setEditValue(data.label);
-  }, [data.label, editing]);
-
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditing(true);
-  };
-
-  const commitEdit = () => {
-    setEditing(false);
-    // Label display only — actual data update goes through NodeEditPanel/onUpdateNode.
-  };
-
-  useEffect(() => {
-    if (editing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [editing]);
-
   return (
     <div
       className={`
@@ -87,7 +60,6 @@ export function CustomNode({ data, selected }: NodeProps<FlowNode>) {
         ${shapeClass}
         ${selected ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent shadow-lg scale-105' : ''}
       `}
-      onDoubleClick={handleDoubleClick}
     >
       {/* Target handles: top + left + right */}
       <Handle
@@ -111,26 +83,9 @@ export function CustomNode({ data, selected }: NodeProps<FlowNode>) {
 
       <div className={`flex flex-col items-center gap-1 ${isDiamond ? 'px-2 py-1' : ''}`}>
         {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
-        {editing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editValue}
-            aria-label="ノードラベルを編集"
-            title="ノードラベルを編集"
-            onChange={e => setEditValue(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === 'Escape') commitEdit();
-            }}
-            className="text-xs font-medium text-center leading-tight max-w-[120px] bg-white/20 border border-white/40 rounded px-1 w-full outline-none"
-            onClick={e => e.stopPropagation()}
-          />
-        ) : (
-          <span className="text-xs font-medium text-center leading-tight max-w-[120px] break-words">
-            {data.label}
-          </span>
-        )}
+        <span className="text-xs font-medium text-center leading-tight max-w-[120px] break-words">
+          {data.label}
+        </span>
         {data.role && (
           <span className="text-[10px] opacity-80 text-center leading-tight">({data.role})</span>
         )}

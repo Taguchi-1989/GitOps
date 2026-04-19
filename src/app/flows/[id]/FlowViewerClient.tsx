@@ -48,7 +48,7 @@ export function FlowViewerClient({ flow, mermaidContent, yamlContent }: FlowView
       const res = await fetch('/api/flows/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, flowId }),
+        body: JSON.stringify({ yaml: content, flowId, overwrite: true }),
       });
 
       if (!res.ok) {

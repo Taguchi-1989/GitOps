@@ -309,6 +309,8 @@ export function FlowViewer({
                   onEdgesChange={editable ? editor.onEdgesChange : undefined}
                   onConnect={editable ? editor.onConnect : undefined}
                   onDeleteSelected={editable ? editor.deleteSelected : undefined}
+                  onUndo={editable ? editor.undo : undefined}
+                  onRedo={editable ? editor.redo : undefined}
                 />
               </div>
             </div>

@@ -44,6 +44,8 @@ interface FlowCanvasProps {
   onEdgesChange?: OnEdgesChange<FlowEdge>;
   onConnect?: OnConnect;
   onDeleteSelected?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 export function FlowCanvas({
@@ -59,6 +61,8 @@ export function FlowCanvas({
   onEdgesChange: externalOnEdgesChange,
   onConnect,
   onDeleteSelected,
+  onUndo,
+  onRedo,
 }: FlowCanvasProps) {
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => flowToReactFlow(flow), [flow]);
 
@@ -94,26 +98,28 @@ export function FlowCanvas({
     [onEdgeClick]
   );
 
-  // Delete key handler for editable mode
+  // Keyboard shortcuts for editable mode (Delete, Ctrl+Z, Ctrl+Shift+Z)
   useEffect(() => {
-    if (!editable || !onDeleteSelected) return;
+    if (!editable) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Only fire if not focused on an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        // Only fire if not focused on an input/textarea
-        const target = e.target as HTMLElement;
-        if (
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable
-        ) {
-          return;
-        }
-        onDeleteSelected();
+        onDeleteSelected?.();
+      } else if (e.ctrlKey && e.shiftKey && e.key === 'Z') {
+        e.preventDefault();
+        onRedo?.();
+      } else if (e.ctrlKey && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        onUndo?.();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [editable, onDeleteSelected]);
+  }, [editable, onDeleteSelected, onUndo, onRedo]);
 
   return (
     <div className={`w-full h-full min-h-[400px] ${className ?? ''}`}>
