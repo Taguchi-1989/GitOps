@@ -1,0 +1,233 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775369810170,
+  "projectRoot": "/mnt/d/dev/GitOps",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=18.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "next",
+        "version": "14.2.35",
+        "category": "fullstack"
+      },
+      {
+        "name": "react",
+        "version": "18.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "18.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "vitest",
+        "version": "3.2.4",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 18.0.0"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint",
+      "db:migrate": "prisma migrate dev",
+      "db:migrate:deploy": "prisma migrate deploy",
+      "db:push": "prisma db push",
+      "db:generate": "prisma generate",
+      "db:studio": "prisma studio",
+      "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+      "test": "vitest run",
+      "test:watch": "vitest",
+      "test:coverage": "vitest run --coverage",
+      "typecheck": "tsc --noEmit",
+      "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+      "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
+      "prepare": "husky",
+      "postinstall": "prisma generate"
+    }
+  },
+  "conventions": {
+    "namingStyle": "camelCase",
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "spec",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "master",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "coverage": {
+      "path": "coverage",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1775369809982,
+      "keyFiles": [
+        "base.css",
+        "block-navigation.js",
+        "clover.xml",
+        "coverage-final.json",
+        "favicon.png"
+      ]
+    },
+    "d:devGitOpsdocs": {
+      "path": "d:devGitOpsdocs",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775369809994,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 14,
+      "lastAccessed": 1775369810007,
+      "keyFiles": [
+        "HANDOFF-PROMPT.md",
+        "architecture-ai-integration.md",
+        "audit-report-2026-03-02.md",
+        "aws-migration-goals.md",
+        "flowops-slides.html"
+      ]
+    },
+    "infrastructure": {
+      "path": "infrastructure",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775369810018,
+      "keyFiles": []
+    },
+    "prisma": {
+      "path": "prisma",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1775369810029,
+      "keyFiles": [
+        "dev.db",
+        "schema.prisma",
+        "seed.ts"
+      ]
+    },
+    "spec": {
+      "path": "spec",
+      "purpose": "Test specifications",
+      "fileCount": 0,
+      "lastAccessed": 1775369810039,
+      "keyFiles": []
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 1,
+      "lastAccessed": 1775369810045,
+      "keyFiles": [
+        "middleware.ts"
+      ]
+    },
+    "coverage/app": {
+      "path": "coverage/app",
+      "purpose": "Application code",
+      "fileCount": 0,
+      "lastAccessed": 1775369810090,
+      "keyFiles": []
+    },
+    "coverage/lib": {
+      "path": "coverage/lib",
+      "purpose": "Library code",
+      "fileCount": 12,
+      "lastAccessed": 1775369810142,
+      "keyFiles": [
+        "api-utils.ts.html",
+        "audit-repository.ts.html",
+        "auth.ts.html"
+      ]
+    },
+    "prisma/migrations": {
+      "path": "prisma/migrations",
+      "purpose": "Database migrations",
+      "fileCount": 1,
+      "lastAccessed": 1775369810152,
+      "keyFiles": [
+        "migration_lock.toml"
+      ]
+    },
+    "src/app": {
+      "path": "src/app",
+      "purpose": "Application code",
+      "fileCount": 4,
+      "lastAccessed": 1775369810159,
+      "keyFiles": [
+        "error.tsx",
+        "globals.css",
+        "layout.tsx"
+      ]
+    },
+    "src/components": {
+      "path": "src/components",
+      "purpose": "UI components",
+      "fileCount": 1,
+      "lastAccessed": 1775369810163,
+      "keyFiles": [
+        "index.ts"
+      ]
+    },
+    "src/lib": {
+      "path": "src/lib",
+      "purpose": "Library code",
+      "fileCount": 27,
+      "lastAccessed": 1775369810166,
+      "keyFiles": [
+        "api-utils.test.ts",
+        "api-utils.ts",
+        "audit-repository.test.ts"
+      ]
+    },
+    "src/test": {
+      "path": "src/test",
+      "purpose": "Test files",
+      "fileCount": 1,
+      "lastAccessed": 1775369810170,
+      "keyFiles": [
+        "helpers.ts"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}
