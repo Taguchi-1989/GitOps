@@ -173,7 +173,10 @@ export function useFlowEditor(initialFlow: Flow) {
   const updateNode = useCallback(
     (nodeId: string, data: Partial<FlowNodeData>) => {
       setNodes(prev => {
-        pushUndo({ nodes: prev, edges: edges });
+        setEdges(prevEdges => {
+          pushUndo({ nodes: prev, edges: prevEdges });
+          return prevEdges;
+        });
         const updated = prev.map(n =>
           n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n
         );
@@ -181,7 +184,7 @@ export function useFlowEditor(initialFlow: Flow) {
         return updated;
       });
     },
-    [pushUndo, edges]
+    [pushUndo]
   );
 
   const deleteNode = useCallback(
