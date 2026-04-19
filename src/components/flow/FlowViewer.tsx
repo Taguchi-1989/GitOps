@@ -148,7 +148,10 @@ export function FlowViewer({
 
   const handleSelectTemplate = useCallback(
     (templateFlow: Flow) => {
-      editor.loadFlow(templateFlow);
+      editor.loadFlow({
+        ...templateFlow,
+        updatedAt: new Date().toISOString(),
+      });
     },
     [editor]
   );

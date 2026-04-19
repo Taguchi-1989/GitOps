@@ -20,7 +20,7 @@ interface NodeDiff {
 
 interface EdgeDiff {
   id: string;
-  status: 'added' | 'removed' | 'unchanged';
+  status: 'added' | 'removed' | 'changed' | 'unchanged';
   label: string;
 }
 
@@ -82,10 +82,13 @@ function computeDiff(current: Flow, proposed: Flow): { nodes: NodeDiff[]; edges:
 
   for (const id of currentEdgeIds) {
     if (proposedEdgeIds.has(id)) {
+      const cur = current.edges[id];
+      const prop = proposed.edges[id];
+      const changed = cur.from !== prop.from || cur.to !== prop.to || cur.label !== prop.label;
       edges.push({
         id,
-        status: 'unchanged',
-        label: `${proposed.edges[id].from} → ${proposed.edges[id].to}`,
+        status: changed ? 'changed' : 'unchanged',
+        label: `${prop.from} → ${prop.to}`,
       });
     }
   }

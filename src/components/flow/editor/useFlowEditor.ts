@@ -245,13 +245,9 @@ export function useFlowEditor(initialFlow: Flow) {
   const loadFlow = useCallback(
     (flow: Flow) => {
       const { nodes: nextNodes, edges: nextEdges } = flowToReactFlow(flow);
-      setNodes(prevNodes => {
-        setEdges(prevEdges => {
-          pushUndo({ nodes: prevNodes, edges: prevEdges });
-          return nextEdges;
-        });
-        return nextNodes;
-      });
+      pushUndo({ nodes: nodesRef.current, edges: edgesRef.current });
+      setNodes(nextNodes);
+      setEdges(nextEdges);
       setIsDirty(true);
     },
     [pushUndo]
