@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   Eye,
   Pencil,
+  Grid3x3,
   LucideIcon,
 } from 'lucide-react';
 import { NODE_STYLE_MAP } from './node-styles';
@@ -62,6 +63,9 @@ interface EditorToolbarProps {
   isSaving: boolean;
   editable: boolean;
   onToggleEditable: () => void;
+  onOpenTemplates?: () => void;
+  onToggleAIPanel?: () => void;
+  isAIPanelOpen?: boolean;
 }
 
 export function EditorToolbar({
@@ -76,6 +80,9 @@ export function EditorToolbar({
   isSaving,
   editable,
   onToggleEditable,
+  onOpenTemplates,
+  onToggleAIPanel,
+  isAIPanelOpen,
 }: EditorToolbarProps) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-wrap">
@@ -96,6 +103,36 @@ export function EditorToolbar({
         {editable ? <Pencil className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         {editable ? '編集中' : '閲覧'}
       </button>
+
+      {/* Template Gallery button */}
+      {onOpenTemplates && (
+        <button
+          type="button"
+          onClick={onOpenTemplates}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+          title="テンプレートギャラリー"
+        >
+          <Grid3x3 className="w-4 h-4" />
+          テンプレート
+        </button>
+      )}
+
+      {/* AI Assistant button */}
+      {onToggleAIPanel && (
+        <button
+          type="button"
+          onClick={onToggleAIPanel}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            isAIPanelOpen
+              ? 'bg-purple-600 text-white hover:bg-purple-700'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+          }`}
+          title="AIアシスタント"
+        >
+          <Sparkles className="w-4 h-4" />
+          AI
+        </button>
+      )}
 
       {editable && (
         <>

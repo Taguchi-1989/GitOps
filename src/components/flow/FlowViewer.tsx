@@ -19,6 +19,8 @@ import { EditorToolbar } from './editor/EditorToolbar';
 import { NodeEditPanel } from './editor/NodeEditPanel';
 import { EdgeEditPanel } from './editor/EdgeEditPanel';
 import { useFlowEditor } from './editor/useFlowEditor';
+import { AIChatPanel } from './editor/AIChatPanel';
+import { TemplateGallery } from './editor/TemplateGallery';
 import type { FlowNode, FlowEdge } from './editor/types';
 
 const FlowCanvas = dynamic(() => import('./editor/FlowCanvas').then(m => m.FlowCanvas), {
@@ -62,6 +64,8 @@ export function FlowViewer({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+  const [isTemplateGalleryOpen, setIsTemplateGalleryOpen] = useState(false);
 
   const editor = useFlowEditor(flow);
 
@@ -134,6 +138,20 @@ export function FlowViewer({
       setIsSaving(false);
     }
   }, [onSave, editor, flow]);
+
+  const handleApplyFlow = useCallback(
+    (generatedFlow: Flow) => {
+      editor.loadFlow(generatedFlow);
+    },
+    [editor]
+  );
+
+  const handleSelectTemplate = useCallback(
+    (templateFlow: Flow) => {
+      editor.loadFlow(templateFlow);
+    },
+    [editor]
+  );
 
   const selectedNodeData = selectedNode
     ? (editor.nodes.find((n: FlowNode) => n.id === selectedNode) ?? null)
@@ -268,6 +286,9 @@ export function FlowViewer({
           canRedo={editor.canRedo}
           isDirty={editor.isDirty}
           isSaving={isSaving}
+          onOpenTemplates={() => setIsTemplateGalleryOpen(true)}
+          onToggleAIPanel={() => setIsAIPanelOpen(prev => !prev)}
+          isAIPanelOpen={isAIPanelOpen}
         />
       )}
 
@@ -350,6 +371,26 @@ export function FlowViewer({
             }}
             onClose={() => setSelectedEdge(null)}
           />
+        )}
+
+        {/* AI Chat Panel */}
+        {isAIPanelOpen && activeTab === 'diagram' && (
+          <div className="w-80 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 overflow-hidden">
+            <AIChatPanel
+              currentFlow={
+                editable
+                  ? editor.toFlow({
+                      id: flow.id,
+                      title: flow.title,
+                      layer: flow.layer,
+                      updatedAt: flow.updatedAt,
+                    })
+                  : flow
+              }
+              onApplyFlow={handleApplyFlow}
+              className="h-full"
+            />
+          </div>
         )}
 
         {/* Side Panel - View mode: read-only node details */}
@@ -452,6 +493,14 @@ export function FlowViewer({
           </div>
         )}
       </div>
+
+      {/* Template Gallery Modal */}
+      {isTemplateGalleryOpen && (
+        <TemplateGallery
+          onSelectTemplate={handleSelectTemplate}
+          onClose={() => setIsTemplateGalleryOpen(false)}
+        />
+      )}
     </div>
   );
 }

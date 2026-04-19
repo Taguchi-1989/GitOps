@@ -1,0 +1,380 @@
+'use client';
+
+import type { Flow } from '@/core/parser/schema';
+
+export interface FlowTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: 'business' | 'approval' | 'quality' | 'general';
+  flow: Flow;
+}
+
+export const FLOW_TEMPLATES: FlowTemplate[] = [
+  {
+    id: 'simple-approval',
+    name: 'シンプル承認フロー',
+    description: '申請から承認・却下までの基本的な承認フロー',
+    category: 'approval',
+    flow: {
+      id: 'template-simple-approval',
+      title: 'シンプル承認フロー',
+      layer: 'L1',
+      updatedAt: new Date().toISOString(),
+      nodes: {
+        start: { id: 'start', type: 'start', label: '開始', meta: { position: { x: 250, y: 50 } } },
+        apply: {
+          id: 'apply',
+          type: 'process',
+          label: '申請',
+          meta: { position: { x: 250, y: 150 } },
+        },
+        decision: {
+          id: 'decision',
+          type: 'decision',
+          label: '承認判断',
+          meta: { position: { x: 250, y: 280 } },
+        },
+        approved: {
+          id: 'approved',
+          type: 'process',
+          label: '承認',
+          meta: { position: { x: 100, y: 400 } },
+        },
+        rejected: {
+          id: 'rejected',
+          type: 'process',
+          label: '却下',
+          meta: { position: { x: 400, y: 400 } },
+        },
+        end: { id: 'end', type: 'end', label: '終了', meta: { position: { x: 250, y: 520 } } },
+      },
+      edges: {
+        e1: { id: 'e1', from: 'start', to: 'apply' },
+        e2: { id: 'e2', from: 'apply', to: 'decision' },
+        e3: { id: 'e3', from: 'decision', to: 'approved', label: '承認' },
+        e4: { id: 'e4', from: 'decision', to: 'rejected', label: '却下' },
+        e5: { id: 'e5', from: 'approved', to: 'end' },
+        e6: { id: 'e6', from: 'rejected', to: 'end' },
+      },
+    },
+  },
+  {
+    id: 'pdca-cycle',
+    name: 'PDCAサイクル',
+    description: '計画・実行・評価・改善の継続的改善サイクル',
+    category: 'business',
+    flow: {
+      id: 'template-pdca',
+      title: 'PDCAサイクル',
+      layer: 'L1',
+      updatedAt: new Date().toISOString(),
+      nodes: {
+        start: { id: 'start', type: 'start', label: '開始', meta: { position: { x: 250, y: 50 } } },
+        plan: {
+          id: 'plan',
+          type: 'process',
+          label: 'Plan（計画）',
+          meta: { position: { x: 250, y: 150 } },
+        },
+        do: {
+          id: 'do',
+          type: 'process',
+          label: 'Do（実行）',
+          meta: { position: { x: 250, y: 260 } },
+        },
+        check: {
+          id: 'check',
+          type: 'process',
+          label: 'Check（評価）',
+          meta: { position: { x: 250, y: 370 } },
+        },
+        decision: {
+          id: 'decision',
+          type: 'decision',
+          label: '目標達成？',
+          meta: { position: { x: 250, y: 480 } },
+        },
+        act: {
+          id: 'act',
+          type: 'process',
+          label: 'Act（改善）',
+          meta: { position: { x: 450, y: 480 } },
+        },
+        end: { id: 'end', type: 'end', label: '完了', meta: { position: { x: 250, y: 590 } } },
+      },
+      edges: {
+        e1: { id: 'e1', from: 'start', to: 'plan' },
+        e2: { id: 'e2', from: 'plan', to: 'do' },
+        e3: { id: 'e3', from: 'do', to: 'check' },
+        e4: { id: 'e4', from: 'check', to: 'decision' },
+        e5: { id: 'e5', from: 'decision', to: 'end', label: '達成' },
+        e6: { id: 'e6', from: 'decision', to: 'act', label: '未達成' },
+        e7: { id: 'e7', from: 'act', to: 'plan', label: '再計画' },
+      },
+    },
+  },
+  {
+    id: 'quality-inspection',
+    name: '品質検査フロー',
+    description: 'AI判定と人間レビューを組み合わせた品質検査プロセス',
+    category: 'quality',
+    flow: {
+      id: 'template-quality',
+      title: '品質検査フロー',
+      layer: 'L1',
+      updatedAt: new Date().toISOString(),
+      nodes: {
+        start: { id: 'start', type: 'start', label: '開始', meta: { position: { x: 250, y: 50 } } },
+        inspect: {
+          id: 'inspect',
+          type: 'process',
+          label: '検査',
+          meta: { position: { x: 250, y: 150 } },
+        },
+        'ai-judge': {
+          id: 'ai-judge',
+          type: 'llm-task',
+          label: 'AI判定',
+          meta: { position: { x: 250, y: 260 } },
+        },
+        'human-review': {
+          id: 'human-review',
+          type: 'human-review',
+          label: '人間レビュー',
+          meta: { position: { x: 250, y: 370 } },
+        },
+        decision: {
+          id: 'decision',
+          type: 'decision',
+          label: '合否判定',
+          meta: { position: { x: 250, y: 480 } },
+        },
+        pass: {
+          id: 'pass',
+          type: 'process',
+          label: '合格',
+          meta: { position: { x: 100, y: 590 } },
+        },
+        fail: {
+          id: 'fail',
+          type: 'process',
+          label: '不合格',
+          meta: { position: { x: 400, y: 590 } },
+        },
+        end: { id: 'end', type: 'end', label: '終了', meta: { position: { x: 250, y: 700 } } },
+      },
+      edges: {
+        e1: { id: 'e1', from: 'start', to: 'inspect' },
+        e2: { id: 'e2', from: 'inspect', to: 'ai-judge' },
+        e3: { id: 'e3', from: 'ai-judge', to: 'human-review' },
+        e4: { id: 'e4', from: 'human-review', to: 'decision' },
+        e5: { id: 'e5', from: 'decision', to: 'pass', label: '合格' },
+        e6: { id: 'e6', from: 'decision', to: 'fail', label: '不合格' },
+        e7: { id: 'e7', from: 'pass', to: 'end' },
+        e8: { id: 'e8', from: 'fail', to: 'end' },
+      },
+    },
+  },
+  {
+    id: 'risk-assessment',
+    name: 'リスクアセスメント',
+    description: 'リスク特定・分析・評価・対策の標準的リスク管理フロー',
+    category: 'quality',
+    flow: {
+      id: 'template-risk',
+      title: 'リスクアセスメント',
+      layer: 'L1',
+      updatedAt: new Date().toISOString(),
+      nodes: {
+        start: { id: 'start', type: 'start', label: '開始', meta: { position: { x: 250, y: 50 } } },
+        identify: {
+          id: 'identify',
+          type: 'process',
+          label: 'リスク特定',
+          meta: { position: { x: 250, y: 150 } },
+        },
+        analyze: {
+          id: 'analyze',
+          type: 'llm-task',
+          label: 'リスク分析',
+          meta: { position: { x: 250, y: 260 } },
+        },
+        evaluate: {
+          id: 'evaluate',
+          type: 'decision',
+          label: 'リスク評価',
+          meta: { position: { x: 250, y: 370 } },
+        },
+        mitigate: {
+          id: 'mitigate',
+          type: 'process',
+          label: 'リスク対策',
+          meta: { position: { x: 450, y: 370 } },
+        },
+        review: {
+          id: 'review',
+          type: 'human-review',
+          label: '対策レビュー',
+          meta: { position: { x: 450, y: 480 } },
+        },
+        end: { id: 'end', type: 'end', label: '終了', meta: { position: { x: 250, y: 480 } } },
+      },
+      edges: {
+        e1: { id: 'e1', from: 'start', to: 'identify' },
+        e2: { id: 'e2', from: 'identify', to: 'analyze' },
+        e3: { id: 'e3', from: 'analyze', to: 'evaluate' },
+        e4: { id: 'e4', from: 'evaluate', to: 'end', label: '許容範囲' },
+        e5: { id: 'e5', from: 'evaluate', to: 'mitigate', label: '要対策' },
+        e6: { id: 'e6', from: 'mitigate', to: 'review' },
+        e7: { id: 'e7', from: 'review', to: 'end' },
+      },
+    },
+  },
+  {
+    id: 'data-pipeline',
+    name: 'データ処理パイプライン',
+    description: 'データ取込・AI変換・検証・出力の自動化パイプライン',
+    category: 'business',
+    flow: {
+      id: 'template-pipeline',
+      title: 'データ処理パイプライン',
+      layer: 'L2',
+      updatedAt: new Date().toISOString(),
+      nodes: {
+        start: { id: 'start', type: 'start', label: '開始', meta: { position: { x: 250, y: 50 } } },
+        ingest: {
+          id: 'ingest',
+          type: 'database',
+          label: 'データ取込',
+          meta: { position: { x: 250, y: 150 } },
+        },
+        transform: {
+          id: 'transform',
+          type: 'llm-task',
+          label: 'AI変換',
+          meta: { position: { x: 250, y: 260 } },
+        },
+        validate: {
+          id: 'validate',
+          type: 'decision',
+          label: '検証',
+          meta: { position: { x: 250, y: 370 } },
+        },
+        output: {
+          id: 'output',
+          type: 'database',
+          label: '出力',
+          meta: { position: { x: 100, y: 480 } },
+        },
+        error: {
+          id: 'error',
+          type: 'process',
+          label: 'エラー処理',
+          meta: { position: { x: 400, y: 480 } },
+        },
+        end: { id: 'end', type: 'end', label: '終了', meta: { position: { x: 250, y: 590 } } },
+      },
+      edges: {
+        e1: { id: 'e1', from: 'start', to: 'ingest' },
+        e2: { id: 'e2', from: 'ingest', to: 'transform' },
+        e3: { id: 'e3', from: 'transform', to: 'validate' },
+        e4: { id: 'e4', from: 'validate', to: 'output', label: '正常' },
+        e5: { id: 'e5', from: 'validate', to: 'error', label: '異常' },
+        e6: { id: 'e6', from: 'output', to: 'end' },
+        e7: { id: 'e7', from: 'error', to: 'end' },
+      },
+    },
+  },
+  {
+    id: 'blank',
+    name: '空のフロー',
+    description: '開始と終了ノードのみのシンプルなフロー',
+    category: 'general',
+    flow: {
+      id: 'template-blank',
+      title: '新しいフロー',
+      layer: 'L1',
+      updatedAt: new Date().toISOString(),
+      nodes: {
+        start: {
+          id: 'start',
+          type: 'start',
+          label: '開始',
+          meta: { position: { x: 250, y: 100 } },
+        },
+        end: { id: 'end', type: 'end', label: '終了', meta: { position: { x: 250, y: 250 } } },
+      },
+      edges: {
+        e1: { id: 'e1', from: 'start', to: 'end' },
+      },
+    },
+  },
+  {
+    id: 'incident-response',
+    name: 'インシデント対応',
+    description: '障害検知から復旧・報告までのインシデント管理フロー',
+    category: 'business',
+    flow: {
+      id: 'template-incident',
+      title: 'インシデント対応フロー',
+      layer: 'L1',
+      updatedAt: new Date().toISOString(),
+      nodes: {
+        start: {
+          id: 'start',
+          type: 'start',
+          label: '障害検知',
+          meta: { position: { x: 250, y: 50 } },
+        },
+        triage: {
+          id: 'triage',
+          type: 'decision',
+          label: '深刻度判定',
+          meta: { position: { x: 250, y: 160 } },
+        },
+        escalate: {
+          id: 'escalate',
+          type: 'process',
+          label: 'エスカレーション',
+          meta: { position: { x: 450, y: 160 } },
+        },
+        investigate: {
+          id: 'investigate',
+          type: 'llm-task',
+          label: 'AI原因調査',
+          meta: { position: { x: 250, y: 280 } },
+        },
+        fix: {
+          id: 'fix',
+          type: 'process',
+          label: '対応・修正',
+          meta: { position: { x: 250, y: 390 } },
+        },
+        verify: {
+          id: 'verify',
+          type: 'human-review',
+          label: '復旧確認',
+          meta: { position: { x: 250, y: 500 } },
+        },
+        report: {
+          id: 'report',
+          type: 'process',
+          label: '事後報告',
+          meta: { position: { x: 250, y: 610 } },
+        },
+        end: { id: 'end', type: 'end', label: '終了', meta: { position: { x: 250, y: 720 } } },
+      },
+      edges: {
+        e1: { id: 'e1', from: 'start', to: 'triage' },
+        e2: { id: 'e2', from: 'triage', to: 'escalate', label: '重大' },
+        e3: { id: 'e3', from: 'triage', to: 'investigate', label: '軽微' },
+        e4: { id: 'e4', from: 'escalate', to: 'investigate' },
+        e5: { id: 'e5', from: 'investigate', to: 'fix' },
+        e6: { id: 'e6', from: 'fix', to: 'verify' },
+        e7: { id: 'e7', from: 'verify', to: 'report' },
+        e8: { id: 'e8', from: 'report', to: 'end' },
+      },
+    },
+  },
+];

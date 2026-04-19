@@ -242,6 +242,21 @@ export function useFlowEditor(initialFlow: Flow) {
     [pushUndo]
   );
 
+  const loadFlow = useCallback(
+    (flow: Flow) => {
+      const { nodes: nextNodes, edges: nextEdges } = flowToReactFlow(flow);
+      setNodes(prevNodes => {
+        setEdges(prevEdges => {
+          pushUndo({ nodes: prevNodes, edges: prevEdges });
+          return nextEdges;
+        });
+        return nextNodes;
+      });
+      setIsDirty(true);
+    },
+    [pushUndo]
+  );
+
   const toFlow = useCallback(
     (
       metadata: Pick<Flow, 'id' | 'title' | 'layer' | 'updatedAt'> &
@@ -274,6 +289,7 @@ export function useFlowEditor(initialFlow: Flow) {
     deleteNode,
     updateEdge,
     deleteEdge,
+    loadFlow,
     toFlow,
     resetDirty,
   };
