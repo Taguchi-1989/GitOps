@@ -29,7 +29,8 @@ export function useAIFlowGeneration() {
     async (
       prompt: string,
       currentYaml?: string,
-      flowId?: string
+      flowId?: string,
+      imageBase64?: string
     ): Promise<GenerationResult | null> => {
       setIsGenerating(true);
       setError(null);
@@ -39,15 +40,32 @@ export function useAIFlowGeneration() {
       setMessages(nextMessages);
 
       try {
-        const response = await fetch('/api/flows/draft', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: nextMessages,
-            currentYaml,
-            flowId,
-          }),
-        });
+        let response: Response;
+
+        if (imageBase64) {
+          // 画像ベース: /api/flows/from-image
+          response = await fetch('/api/flows/from-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageBase64,
+              imageDescription: prompt,
+              currentYaml,
+              flowId,
+            }),
+          });
+        } else {
+          // テキストベース: /api/flows/draft
+          response = await fetch('/api/flows/draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: nextMessages,
+              currentYaml,
+              flowId,
+            }),
+          });
+        }
 
         if (!response.ok) {
           const errorData = (await response.json().catch(() => ({}))) as { error?: string };
@@ -56,7 +74,11 @@ export function useAIFlowGeneration() {
 
         const json = (await response.json()) as {
           ok: boolean;
-          data: Omit<GenerationResult, 'flow'>;
+          data: Omit<GenerationResult, 'flow'> & {
+            confidence?: number;
+            notes?: string[];
+            ambiguities?: string[];
+          };
           error?: string;
         };
 
@@ -81,7 +103,16 @@ export function useAIFlowGeneration() {
 
         const assistantContent = [
           data.summary,
-          ...(data.questions.length > 0
+          ...(data.confidence !== undefined
+            ? [`\n信頼度: ${Math.round(data.confidence * 100)}%`]
+            : []),
+          ...(data.notes && data.notes.length > 0
+            ? [`\n読取メモ:\n${data.notes.map(n => `- ${n}`).join('\n')}`]
+            : []),
+          ...(data.ambiguities && data.ambiguities.length > 0
+            ? [`\n不明点:\n${data.ambiguities.map(a => `- ${a}`).join('\n')}`]
+            : []),
+          ...((data.questions ?? []).length > 0
             ? [`\n追加質問:\n${data.questions.map(q => `- ${q}`).join('\n')}`]
             : []),
           ...(data.validationErrors.length > 0

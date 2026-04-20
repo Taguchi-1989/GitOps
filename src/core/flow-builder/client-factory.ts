@@ -29,13 +29,20 @@ const PROVIDER_DEFAULTS: Record<
     supportsJsonMode: true,
   },
   ollama: { baseURL: 'http://localhost:11434/v1', model: 'llama3.2', supportsJsonMode: true },
+  'ollama-gemma': {
+    baseURL: 'http://localhost:11434/v1',
+    model: 'gemma3:27b',
+    supportsJsonMode: true,
+  },
 };
 
 function getClientConfig() {
   const provider = process.env.LLM_PROVIDER || 'openai';
   const defaults = PROVIDER_DEFAULTS[provider];
 
-  const apiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
+  const isLocalProvider = provider === 'ollama' || provider === 'ollama-gemma';
+  const apiKey =
+    process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || (isLocalProvider ? 'ollama' : '');
   if (!apiKey) {
     throw new Error('LLM_API_KEY (or OPENAI_API_KEY) is not set');
   }
