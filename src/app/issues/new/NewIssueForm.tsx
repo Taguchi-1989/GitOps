@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/components/ui/Toast';
@@ -19,11 +19,12 @@ const FlowCanvas = dynamic(() => import('@/components/flow/editor/FlowCanvas'), 
 
 interface NewIssueFormProps {
   flows: FlowSummary[];
+  flowsMap: Record<string, Flow>;
   defaultFlowId?: string;
   defaultNodeId?: string;
 }
 
-export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFormProps) {
+export function NewIssueForm({ flows, flowsMap, defaultFlowId, defaultNodeId }: NewIssueFormProps) {
   const router = useRouter();
   const { addToast } = useToast();
 
@@ -35,40 +36,9 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
     targetNodeId: defaultNodeId || '',
   });
 
-  // フロープレビュー用の状態
-  const [previewFlow, setPreviewFlow] = useState<Flow | null>(null);
-  const [isFetchingFlow, setIsFetchingFlow] = useState(false);
+  // フロープレビュー: SSRで渡されたflowsMapから直接取得
+  const previewFlow = formData.targetFlowId ? (flowsMap[formData.targetFlowId] ?? null) : null;
   const [selectedNodeLabel, setSelectedNodeLabel] = useState<string | null>(null);
-
-  // targetFlowId が変わったらフローデータをフェッチ
-  useEffect(() => {
-    if (!formData.targetFlowId) {
-      setPreviewFlow(null);
-      setSelectedNodeLabel(null);
-      return;
-    }
-    let cancelled = false;
-    setIsFetchingFlow(true);
-    fetch(`/api/flows/${formData.targetFlowId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (cancelled) return;
-        if (data.ok && data.data?.flow) {
-          setPreviewFlow(data.data.flow as Flow);
-        } else {
-          setPreviewFlow(null);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setPreviewFlow(null);
-      })
-      .finally(() => {
-        if (!cancelled) setIsFetchingFlow(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [formData.targetFlowId]);
 
   // ノードクリック時: targetNodeId を自動入力し、ノード名を表示
   const handleNodeClick = (nodeId: string) => {
@@ -305,18 +275,12 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
                   フローを選択するとダイアグラムが表示されます
                 </p>
               )}
-              {formData.targetFlowId && isFetchingFlow && (
-                <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="text-sm">読み込み中...</span>
-                </div>
-              )}
-              {formData.targetFlowId && !isFetchingFlow && !previewFlow && (
+              {formData.targetFlowId && !previewFlow && (
                 <p className="text-sm text-gray-400 dark:text-gray-500 px-6 text-center">
-                  フローデータを取得できませんでした
+                  フローデータが見つかりませんでした
                 </p>
               )}
-              {formData.targetFlowId && !isFetchingFlow && previewFlow && (
+              {formData.targetFlowId && previewFlow && (
                 <div className="w-full h-full">
                   <FlowCanvas
                     flow={previewFlow}
