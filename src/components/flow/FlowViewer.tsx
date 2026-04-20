@@ -75,7 +75,10 @@ export function FlowViewer({
         layer: flow.layer,
         updatedAt: flow.updatedAt,
       }),
-    [editor, flow.id, flow.title, flow.layer, flow.updatedAt]
+    // editor.toFlow is stable (useCallback on [nodes, edges]); using it instead of
+    // the editor object literal prevents currentFlow from recomputing on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editor.toFlow, flow.id, flow.title, flow.layer, flow.updatedAt]
   );
   const displayedFlow = currentFlow;
   const displayedYaml = useMemo(

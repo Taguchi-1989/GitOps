@@ -76,13 +76,20 @@ export function FlowCanvas({
     [initialNodes, selectedNodeId]
   );
 
+  // In editable mode, use external controlled state from useFlowEditor.
+  // In view mode, drive ReactFlow directly with the converted nodes (controlled, no-op handler)
+  // to avoid the controlled/uncontrolled conflict that causes the StoreUpdater infinite loop.
   const [internalNodes, , internalOnNodesChange] = useNodesState<FlowNode>(nodesWithSelection);
   const [internalEdges, , internalOnEdgesChange] = useEdgesState(initialEdges);
 
-  const nodes = externalNodes ?? internalNodes;
-  const edges = externalEdges ?? internalEdges;
-  const onNodesChange = externalOnNodesChange ?? internalOnNodesChange;
-  const onEdgesChange = externalOnEdgesChange ?? internalOnEdgesChange;
+  const nodes = editable ? (externalNodes ?? internalNodes) : nodesWithSelection;
+  const edges = editable ? (externalEdges ?? internalEdges) : initialEdges;
+  const onNodesChange = editable
+    ? (externalOnNodesChange ?? internalOnNodesChange)
+    : internalOnNodesChange;
+  const onEdgesChange = editable
+    ? (externalOnEdgesChange ?? internalOnEdgesChange)
+    : internalOnEdgesChange;
 
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_event, node) => {
