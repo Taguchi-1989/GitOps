@@ -5,7 +5,6 @@
  * パターン: src/lib/audit-repository.ts に準拠
  */
 
-import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import type {
   IDataObjectRepository,
@@ -14,6 +13,32 @@ import type {
   CrossReferenceRecord,
 } from '@/core/data/types';
 import type { DataObject, CrossReference } from '@/core/data/schemas';
+
+function parseJson(value: unknown): Record<string, unknown> | null {
+  if (value == null) return null;
+  if (typeof value === 'object') return value as Record<string, unknown>;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function parseJsonArray(value: unknown): string[] | null {
+  if (value == null) return null;
+  if (Array.isArray(value)) return value as string[];
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 function toRecord(r: Record<string, unknown>): DataObjectRecord {
   return {
@@ -28,15 +53,15 @@ function toRecord(r: Record<string, unknown>): DataObjectRecord {
     accessPolicyRef: (r.accessPolicyRef as string) || null,
     contentRef: (r.contentRef as string) || null,
     exportPolicy: r.exportPolicy as string,
-    semanticTags: r.semanticTags as string[] | null,
+    semanticTags: parseJsonArray(r.semanticTags),
     provenanceRef: (r.provenanceRef as string) || null,
     validationRef: (r.validationRef as string) || null,
     validationStatus: (r.validationStatus as string) || null,
     fragmentType: (r.fragmentType as string) || null,
     semanticObjectType: (r.semanticObjectType as string) || null,
-    abstractionMetadata: r.abstractionMetadata as Record<string, unknown> | null,
-    outputArtifactMetadata: r.outputArtifactMetadata as Record<string, unknown> | null,
-    meta: r.meta as Record<string, unknown> | null,
+    abstractionMetadata: parseJson(r.abstractionMetadata),
+    outputArtifactMetadata: parseJson(r.outputArtifactMetadata),
+    meta: parseJson(r.meta),
     createdAt: r.createdAt as Date,
     updatedAt: r.updatedAt as Date,
   };
@@ -68,19 +93,19 @@ class PrismaDataObjectRepository implements IDataObjectRepository {
         accessPolicyRef: data.accessPolicyRef || null,
         contentRef: data.contentRef || null,
         exportPolicy: data.exportPolicy || 'unrestricted',
-        semanticTags: data.semanticTags ?? Prisma.JsonNull,
+        semanticTags: data.semanticTags ? JSON.stringify(data.semanticTags) : null,
         provenanceRef: data.provenanceRef || null,
         validationRef: data.validationRef || null,
         validationStatus: data.validationStatus || null,
         fragmentType: data.fragmentType || null,
         semanticObjectType: data.semanticObjectType || null,
         abstractionMetadata: data.abstractionMetadata
-          ? (data.abstractionMetadata as unknown as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
+          ? JSON.stringify(data.abstractionMetadata)
+          : null,
         outputArtifactMetadata: data.outputArtifactMetadata
-          ? (data.outputArtifactMetadata as unknown as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
-        meta: data.meta ? (data.meta as Prisma.InputJsonValue) : Prisma.JsonNull,
+          ? JSON.stringify(data.outputArtifactMetadata)
+          : null,
+        meta: data.meta ? JSON.stringify(data.meta) : null,
       },
     });
 

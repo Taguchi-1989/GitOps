@@ -8,11 +8,22 @@
 
 import React, { useState, useRef } from 'react';
 import { Flow } from '@/core/parser';
-import { Copy, Check, Upload, FileDown, Wand2, AlertCircle, CheckCircle } from 'lucide-react';
+import { MermaidViewer } from './MermaidViewer';
+import {
+  Copy,
+  Check,
+  Upload,
+  FileDown,
+  Wand2,
+  AlertCircle,
+  CheckCircle,
+  ImageIcon,
+} from 'lucide-react';
 
 interface FlowExportImportProps {
   flow: Flow;
   yamlContent: string;
+  mermaidContent?: string;
   onImportSuccess?: () => void;
 }
 
@@ -95,7 +106,12 @@ ${yamlContent}
 説明文は不要です。`;
 }
 
-export function FlowExportImport({ flow, yamlContent, onImportSuccess }: FlowExportImportProps) {
+export function FlowExportImport({
+  flow,
+  yamlContent,
+  mermaidContent,
+  onImportSuccess,
+}: FlowExportImportProps) {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
   const [importYaml, setImportYaml] = useState('');
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
@@ -194,6 +210,22 @@ export function FlowExportImport({ flow, yamlContent, onImportSuccess }: FlowExp
 
   return (
     <div className="space-y-8 max-w-4xl">
+      {/* Section 0: Mermaid SVG Preview & Download */}
+      {mermaidContent && (
+        <section>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+            <ImageIcon className="w-5 h-5" />
+            Mermaidダイアグラム
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+            フローのMermaidダイアグラムをSVG形式でプレビュー・ダウンロードできます。
+          </p>
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <MermaidViewer content={mermaidContent} className="max-h-96" />
+          </div>
+        </section>
+      )}
+
       {/* Section 1: YAML Export */}
       <section>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
