@@ -23,8 +23,7 @@ export default async function NewIssuePage({ searchParams }: PageProps) {
   const flows = await listFlows();
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Create New Issue</h1>
+    <div className="p-6 max-w-7xl mx-auto">
       <NewIssueForm
         flows={flows}
         defaultFlowId={searchParams.targetFlowId}
