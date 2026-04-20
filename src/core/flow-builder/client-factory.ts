@@ -31,7 +31,7 @@ const PROVIDER_DEFAULTS: Record<
   ollama: { baseURL: 'http://localhost:11434/v1', model: 'llama3.2', supportsJsonMode: true },
   'ollama-gemma': {
     baseURL: 'http://localhost:11434/v1',
-    model: 'gemma3:27b',
+    model: 'gemma4:e4b',
     supportsJsonMode: true,
   },
 };
