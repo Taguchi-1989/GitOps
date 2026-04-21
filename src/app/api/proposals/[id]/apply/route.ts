@@ -11,6 +11,7 @@ import {
   notFoundResponse,
   errorResponse,
   internalErrorResponse,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 import { getFlowYaml, saveFlowYaml, getFlow } from '@/lib/flow-service';
@@ -123,16 +124,40 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     // 監査ログ
-    await auditLog.logProposalAction('PATCH_APPLY', proposal.id, {
-      issueId: proposal.issueId,
-      commitHash: commitResult.hash,
-      patchCount: (JSON.parse(proposal.jsonPatch) as JsonPatch[]).length,
-    });
+    const actor = getAuditActor(request);
+    if (actor) {
+      await auditLog.logProposalAction(
+        'PATCH_APPLY',
+        proposal.id,
+        {
+          issueId: proposal.issueId,
+          commitHash: commitResult.hash,
+          patchCount: (JSON.parse(proposal.jsonPatch) as JsonPatch[]).length,
+        },
+        actor
+      );
 
-    await auditLog.logGitAction('GIT_COMMIT', proposal.issueId, {
-      commitHash: commitResult.hash,
-      message: commitResult.message,
-    });
+      await auditLog.logGitAction(
+        'GIT_COMMIT',
+        proposal.issueId,
+        {
+          commitHash: commitResult.hash,
+          message: commitResult.message,
+        },
+        actor
+      );
+    } else {
+      await auditLog.logProposalAction('PATCH_APPLY', proposal.id, {
+        issueId: proposal.issueId,
+        commitHash: commitResult.hash,
+        patchCount: (JSON.parse(proposal.jsonPatch) as JsonPatch[]).length,
+      });
+
+      await auditLog.logGitAction('GIT_COMMIT', proposal.issueId, {
+        commitHash: commitResult.hash,
+        message: commitResult.message,
+      });
+    }
 
     return successResponse({
       proposal: updatedProposal,

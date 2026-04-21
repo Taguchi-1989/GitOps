@@ -88,13 +88,15 @@ class AuditLogger {
   async logIssueAction(
     action: 'ISSUE_CREATE' | 'ISSUE_UPDATE' | 'ISSUE_START' | 'ISSUE_CLOSE' | 'ISSUE_DELETE',
     issueId: string,
-    payload?: Record<string, unknown>
+    payload?: Record<string, unknown>,
+    actor?: string
   ): Promise<void> {
     await this.record({
       action,
       entityType: 'Issue',
       entityId: issueId,
       payload,
+      actor,
     });
   }
 
@@ -104,13 +106,15 @@ class AuditLogger {
   async logProposalAction(
     action: 'PROPOSAL_GENERATE' | 'PATCH_APPLY',
     proposalId: string,
-    payload?: Record<string, unknown>
+    payload?: Record<string, unknown>,
+    actor?: string
   ): Promise<void> {
     await this.record({
       action,
       entityType: 'Proposal',
       entityId: proposalId,
       payload,
+      actor,
     });
   }
 
@@ -125,7 +129,8 @@ class AuditLogger {
       | 'MERGE_CLOSE'
       | 'DUPLICATE_MERGE',
     entityId: string,
-    payload?: Record<string, unknown>
+    payload?: Record<string, unknown>,
+    actor?: string
   ): Promise<void> {
     const GIT_SYSTEM_ACTIONS = new Set(['GIT_COMMIT', 'GIT_BRANCH_CREATE', 'GIT_BRANCH_DELETE']);
     await this.record({
@@ -133,6 +138,7 @@ class AuditLogger {
       entityType: GIT_SYSTEM_ACTIONS.has(action) ? 'System' : 'Issue',
       entityId,
       payload,
+      actor,
     });
   }
 

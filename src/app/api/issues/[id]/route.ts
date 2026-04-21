@@ -13,6 +13,7 @@ import {
   notFoundResponse,
   internalErrorResponse,
   parseBody,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { UpdateIssueSchema } from '@/core/issue';
 import { auditLog } from '@/core/audit';
@@ -92,6 +93,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       action: 'ISSUE_UPDATE',
       entityType: 'Issue',
       entityId: issue.id,
+      actor: getAuditActor(request),
       payload: { before, after: data },
     });
 
@@ -126,6 +128,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       action: 'ISSUE_DELETE',
       entityType: 'Issue',
       entityId: existing.id,
+      actor: getAuditActor(request),
       payload: { humanId: existing.humanId },
     });
 

@@ -12,6 +12,7 @@ import {
   internalErrorResponse,
   parseBody,
   parsePaginationParams,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { CreateIssueSchema } from '@/core/issue';
 import { generateHumanId } from '@/core/issue/humanId';
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
       action: 'ISSUE_CREATE',
       entityType: 'Issue',
       entityId: issue!.id,
+      actor: getAuditActor(request),
       payload: { humanId: issue!.humanId, title: data.title, targetFlowId: data.targetFlowId },
     });
 

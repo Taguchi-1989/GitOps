@@ -1,13 +1,16 @@
 /**
  * FlowOps - Flow Import API
- *
- * POST /api/flows/import - YAMLフロー定義をインポート（バリデーション＋保存）
- * ?validate=true でバリデーションのみ（dry-run）
  */
 
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { successResponse, errorResponse, internalErrorResponse, parseBody } from '@/lib/api-utils';
+import {
+  successResponse,
+  errorResponse,
+  internalErrorResponse,
+  parseBody,
+  getAuditActor,
+} from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 import { parseFlowYaml } from '@/core/parser';
 import { saveFlowYaml, getFlowYaml } from '@/lib/flow-service';
@@ -29,10 +32,29 @@ export async function POST(request: NextRequest) {
     const { data, error } = await parseBody(request, ImportFlowRequestSchema);
     if (error) return error;
 
-    // YAML解析＆バリデーション
-    const parseResult = parseFlowYaml(data.yaml, 'import.yaml');
-
     const validateOnly = request.nextUrl.searchParams.get('validate') === 'true';
+    const initialParse = parseFlowYaml(data.yaml);
+
+    if (!initialParse.success || !initialParse.flow) {
+      const errors = initialParse.errors.map(e => ({
+        code: e.code,
+        message: e.message,
+        path: e.path,
+      }));
+
+      if (validateOnly) {
+        return successResponse({ valid: false, errors });
+      }
+
+      return errorResponse(
+        API_ERROR_CODES.VALIDATION_ERROR,
+        `YAML validation failed: ${initialParse.errors.map(e => e.message).join('; ')}`,
+        400
+      );
+    }
+
+    const flowId = data.flowId || initialParse.flow.id;
+    const parseResult = parseFlowYaml(data.yaml, `${flowId}.yaml`);
 
     if (!parseResult.success || !parseResult.flow) {
       const errors = parseResult.errors.map(e => ({
@@ -52,15 +74,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // バリデーションのみモード
     if (validateOnly) {
       return successResponse({ valid: true, errors: [], flow: parseResult.flow });
     }
 
-    // フローIDの決定
-    const flowId = data.flowId || parseResult.flow.id;
-
-    // 既存フローチェック
     const existing = await getFlowYaml(flowId);
     if (existing && !data.overwrite) {
       return errorResponse(
@@ -70,14 +87,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ファイル保存
     await saveFlowYaml(flowId, data.yaml);
 
-    // 監査ログ
     await auditLog.record({
-      action: existing ? 'FLOW_UPDATE' : 'FLOW_CREATE',
+      action: existing ? 'FLOW_UPDATE' : 'FLOW_IMPORT',
       entityType: 'Flow',
       entityId: flowId,
+      actor: getAuditActor(request),
       payload: {
         method: 'import',
         layer: parseResult.flow.layer,

@@ -13,6 +13,7 @@ import {
   errorResponse,
   internalErrorResponse,
   parseBody,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 import { canMergeDuplicate, generateDuplicateMergeSummary, IssueStatus } from '@/core/issue';
@@ -101,11 +102,25 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     // 監査ログ
-    await auditLog.logGitAction('DUPLICATE_MERGE', duplicate.id, {
-      canonicalId: canonical.id,
-      canonicalHumanId: canonical.humanId,
-      cherryPickedCommits: cherryPickedCommits.length,
-    });
+    const actor = getAuditActor(request);
+    if (actor) {
+      await auditLog.logGitAction(
+        'DUPLICATE_MERGE',
+        duplicate.id,
+        {
+          canonicalId: canonical.id,
+          canonicalHumanId: canonical.humanId,
+          cherryPickedCommits: cherryPickedCommits.length,
+        },
+        actor
+      );
+    } else {
+      await auditLog.logGitAction('DUPLICATE_MERGE', duplicate.id, {
+        canonicalId: canonical.id,
+        canonicalHumanId: canonical.humanId,
+        cherryPickedCommits: cherryPickedCommits.length,
+      });
+    }
 
     const summary = generateDuplicateMergeSummary(
       duplicate.humanId,
