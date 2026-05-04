@@ -2,14 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock PrismaClient before importing the module
 vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn().mockImplementation(() => ({
-    $connect: vi.fn(),
-    $disconnect: vi.fn(),
-  })),
+  PrismaClient: vi.fn().mockImplementation(function () {
+    return {
+      $connect: vi.fn(),
+      $disconnect: vi.fn(),
+    };
+  }),
 }));
 
 vi.mock('@prisma/adapter-pg', () => ({
-  PrismaPg: vi.fn().mockImplementation(() => ({})),
+  PrismaPg: vi.fn().mockImplementation(function () {
+    return {};
+  }),
 }));
 
 describe('prisma', () => {
