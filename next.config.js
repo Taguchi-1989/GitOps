@@ -1,24 +1,13 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // 実験的機能
-  experimental: {
-    // Server Actions有効化
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
-    // pino/pino-prettyのworkerスレッドをWebpackバンドルから除外
-    serverComponentsExternalPackages: ['pino', 'pino-pretty'],
-  },
+const nextPackage = require('next/package.json');
+const nextMajor = Number.parseInt(nextPackage.version.split('.')[0], 10);
 
-  // 画像最適化の設定
+const sharedConfig = {
   images: {
-    domains: [],
     unoptimized: process.env.NODE_ENV === 'development',
   },
 
-  // WebpackカスタマイズA（Mermaid対応）
   webpack: (config, { isServer }) => {
-    // Mermaid用のフォールバック
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -29,22 +18,12 @@ const nextConfig = {
     return config;
   },
 
-  // 厳格モード
   reactStrictMode: true,
 
-  // リダイレクト設定
   async redirects() {
-    return [
-      // 例：古いURLからのリダイレクト
-      // {
-      //   source: '/old-path',
-      //   destination: '/new-path',
-      //   permanent: true,
-      // },
-    ];
+    return [];
   },
 
-  // セキュリティヘッダー（CORSはmiddleware.tsで制御）
   async headers() {
     return [
       {
@@ -71,5 +50,24 @@ const nextConfig = {
     ];
   },
 };
+
+const nextConfig =
+  nextMajor >= 16
+    ? {
+        ...sharedConfig,
+        serverActions: {
+          bodySizeLimit: '2mb',
+        },
+        serverExternalPackages: ['pino', 'pino-pretty'],
+      }
+    : {
+        ...sharedConfig,
+        experimental: {
+          serverActions: {
+            bodySizeLimit: '2mb',
+          },
+          serverComponentsExternalPackages: ['pino', 'pino-pretty'],
+        },
+      };
 
 module.exports = nextConfig;
