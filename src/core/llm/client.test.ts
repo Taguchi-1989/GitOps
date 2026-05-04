@@ -6,13 +6,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const mockCreate = vi.fn();
 
 vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    chat: {
-      completions: {
-        create: mockCreate,
+  default: vi.fn().mockImplementation(function () {
+    return {
+      chat: {
+        completions: {
+          create: mockCreate,
+        },
       },
-    },
-  })),
+    };
+  }),
 }));
 
 vi.mock('@/lib/trace-context', () => ({

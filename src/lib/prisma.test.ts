@@ -2,10 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock PrismaClient before importing the module
 vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn().mockImplementation(() => ({
-    $connect: vi.fn(),
-    $disconnect: vi.fn(),
-  })),
+  PrismaClient: vi.fn().mockImplementation(function () {
+    return {
+      $connect: vi.fn(),
+      $disconnect: vi.fn(),
+    };
+  }),
+}));
+
+vi.mock('@prisma/adapter-pg', () => ({
+  PrismaPg: vi.fn().mockImplementation(function () {
+    return {};
+  }),
 }));
 
 describe('prisma', () => {
@@ -25,6 +33,17 @@ describe('prisma', () => {
     const { PrismaClient } = await import('@prisma/client');
     await import('@/lib/prisma');
     expect(PrismaClient).toHaveBeenCalled();
+  });
+
+  it('should create a PrismaPg adapter with DATABASE_URL', async () => {
+    process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+
+    const { PrismaPg } = await import('@prisma/adapter-pg');
+    await import('@/lib/prisma');
+
+    expect(PrismaPg).toHaveBeenCalledWith({
+      connectionString: 'postgresql://test:test@localhost:5432/test',
+    });
   });
 
   it('should reuse an existing global prisma instance', async () => {

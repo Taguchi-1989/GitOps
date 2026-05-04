@@ -13,13 +13,14 @@ export const metadata = {
 };
 
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     targetFlowId?: string;
     targetNodeId?: string;
-  };
+  }>;
 }
 
 export default async function NewIssuePage({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
   const flows = await listFlows();
 
   return (
@@ -27,8 +28,8 @@ export default async function NewIssuePage({ searchParams }: PageProps) {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Create New Issue</h1>
       <NewIssueForm
         flows={flows}
-        defaultFlowId={searchParams.targetFlowId}
-        defaultNodeId={searchParams.targetNodeId}
+        defaultFlowId={resolvedSearchParams.targetFlowId}
+        defaultNodeId={resolvedSearchParams.targetNodeId}
       />
     </div>
   );

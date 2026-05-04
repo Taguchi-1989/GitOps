@@ -1,7 +1,7 @@
 /**
  * FlowOps - Flow Detail API Route Tests
  *
- * GET /api/flows/[id] - フロー詳細取得
+ * GET /api/flows/[id] - フロー詳細取征E
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -98,7 +98,9 @@ describe('GET /api/flows/[id]', () => {
       method: 'GET',
     });
 
-    const result = await GET(request as any, { params: { id: 'order-processing' } });
+    const result = await GET(request as any, {
+      params: Promise.resolve({ id: 'order-processing' }),
+    });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -116,7 +118,7 @@ describe('GET /api/flows/[id]', () => {
       method: 'GET',
     });
 
-    const result = await GET(request as any, { params: { id: 'nonexistent' } });
+    const result = await GET(request as any, { params: Promise.resolve({ id: 'nonexistent' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -130,7 +132,7 @@ describe('GET /api/flows/[id]', () => {
       method: 'GET',
     });
 
-    const result = await GET(request as any, { params: { id: '../etc/passwd' } });
+    const result = await GET(request as any, { params: Promise.resolve({ id: '../etc/passwd' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -147,7 +149,9 @@ describe('GET /api/flows/[id]', () => {
       method: 'GET',
     });
 
-    const result = await GET(request as any, { params: { id: 'order-processing' } });
+    const result = await GET(request as any, {
+      params: Promise.resolve({ id: 'order-processing' }),
+    });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);

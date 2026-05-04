@@ -24,13 +24,16 @@ export type TaskType = z.infer<typeof TaskTypeSchema>;
 // --------------------------------------------------------
 // JSON Schema subset (入出力スキーマ定義用)
 // --------------------------------------------------------
-const JsonSchemaPropertySchema: z.ZodType<Record<string, unknown>> = z.record(z.unknown());
+const JsonSchemaPropertySchema: z.ZodType<Record<string, unknown>> = z.record(
+  z.string(),
+  z.unknown()
+);
 
 export const JsonSchemaDefinitionSchema = z.object({
   type: z.enum(['object', 'array', 'string', 'number', 'boolean']),
   properties: JsonSchemaPropertySchema.optional(),
   required: z.array(z.string()).optional(),
-  items: z.record(z.unknown()).optional(),
+  items: z.record(z.string(), z.unknown()).optional(),
   enum: z.array(z.unknown()).optional(),
 });
 
@@ -43,7 +46,7 @@ export const LlmConfigSchema = z.object({
   userPromptTemplate: z.string().min(1), // Mustache形式テンプレート
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().positive().optional(),
-  outputSchema: z.record(z.unknown()).optional(), // 構造化出力用JSON Schema
+  outputSchema: z.record(z.string(), z.unknown()).optional(), // 構造化出力用JSON Schema
 });
 
 export type LlmConfig = z.infer<typeof LlmConfigSchema>;
@@ -103,7 +106,7 @@ export const TaskInvocationSchema = z.object({
   taskId: z.string().min(1),
   taskVersion: z.string(),
   gitCommitHash: z.string(),
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
   context: z.object({
     flowId: z.string(),
     currentNodeLabel: z.string(),
@@ -123,7 +126,7 @@ export const TaskResultSchema = z.object({
   executionId: z.string().min(1),
   taskId: z.string().min(1),
   status: z.enum(['success', 'failure', 'needs-human-review']),
-  output: z.record(z.unknown()),
+  output: z.record(z.string(), z.unknown()),
   metadata: z.object({
     durationMs: z.number(),
     llmModelUsed: z.string().optional(),

@@ -1,7 +1,7 @@
 /**
  * FlowOps - Issue Detail API Route Tests
  *
- * GET /api/issues/[id] - Issue詳細取得
+ * GET /api/issues/[id] - Issue詳細取征E
  * PATCH /api/issues/[id] - Issue更新
  * DELETE /api/issues/[id] - Issue削除
  */
@@ -13,7 +13,7 @@ import { GET, PATCH, DELETE } from './route';
 // Mocks
 // --------------------------------------------------------
 
-// next/server のモック
+// next/server のモチE��
 vi.mock('next/server', () => ({
   NextResponse: {
     json: vi.fn((body, init) => ({
@@ -23,7 +23,7 @@ vi.mock('next/server', () => ({
   },
 }));
 
-// logger のモック
+// logger のモチE��
 vi.mock('@/lib/logger', () => ({
   logger: {
     error: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
-// prisma のモック
+// prisma のモチE��
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     issue: {
@@ -57,7 +57,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// auditLog のモック
+// auditLog のモチE��
 vi.mock('@/core/audit', () => ({
   auditLog: {
     record: vi.fn(),
@@ -67,7 +67,7 @@ vi.mock('@/core/audit', () => ({
   },
 }));
 
-// issue types のモックは実際のスキーマを使用
+// issue types のモチE��は実際のスキーマを使用
 vi.mock('@/core/issue', async () => {
   const actual = await vi.importActual('@/core/issue/types');
   return actual;
@@ -76,7 +76,7 @@ vi.mock('@/core/issue', async () => {
 import { prisma } from '@/lib/prisma';
 import { auditLog } from '@/core/audit';
 
-/** モックレスポンスからbodyを取得するヘルパー */
+/** モチE��レスポンスからbodyを取得する�Eルパ�E */
 function getBody(result: any): any {
   return result.body;
 }
@@ -140,7 +140,7 @@ describe('GET /api/issues/[id]', () => {
       method: 'GET',
     });
 
-    const result = await GET(request as any, { params: { id: 'issue-1' } });
+    const result = await GET(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -198,7 +198,7 @@ describe('GET /api/issues/[id]', () => {
       method: 'GET',
     });
 
-    const result = await GET(request as any, { params: { id: 'issue-2' } });
+    const result = await GET(request as any, { params: Promise.resolve({ id: 'issue-2' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -214,7 +214,7 @@ describe('GET /api/issues/[id]', () => {
       method: 'GET',
     });
 
-    const result = await GET(request as any, { params: { id: 'nonexistent' } });
+    const result = await GET(request as any, { params: Promise.resolve({ id: 'nonexistent' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -230,7 +230,7 @@ describe('GET /api/issues/[id]', () => {
       method: 'GET',
     });
 
-    const result = await GET(request as any, { params: { id: 'deleted-1' } });
+    const result = await GET(request as any, { params: Promise.resolve({ id: 'deleted-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -245,7 +245,7 @@ describe('GET /api/issues/[id]', () => {
       method: 'GET',
     });
 
-    const result = await GET(request as any, { params: { id: 'issue-1' } });
+    const result = await GET(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -291,7 +291,7 @@ describe('PATCH /api/issues/[id]', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const result = await PATCH(request as any, { params: { id: 'issue-1' } });
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -352,7 +352,7 @@ describe('PATCH /api/issues/[id]', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const result = await PATCH(request as any, { params: { id: 'issue-1' } });
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -391,7 +391,7 @@ describe('PATCH /api/issues/[id]', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const result = await PATCH(request as any, { params: { id: 'issue-1' } });
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -434,7 +434,7 @@ describe('PATCH /api/issues/[id]', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const result = await PATCH(request as any, { params: { id: 'issue-1' } });
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -455,7 +455,7 @@ describe('PATCH /api/issues/[id]', () => {
     });
 
     const result = await PATCH(request as any, {
-      params: { id: 'nonexistent' },
+      params: Promise.resolve({ id: 'nonexistent' }),
     });
     const body = getBody(result);
 
@@ -490,7 +490,7 @@ describe('PATCH /api/issues/[id]', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const result = await PATCH(request as any, { params: { id: 'issue-1' } });
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -523,7 +523,7 @@ describe('PATCH /api/issues/[id]', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const result = await PATCH(request as any, { params: { id: 'issue-1' } });
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -556,7 +556,7 @@ describe('PATCH /api/issues/[id]', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const result = await PATCH(request as any, { params: { id: 'issue-1' } });
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -595,7 +595,7 @@ describe('DELETE /api/issues/[id]', () => {
       method: 'DELETE',
     });
 
-    const result = await DELETE(request as any, { params: { id: 'issue-1' } });
+    const result = await DELETE(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -621,7 +621,7 @@ describe('DELETE /api/issues/[id]', () => {
     });
 
     const result = await DELETE(request as any, {
-      params: { id: 'nonexistent' },
+      params: Promise.resolve({ id: 'nonexistent' }),
     });
     const body = getBody(result);
 
@@ -654,7 +654,7 @@ describe('DELETE /api/issues/[id]', () => {
       method: 'DELETE',
     });
 
-    const result = await DELETE(request as any, { params: { id: 'issue-1' } });
+    const result = await DELETE(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -682,7 +682,7 @@ describe('DELETE /api/issues/[id]', () => {
       method: 'DELETE',
     });
 
-    const result = await DELETE(request as any, { params: { id: 'issue-1' } });
+    const result = await DELETE(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);

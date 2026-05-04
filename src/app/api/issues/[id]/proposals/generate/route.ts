@@ -21,7 +21,7 @@ import { auditLog } from '@/core/audit';
 import { logger } from '@/lib/logger';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -30,8 +30,10 @@ interface RouteParams {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
+
     const issue = await prisma.issue.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!issue) {
@@ -120,7 +122,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Issueステータスを更新
     await prisma.issue.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: 'proposed' },
     });
 
