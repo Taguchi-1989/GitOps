@@ -27,6 +27,16 @@ describe('prisma', () => {
     expect(PrismaClient).toHaveBeenCalled();
   });
 
+  it('should reuse an existing global prisma instance', async () => {
+    const existing = { $disconnect: vi.fn() };
+    const g = globalThis as unknown as { prisma: unknown };
+    g.prisma = existing;
+
+    const { prisma } = await import('@/lib/prisma');
+
+    expect(prisma).toBe(existing);
+  });
+
   it('should store prisma on globalThis in non-production env', async () => {
     const originalEnv = process.env.NODE_ENV;
     (process.env as Record<string, string>).NODE_ENV = 'test';
@@ -34,6 +44,17 @@ describe('prisma', () => {
     const { prisma } = await import('@/lib/prisma');
     const g = globalThis as unknown as { prisma: unknown };
     expect(g.prisma).toBe(prisma);
+
+    (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
+  });
+
+  it('should not store prisma on globalThis in production env', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    (process.env as Record<string, string>).NODE_ENV = 'production';
+
+    await import('@/lib/prisma');
+    const g = globalThis as unknown as { prisma: unknown };
+    expect(g.prisma).toBeUndefined();
 
     (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
   });

@@ -5,12 +5,37 @@
  * and extra property forwarding.
  */
 
-import { describe, it, expect } from 'vitest';
-import { logger, createRequestLogger } from '@/lib/logger';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import type { Logger } from '@/lib/logger';
 
+const originalNodeEnv = process.env.NODE_ENV;
+const originalLogLevel = process.env.LOG_LEVEL;
+
+async function importLogger(nodeEnv = 'test', logLevel?: string) {
+  vi.resetModules();
+  (process.env as Record<string, string | undefined>).NODE_ENV = nodeEnv;
+  if (logLevel === undefined) {
+    delete process.env.LOG_LEVEL;
+  } else {
+    process.env.LOG_LEVEL = logLevel;
+  }
+  return import('@/lib/logger');
+}
+
+afterEach(() => {
+  vi.resetModules();
+  (process.env as Record<string, string | undefined>).NODE_ENV = originalNodeEnv;
+  if (originalLogLevel === undefined) {
+    delete process.env.LOG_LEVEL;
+  } else {
+    process.env.LOG_LEVEL = originalLogLevel;
+  }
+});
+
 describe('logger', () => {
-  it('is a pino logger instance with standard log methods', () => {
+  it('is a pino logger instance with standard log methods', async () => {
+    const { logger } = await importLogger();
+
     expect(typeof logger.info).toBe('function');
     expect(typeof logger.warn).toBe('function');
     expect(typeof logger.error).toBe('function');
@@ -19,20 +44,37 @@ describe('logger', () => {
     expect(typeof logger.trace).toBe('function');
   });
 
-  it('has a valid log level set', () => {
+  it('has a valid log level set', async () => {
+    const { logger } = await importLogger();
+
     const validLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'];
     expect(validLevels).toContain(logger.level);
   });
 
-  it('supports child logger creation via logger.child()', () => {
+  it('uses production defaults without pretty transport', async () => {
+    const { logger } = await importLogger('production');
+
+    expect(logger.level).toBe('info');
+  });
+
+  it('honors LOG_LEVEL over environment defaults', async () => {
+    const { logger } = await importLogger('production', 'warn');
+
+    expect(logger.level).toBe('warn');
+  });
+
+  it('supports child logger creation via logger.child()', async () => {
+    const { logger } = await importLogger();
     const child = logger.child({ component: 'test' });
+
     expect(typeof child.info).toBe('function');
     expect(typeof child.error).toBe('function');
   });
 });
 
 describe('createRequestLogger', () => {
-  it('returns a child logger with requestId bound', () => {
+  it('returns a child logger with requestId bound', async () => {
+    const { createRequestLogger } = await importLogger();
     const reqLogger = createRequestLogger('req-123');
 
     // The returned logger should have standard log methods
@@ -46,7 +88,8 @@ describe('createRequestLogger', () => {
     expect(bindings.requestId).toBe('req-123');
   });
 
-  it('includes extra properties in the child logger bindings', () => {
+  it('includes extra properties in the child logger bindings', async () => {
+    const { createRequestLogger } = await importLogger();
     const reqLogger = createRequestLogger('req-456', {
       userId: 'user-789',
       method: 'GET',
@@ -58,7 +101,8 @@ describe('createRequestLogger', () => {
     expect(bindings.method).toBe('GET');
   });
 
-  it('returns a Logger-compatible type', () => {
+  it('returns a Logger-compatible type', async () => {
+    const { createRequestLogger } = await importLogger();
     const reqLogger: Logger = createRequestLogger('req-type-check');
 
     // If this compiles and runs, the type is compatible
