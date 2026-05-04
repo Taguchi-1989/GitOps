@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { ZodError, type ZodType } from 'zod';
+import { z, ZodError, type ZodType } from 'zod';
 import { ApiResponse, API_ERROR_CODES, ApiErrorCode } from '@/core/types/api';
 import { logger } from '@/lib/logger';
 
@@ -46,17 +46,19 @@ export function internalErrorResponse(error: unknown): NextResponse<ApiResponse<
  * Zodバリデーションエラーレスポンス
  */
 export function validationErrorResponse(error: ZodError): NextResponse<ApiResponse<never>> {
-  const details = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+  const details = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
   return errorResponse(API_ERROR_CODES.VALIDATION_ERROR, details, 400);
 }
 
 /**
  * リクエストボディをパース＆バリデーション
  */
-export async function parseBody<T>(
+export async function parseBody<TSchema extends ZodType>(
   request: Request,
-  schema: ZodType<T, any, any>
-): Promise<{ data: T; error: null } | { data: null; error: NextResponse<ApiResponse<never>> }> {
+  schema: TSchema
+): Promise<
+  { data: z.infer<TSchema>; error: null } | { data: null; error: NextResponse<ApiResponse<never>> }
+> {
   try {
     const body = await request.json();
     const result = schema.safeParse(body);

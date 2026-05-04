@@ -12,7 +12,7 @@ import { IssueStatus } from '@/core/issue';
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 async function getIssue(id: string) {
@@ -60,7 +60,8 @@ async function getIssue(id: string) {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const issue = await getIssue(params.id);
+  const { id } = await params;
+  const issue = await getIssue(id);
 
   if (!issue) {
     return { title: 'Issue Not Found - FlowOps' };
@@ -73,7 +74,8 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function IssueDetailPage({ params }: PageProps) {
-  const issue = await getIssue(params.id);
+  const { id } = await params;
+  const issue = await getIssue(id);
 
   if (!issue) {
     notFound();

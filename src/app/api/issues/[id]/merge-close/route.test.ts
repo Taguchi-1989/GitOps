@@ -100,7 +100,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
 
     expect(result.status).toBe(404);
     const body = getBody(result);
@@ -129,7 +129,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
 
     expect(result.status).toBe(400);
     const body = getBody(result);
@@ -159,7 +159,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
 
     expect(result.status).toBe(400);
     const body = getBody(result);
@@ -190,7 +190,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
 
     expect(result.status).toBe(400);
     const body = getBody(result);
@@ -259,7 +259,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
 
     expect(result.status).toBe(200);
     const body = getBody(result);
@@ -293,7 +293,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
 
     expect(result.status).toBe(500);
     const body = getBody(result);
@@ -348,7 +348,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
 
     expect(result.status).toBe(500);
     const body = getBody(result);
@@ -380,7 +380,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
       method: 'POST',
     });
 
-    await POST(request as any, { params: { id: 'issue-xyz' } });
+    await POST(request as any, { params: Promise.resolve({ id: 'issue-xyz' }) });
 
     // Verify the proposal query uses the correct issueId
     expect(prisma.proposal.findFirst).toHaveBeenCalledWith({

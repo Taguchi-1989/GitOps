@@ -116,7 +116,7 @@ export class FlowExpander {
         flow = zodResult.data;
         mermaid = flowToMermaid(flow, { direction: 'TD', includeStyles: true });
       } else {
-        zodResult.error.errors.forEach(e => {
+        zodResult.error.issues.forEach(e => {
           validationErrors.push(`${e.path.join('.')}: ${e.message}`);
         });
       }

@@ -19,7 +19,7 @@ import { API_ERROR_CODES } from '@/core/types/api';
 import { generateTraceId } from '@/lib/trace-context';
 
 const TestRequestSchema = z.object({
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
