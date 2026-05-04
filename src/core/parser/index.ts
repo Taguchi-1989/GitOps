@@ -45,7 +45,7 @@ export function parseFlowYaml(yamlContent: string, fileName?: string): ParseResu
     const zodResult = FlowSchema.safeParse(rawData);
 
     if (!zodResult.success) {
-      const zodErrors: ValidationError[] = zodResult.error.errors.map((e: ZodIssue) => ({
+      const zodErrors: ValidationError[] = zodResult.error.issues.map((e: ZodIssue) => ({
         code: 'INVALID_SCHEMA' as const,
         message: e.message,
         path: e.path.join('.'),
@@ -117,7 +117,7 @@ export function validateFlow(flow: Flow): ValidationResult {
   // Zodスキーマ再検証
   const zodResult = FlowSchema.safeParse(flow);
   if (!zodResult.success) {
-    zodResult.error.errors.forEach((e: ZodIssue) => {
+    zodResult.error.issues.forEach((e: ZodIssue) => {
       errors.push({
         code: 'INVALID_SCHEMA',
         message: e.message,

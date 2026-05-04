@@ -18,7 +18,7 @@ import { UpdateIssueSchema } from '@/core/issue';
 import { auditLog } from '@/core/audit';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -27,8 +27,10 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
+
     const issue = await prisma.issue.findUnique({
-      where: { id: params.id, deletedAt: null },
+      where: { id, deletedAt: null },
       include: {
         proposals: {
           orderBy: { createdAt: 'desc' },
@@ -61,8 +63,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
+
     const existing = await prisma.issue.findUnique({
-      where: { id: params.id, deletedAt: null },
+      where: { id, deletedAt: null },
     });
 
     if (!existing) {
@@ -79,7 +83,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     };
 
     const issue = await prisma.issue.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         title: data.title ?? undefined,
         description: data.description ?? undefined,
@@ -107,8 +111,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
+
     const existing = await prisma.issue.findUnique({
-      where: { id: params.id, deletedAt: null },
+      where: { id, deletedAt: null },
     });
 
     if (!existing) {
@@ -117,7 +123,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // ソフトデリート（復旧可能）
     await prisma.issue.update({
-      where: { id: params.id },
+      where: { id },
       data: { deletedAt: new Date() },
     });
 

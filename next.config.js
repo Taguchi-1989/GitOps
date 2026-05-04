@@ -55,17 +55,11 @@ const nextConfig =
   nextMajor >= 16
     ? {
         ...sharedConfig,
-        serverActions: {
-          bodySizeLimit: '2mb',
-        },
         serverExternalPackages: ['pino', 'pino-pretty'],
       }
     : {
         ...sharedConfig,
         experimental: {
-          serverActions: {
-            bodySizeLimit: '2mb',
-          },
           serverComponentsExternalPackages: ['pino', 'pino-pretty'],
         },
       };

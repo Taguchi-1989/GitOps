@@ -114,7 +114,7 @@ describe('POST /api/proposals/[id]/apply', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'nonexistent' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'nonexistent' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -149,7 +149,7 @@ describe('POST /api/proposals/[id]/apply', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'proposal-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'proposal-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -184,7 +184,7 @@ describe('POST /api/proposals/[id]/apply', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'proposal-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'proposal-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -222,7 +222,7 @@ describe('POST /api/proposals/[id]/apply', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'proposal-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'proposal-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -272,7 +272,7 @@ describe('POST /api/proposals/[id]/apply', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'proposal-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'proposal-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -350,7 +350,7 @@ describe('POST /api/proposals/[id]/apply', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'proposal-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'proposal-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);

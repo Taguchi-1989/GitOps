@@ -8,6 +8,10 @@ vi.mock('@prisma/client', () => ({
   })),
 }));
 
+vi.mock('@prisma/adapter-pg', () => ({
+  PrismaPg: vi.fn().mockImplementation(() => ({})),
+}));
+
 describe('prisma', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -25,6 +29,17 @@ describe('prisma', () => {
     const { PrismaClient } = await import('@prisma/client');
     await import('@/lib/prisma');
     expect(PrismaClient).toHaveBeenCalled();
+  });
+
+  it('should create a PrismaPg adapter with DATABASE_URL', async () => {
+    process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+
+    const { PrismaPg } = await import('@prisma/adapter-pg');
+    await import('@/lib/prisma');
+
+    expect(PrismaPg).toHaveBeenCalledWith({
+      connectionString: 'postgresql://test:test@localhost:5432/test',
+    });
   });
 
   it('should reuse an existing global prisma instance', async () => {
