@@ -7,7 +7,7 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { IssueDetailClient } from './IssueDetailClient';
-import { IssueStatus } from '@/core/issue';
+import { IssueStatus, IssueKind } from '@/core/issue';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +39,7 @@ async function getIssue(id: string) {
     title: issue.title,
     description: issue.description,
     status: issue.status as IssueStatus,
+    kind: (issue.kind ?? 'problem') as IssueKind,
     targetFlowId: issue.targetFlowId,
     targetNodeId: issue.targetNodeId,
     branchName: issue.branchName,

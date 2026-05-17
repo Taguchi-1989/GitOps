@@ -40,6 +40,7 @@ interface IssueDetailProps {
   onApplyProposal?: (proposalId: string) => void;
   onMergeClose?: () => void;
   onReject?: () => void;
+  onReturnToProgress?: () => void;
   isLoading?: boolean;
 }
 
@@ -60,6 +61,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   ISSUE_START: '作業を開始',
   ISSUE_CLOSE: '課題を完了',
   ISSUE_DELETE: '課題を削除',
+  PRAISE_CREATE: '感謝を送る',
   PROPOSAL_GENERATE: '改善案を生成',
   PATCH_APPLY: '改善案を適用',
   MERGE_CLOSE: 'マージして完了',
@@ -75,8 +77,133 @@ interface AuditLogItem {
   entityType: string;
   entityId: string;
   actor?: string;
-  payload?: Record<string, unknown>;
+  traceId?: string | null;
+  payload?: string | Record<string, unknown> | null;
   createdAt: string;
+}
+
+function parsePayload(p: AuditLogItem['payload']): Record<string, unknown> | null {
+  if (!p) return null;
+  if (typeof p === 'string') {
+    try {
+      return JSON.parse(p);
+    } catch {
+      return { raw: p };
+    }
+  }
+  return p;
+}
+
+function HistoryTimeline({
+  logs,
+  loading,
+  issueId,
+}: {
+  logs: AuditLogItem[];
+  loading: boolean;
+  issueId: string;
+}) {
+  const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  if (loading) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="text-center py-12 text-gray-700 dark:text-gray-300"
+      >
+        <Loader2 className="w-6 h-6 mx-auto mb-3 animate-spin" aria-hidden="true" />
+        <p>履歴を読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (logs.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-700 dark:text-gray-300">
+        <History
+          className="w-8 h-8 mx-auto mb-3 text-gray-400 dark:text-gray-500"
+          aria-hidden="true"
+        />
+        <p>まだ操作履歴がありません</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <ol className="relative space-y-4 border-l-2 border-gray-200 dark:border-gray-700 pl-6 ml-2">
+        {logs.map(log => {
+          const payload = parsePayload(log.payload);
+          const isExpanded = expandedIds.has(log.id);
+          return (
+            <li key={log.id} className="relative">
+              <span
+                className="absolute -left-[33px] top-1 w-4 h-4 bg-blue-600 dark:bg-blue-500 border-2 border-white dark:border-gray-800 rounded-full"
+                aria-hidden="true"
+              />
+              <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {AUDIT_ACTION_LABELS[log.action] || log.action}
+                  </p>
+                  <time
+                    dateTime={log.createdAt}
+                    className="text-xs text-gray-700 dark:text-gray-300"
+                  >
+                    {formatDate(log.createdAt)}
+                  </time>
+                </div>
+                <div className="mt-1 flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300 flex-wrap">
+                  {log.actor && <span>実行者: {log.actor}</span>}
+                  {log.traceId && (
+                    <a
+                      href={`/governance/trace/${log.traceId}`}
+                      className="font-mono text-blue-700 dark:text-blue-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    >
+                      trace: {log.traceId.slice(0, 8)}...
+                    </a>
+                  )}
+                </div>
+                {payload && (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => toggle(log.id)}
+                      aria-expanded={isExpanded}
+                      className="text-xs text-blue-700 dark:text-blue-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    >
+                      {isExpanded ? '詳細を閉じる' : '詳細を表示'}
+                    </button>
+                    {isExpanded && (
+                      <pre className="mt-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs font-mono overflow-x-auto whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                        {JSON.stringify(payload, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="mt-4 text-right">
+        <a
+          href={`/audit?entityType=Issue&entityId=${issueId}`}
+          className="text-xs text-blue-700 dark:text-blue-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+        >
+          監査ログでこの課題を全件表示 →
+        </a>
+      </div>
+    </div>
+  );
 }
 
 export function IssueDetail({
@@ -87,6 +214,7 @@ export function IssueDetail({
   onApplyProposal,
   onMergeClose,
   onReject,
+  onReturnToProgress,
   isLoading = false,
 }: IssueDetailProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'proposals' | 'history'>('details');
@@ -115,9 +243,10 @@ export function IssueDetail({
       fetchAuditLogs();
     }
   }, [activeTab, fetchAuditLogs]);
-  const canStart = issue.status === 'new' || issue.status === 'triage';
-  const canGenerateProposal = issue.status === 'in-progress';
-  const canMergeOrReject = issue.status === 'proposed';
+  const isPraise = issue.kind === 'praise';
+  const canStart = !isPraise && (issue.status === 'new' || issue.status === 'triage');
+  const canGenerateProposal = !isPraise && issue.status === 'in-progress';
+  const canMergeOrReject = !isPraise && issue.status === 'proposed';
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -133,19 +262,27 @@ export function IssueDetail({
           </button>
         )}
 
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-lg font-mono text-gray-500 dark:text-gray-400">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <span className="text-lg font-mono text-gray-700 dark:text-gray-300">
                 {issue.humanId}
               </span>
-              <StatusBadge status={issue.status} />
+              {isPraise ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-200">
+                  感謝・成功事例
+                </span>
+              ) : (
+                <StatusBadge status={issue.status} />
+              )}
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{issue.title}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">
+              {issue.title}
+            </h1>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex flex-wrap gap-2 lg:flex-shrink-0">
             {canStart && onStart && (
               <button
                 onClick={onStart}
@@ -240,22 +377,30 @@ export function IssueDetail({
                     </span>
                   </button>
                 )}
+                {onReturnToProgress && (
+                  <button
+                    type="button"
+                    onClick={onReturnToProgress}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-4 py-2 min-h-11 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-orange-400"
+                    title="提案者に練り直しを依頼します"
+                  >
+                    <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    差戻し
+                  </button>
+                )}
                 {onReject && (
                   <button
+                    type="button"
                     onClick={onReject}
                     disabled={isLoading}
-                    className="
-                      flex items-center gap-2 px-4 py-2
-                      bg-gray-600 text-white rounded-lg
-                      hover:bg-gray-700 disabled:opacity-50
-                      transition-colors
-                    "
+                    className="flex items-center gap-2 px-4 py-2 min-h-11 bg-gray-700 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400"
                     title="この提案を却下します"
                   >
                     {isLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                     ) : (
-                      <XCircle className="w-4 h-4" />
+                      <XCircle className="w-4 h-4" aria-hidden="true" />
                     )}
                     却下
                   </button>
@@ -266,12 +411,13 @@ export function IssueDetail({
         </div>
       </div>
 
-      {/* Guided Workflow (シンプルモード時のみ) */}
-      {isSimpleMode && (
+      {/* 次にすべきことガイド (全ユーザーに常時表示。現場の人が迷子にならないため) */}
+      {!isPraise && (
         <GuidedWorkflow
           currentStatus={issue.status}
           hasProposals={!!issue.proposals && issue.proposals.length > 0}
           hasAppliedProposal={!!issue.proposals?.some(p => p.isApplied)}
+          hasTargetFlow={!!issue.targetFlowId}
           className="mb-4"
         />
       )}
@@ -328,9 +474,10 @@ export function IssueDetail({
           >
             詳細
           </button>
-          <button
-            onClick={() => setActiveTab('proposals')}
-            className={`
+          {!isPraise && (
+            <button
+              onClick={() => setActiveTab('proposals')}
+              className={`
               flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
               ${
                 activeTab === 'proposals'
@@ -338,19 +485,20 @@ export function IssueDetail({
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }
             `}
-          >
-            改善案
-            {issue.proposals && issue.proposals.length > 0 && (
-              <span
-                className={`
+            >
+              改善案
+              {issue.proposals && issue.proposals.length > 0 && (
+                <span
+                  className={`
                 px-2 py-0.5 rounded-full text-xs
                 ${activeTab === 'proposals' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}
               `}
-              >
-                {issue.proposals.length}
-              </span>
-            )}
-          </button>
+                >
+                  {issue.proposals.length}
+                </span>
+              )}
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('history')}
             className={`
@@ -415,41 +563,7 @@ export function IssueDetail({
       )}
 
       {activeTab === 'history' && (
-        <div>
-          {auditLoading ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <Loader2 className="w-6 h-6 mx-auto mb-3 animate-spin text-gray-400 dark:text-gray-500" />
-              <p>履歴を読み込み中...</p>
-            </div>
-          ) : auditLogs.length > 0 ? (
-            <div className="space-y-3">
-              {auditLogs.map(log => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
-                >
-                  <div className="mt-0.5">
-                    <History className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {AUDIT_ACTION_LABELS[log.action] || log.action}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {formatDate(log.createdAt)}
-                      {log.actor && ` — ${log.actor}`}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <History className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-              <p>まだ操作履歴がありません</p>
-            </div>
-          )}
-        </div>
+        <HistoryTimeline logs={auditLogs} loading={auditLoading} issueId={issue.id} />
       )}
     </div>
   );

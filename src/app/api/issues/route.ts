@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const targetFlowId = searchParams.get('targetFlowId');
+    const kind = searchParams.get('kind');
     const { limit, offset } = parsePaginationParams(searchParams);
 
     const where: Record<string, unknown> = { deletedAt: null };
@@ -36,6 +37,10 @@ export async function GET(request: NextRequest) {
 
     if (targetFlowId) {
       where.targetFlowId = targetFlowId;
+    }
+
+    if (kind) {
+      where.kind = kind;
     }
 
     const [issues, total] = await Promise.all([
@@ -98,6 +103,7 @@ export async function POST(request: NextRequest) {
 
           const humanId = generateHumanId(nextSequence);
 
+          const kind = data.kind ?? 'problem';
           return tx.issue.create({
             data: {
               humanId,
@@ -105,7 +111,9 @@ export async function POST(request: NextRequest) {
               description: data.description,
               targetFlowId: data.targetFlowId,
               targetNodeId: data.targetNodeId,
-              status: 'new',
+              // praise(感謝)はワークフロー不要なので即完了扱い
+              status: kind === 'praise' ? 'merged' : 'new',
+              kind,
             },
           });
         });
@@ -120,12 +128,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 監査ログ
+    const kind = data.kind ?? 'problem';
     await auditLog.record({
-      action: 'ISSUE_CREATE',
+      action: kind === 'praise' ? 'PRAISE_CREATE' : 'ISSUE_CREATE',
       entityType: 'Issue',
       entityId: issue!.id,
-      payload: { humanId: issue!.humanId, title: data.title, targetFlowId: data.targetFlowId },
+      payload: {
+        humanId: issue!.humanId,
+        title: data.title,
+        targetFlowId: data.targetFlowId,
+        kind,
+      },
     });
 
     return successResponse(issue!, 201);

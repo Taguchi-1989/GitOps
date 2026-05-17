@@ -56,8 +56,16 @@ const iconColors: Record<ToastType, string> = {
   info: 'text-blue-500 dark:text-blue-400',
 };
 
+const typeLabels: Record<ToastType, string> = {
+  success: '成功',
+  error: 'エラー',
+  warning: '警告',
+  info: 'お知らせ',
+};
+
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) {
   const Icon = icons[toast.type];
+  const isError = toast.type === 'error';
 
   React.useEffect(() => {
     if (toast.duration !== 0) {
@@ -68,19 +76,26 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
 
   return (
     <div
+      role={isError ? 'alert' : 'status'}
+      aria-live={isError ? 'assertive' : 'polite'}
       className={`
         flex items-start gap-3 px-4 py-3 rounded-lg border shadow-lg
         animate-slide-in
         ${colors[toast.type]}
       `}
     >
-      <Icon className={`w-5 h-5 flex-shrink-0 ${iconColors[toast.type]}`} />
-      <p className="flex-1 text-sm">{toast.message}</p>
+      <Icon className={`w-5 h-5 flex-shrink-0 ${iconColors[toast.type]}`} aria-hidden="true" />
+      <p className="flex-1 text-sm">
+        <span className="sr-only">{typeLabels[toast.type]}: </span>
+        {toast.message}
+      </p>
       <button
+        type="button"
         onClick={onRemove}
-        className="flex-shrink-0 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
+        aria-label="通知を閉じる"
+        className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 -m-1 rounded text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </button>
     </div>
   );
@@ -102,10 +117,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
 
-      {/* Toast Container */}
-      <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm">
+      <div
+        aria-label="通知"
+        className="fixed bottom-4 right-4 left-4 sm:left-auto z-50 space-y-2 sm:max-w-sm pointer-events-none"
+      >
         {toasts.map(toast => (
-          <ToastItem key={toast.id} toast={toast} onRemove={() => removeToast(toast.id)} />
+          <div key={toast.id} className="pointer-events-auto">
+            <ToastItem toast={toast} onRemove={() => removeToast(toast.id)} />
+          </div>
         ))}
       </div>
     </ToastContext.Provider>

@@ -1,7 +1,3 @@
-/**
- * FlowOps - Loading Spinner Component
- */
-
 import React from 'react';
 
 interface SpinnerProps {
@@ -17,25 +13,24 @@ const sizeClasses = {
 
 export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
   return (
-    <div
-      className={`
-        animate-spin rounded-full border-b-transparent border-blue-600
-        ${sizeClasses[size]} ${className}
-      `}
+    <span
+      aria-hidden="true"
+      className={`inline-block animate-spin rounded-full border-b-transparent border-blue-600 ${sizeClasses[size]} ${className}`}
     />
   );
 }
 
-interface LoadingOverlayProps {
-  message?: string;
-}
-
-export function LoadingOverlay({ message = 'Loading...' }: LoadingOverlayProps) {
+export function LoadingOverlay({ message = '読み込み中...' }: { message?: string }) {
   return (
-    <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      className="fixed inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50"
+    >
       <div className="flex flex-col items-center gap-3">
         <Spinner size="lg" />
-        <span className="text-gray-600">{message}</span>
+        <span className="text-gray-700 dark:text-gray-200 font-medium">{message}</span>
       </div>
     </div>
   );

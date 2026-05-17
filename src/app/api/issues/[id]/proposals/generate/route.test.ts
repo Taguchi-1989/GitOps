@@ -132,6 +132,7 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
       branchName: null,
       canonicalId: null,
       deletedAt: null,
+      kind: 'problem',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -161,6 +162,7 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
       branchName: 'issue/ISS-001-test',
       canonicalId: null,
       deletedAt: null,
+      kind: 'problem',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -190,6 +192,7 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
       branchName: 'issue/ISS-001-test',
       canonicalId: null,
       deletedAt: null,
+      kind: 'problem',
       createdAt: new Date(),
       updatedAt: new Date(),
     });

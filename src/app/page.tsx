@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { listFlows } from '@/lib/flow-service';
 import { TaskQueue } from '@/components/ui/TaskQueue';
+import { ExecutiveKpi, ExecutiveKpiData } from '@/components/dashboard/ExecutiveKpi';
 import {
   FileText,
   AlertCircle,
@@ -23,17 +24,105 @@ import {
   Play,
   Eye,
   Plus,
+  Heart,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-async function getDashboardStats() {
-  const [issueStats, recentIssues, flows] = await Promise.all([
+const STALLED_DAYS = 7;
+
+async function getExecutiveKpi(): Promise<ExecutiveKpiData> {
+  const now = new Date();
+  const stalledThreshold = new Date(now.getTime() - STALLED_DAYS * 24 * 60 * 60 * 1000);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  // KPIはあくまで「課題(problem)」の指標。praise(感謝)はノイズになるので除外
+  const [stalledCount, merged6m, adoption, topFlowsRaw] = await Promise.all([
+    prisma.issue.count({
+      where: {
+        kind: 'problem',
+        status: { in: ['new', 'triage', 'in-progress', 'proposed'] },
+        updatedAt: { lt: stalledThreshold },
+      },
+    }),
+    prisma.issue.findMany({
+      where: { kind: 'problem', status: 'merged', updatedAt: { gte: sixMonthsAgo } },
+      select: { updatedAt: true },
+    }),
     prisma.issue.groupBy({
       by: ['status'],
+      where: {
+        kind: 'problem',
+        status: { in: ['merged', 'rejected'] },
+        updatedAt: { gte: thirtyDaysAgo },
+      },
+      _count: { id: true },
+    }),
+    prisma.issue.groupBy({
+      by: ['targetFlowId'],
+      where: { kind: 'problem', targetFlowId: { not: null } },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 5,
+    }),
+  ]);
+
+  const monthlyMap = new Map<string, number>();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthlyMap.set(`${d.getMonth() + 1}月`, 0);
+  }
+  merged6m.forEach(i => {
+    const key = `${i.updatedAt.getMonth() + 1}月`;
+    if (monthlyMap.has(key)) monthlyMap.set(key, (monthlyMap.get(key) ?? 0) + 1);
+  });
+
+  const mergedCount = adoption.find(a => a.status === 'merged')?._count.id ?? 0;
+  const rejectedCount = adoption.find(a => a.status === 'rejected')?._count.id ?? 0;
+  const total = mergedCount + rejectedCount;
+
+  return {
+    stalledCount,
+    stalledThresholdDays: STALLED_DAYS,
+    monthlyMerged: [...monthlyMap.entries()].map(([month, count]) => ({ month, count })),
+    adoptionRate: {
+      merged: mergedCount,
+      rejected: rejectedCount,
+      rate: total === 0 ? null : mergedCount / total,
+    },
+    topFlows: topFlowsRaw
+      .filter(f => f.targetFlowId !== null)
+      .map(f => ({ flowId: f.targetFlowId as string, count: f._count.id })),
+  };
+}
+
+async function getWeeklyPraises() {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  return prisma.issue.findMany({
+    where: { kind: 'praise', createdAt: { gte: weekAgo }, deletedAt: null },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+    select: {
+      id: true,
+      humanId: true,
+      title: true,
+      description: true,
+      createdAt: true,
+      targetFlowId: true,
+    },
+  });
+}
+
+async function getDashboardStats() {
+  const [issueStats, recentIssues, flows, kpi, praises] = await Promise.all([
+    prisma.issue.groupBy({
+      by: ['status'],
+      where: { kind: 'problem' },
       _count: { id: true },
     }),
     prisma.issue.findMany({
+      where: { kind: 'problem' },
       orderBy: { updatedAt: 'desc' },
       take: 5,
       select: {
@@ -45,6 +134,8 @@ async function getDashboardStats() {
       },
     }),
     listFlows(),
+    getExecutiveKpi(),
+    getWeeklyPraises(),
   ]);
 
   const stats = {
@@ -68,7 +159,7 @@ async function getDashboardStats() {
     }
   });
 
-  return { stats, recentIssues, flows };
+  return { stats, recentIssues, flows, kpi, praises };
 }
 
 function StatCard({
@@ -94,10 +185,10 @@ function StatCard({
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</p>
           <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
         </div>
-        <div className={`p-3 rounded-xl ${color}`}>
+        <div className={`p-3 rounded-xl ${color}`} aria-hidden="true">
           <Icon className="w-6 h-6 text-white" />
         </div>
       </div>
@@ -105,7 +196,15 @@ function StatCard({
   );
 
   if (href) {
-    return <Link href={href}>{content}</Link>;
+    return (
+      <Link
+        href={href}
+        aria-label={`${title}: ${value}件 - 一覧を開く`}
+        className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+      >
+        {content}
+      </Link>
+    );
   }
   return content;
 }
@@ -137,6 +236,17 @@ const statusLabels: Record<string, string> = {
   merged: '完了',
   rejected: '却下',
   'merged-duplicate': '重複',
+};
+
+// IT用語が分からないユーザー向けのステータス補足説明
+const statusDescriptions: Record<string, string> = {
+  new: '新しく報告された、まだ確認されていない課題',
+  triage: '内容を確認して優先度や担当を決める段階',
+  'in-progress': '誰かが対応作業中の課題',
+  proposed: '改善案がすでに提案されていて、確認待ちの状態',
+  merged: '対応が完了して反映済みの課題',
+  rejected: '対応しないと判断された課題',
+  'merged-duplicate': '別の課題と内容が重複していたため、まとめられた課題',
 };
 
 /**
@@ -327,7 +437,7 @@ function WorkflowOverview() {
 }
 
 export default async function DashboardPage() {
-  const { stats, recentIssues, flows } = await getDashboardStats();
+  const { stats, recentIssues, flows, kpi, praises } = await getDashboardStats();
 
   const hasFlows = flows.length > 0;
   const hasIssues = stats.total > 0;
@@ -337,12 +447,14 @@ export default async function DashboardPage() {
   const isNewUser = !hasFlows && !hasIssues;
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">ダッシュボード</h1>
-        <p className="mt-1 text-gray-500 dark:text-gray-400">FlowOps プロジェクトの概要</p>
-      </div>
+      <header>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+          ダッシュボード
+        </h1>
+        <p className="mt-1 text-gray-700 dark:text-gray-300">FlowOps プロジェクトの概要</p>
+      </header>
 
       {/* はじめてガイド（チェックリスト） */}
       <GettingStartedChecklist
@@ -352,6 +464,9 @@ export default async function DashboardPage() {
         hasProposed={hasProposed}
         hasMerged={hasMerged}
       />
+
+      {/* 経営層向け KPI (停滞・完了推移・採択率・改善頻度) */}
+      {hasIssues && <ExecutiveKpi data={kpi} />}
 
       {/* やることリスト */}
       <TaskQueue
@@ -409,11 +524,14 @@ export default async function DashboardPage() {
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {recentIssues.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                <p className="text-gray-500 dark:text-gray-400">まだ課題がありません</p>
+                <AlertCircle
+                  className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500"
+                  aria-hidden="true"
+                />
+                <p className="text-gray-700 dark:text-gray-300">まだ課題がありません</p>
                 <Link
                   href="/issues/new"
-                  className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-block"
+                  className="text-sm text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 underline mt-2 inline-block min-h-11 px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                 >
                   最初の課題を報告する
                 </Link>
@@ -423,22 +541,27 @@ export default async function DashboardPage() {
                 <Link
                   key={issue.id}
                   href={`/issues/${issue.id}`}
-                  className="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                  aria-label={`課題 ${issue.humanId} ${statusLabels[issue.status] || issue.status}: ${issue.title}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-sm font-mono text-gray-700 dark:text-gray-300">
                         {issue.humanId}
                       </span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[issue.status]}`}
+                        title={statusDescriptions[issue.status]}
                       >
                         {statusLabels[issue.status] || issue.status}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                    <time
+                      className="text-xs text-gray-600 dark:text-gray-400"
+                      dateTime={new Date(issue.updatedAt).toISOString()}
+                    >
                       {formatDate(issue.updatedAt)}
-                    </span>
+                    </time>
                   </div>
                   <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 truncate">
                     {issue.title}
@@ -463,13 +586,16 @@ export default async function DashboardPage() {
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {flows.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                <p className="text-gray-500 dark:text-gray-400">まだフローがありません</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <FileText
+                  className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500"
+                  aria-hidden="true"
+                />
+                <p className="text-gray-700 dark:text-gray-300">まだフローがありません</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
                     spec/flows/
                   </code>{' '}
-                  にYAMLファイルを追加してください
+                  にYAML（業務フローの設定ファイル）を追加してください
                 </p>
               </div>
             ) : (
@@ -498,21 +624,71 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* 今週の感謝 (ポジティブフィードバック) */}
+      <section
+        aria-label="今週の感謝・成功事例"
+        className="bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-xl p-5"
+      >
+        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-pink-900 dark:text-pink-100">
+            <Heart className="w-5 h-5 text-pink-600 dark:text-pink-400" aria-hidden="true" />
+            今週の感謝
+          </h2>
+          <Link
+            href="/issues/new?kind=praise"
+            className="inline-flex items-center justify-center gap-1 px-4 py-2 min-h-11 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-pink-400"
+          >
+            <Heart className="w-4 h-4" aria-hidden="true" />
+            感謝を送る
+          </Link>
+        </div>
+        {praises.length === 0 ? (
+          <p className="text-sm text-pink-900 dark:text-pink-200">
+            まだ感謝の声がありません。良かった事例があれば「感謝を送る」から共有しましょう。
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {praises.map(p => (
+              <li key={p.id}>
+                <Link
+                  href={`/issues/${p.id}`}
+                  className="block bg-white dark:bg-gray-800 rounded-lg p-3 hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
+                >
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-gray-700 dark:text-gray-300">
+                    <span className="font-mono">{p.humanId}</span>
+                    {p.targetFlowId && <span>{p.targetFlowId}</span>}
+                    <time dateTime={new Date(p.createdAt).toISOString()} className="ml-auto">
+                      {formatDate(p.createdAt)}
+                    </time>
+                  </div>
+                  <p className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {p.title}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
+      <section
+        aria-label="課題報告へのショートカット"
+        className="bg-gradient-to-r from-blue-700 to-blue-800 rounded-xl p-6 text-white"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold">フローを改善しませんか？</h2>
-            <p className="mt-1 text-blue-100">課題を報告して、改善の追跡を始めましょう</p>
+            <p className="mt-1 text-white">課題を報告して、改善の追跡を始めましょう</p>
           </div>
           <Link
             href="/issues/new"
-            className="px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 min-h-11 bg-white text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white"
           >
             課題を報告する
           </Link>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

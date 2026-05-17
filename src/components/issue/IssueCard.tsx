@@ -9,8 +9,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { StatusBadge } from './StatusBadge';
-import { IssueStatus } from '@/core/issue';
-import { FileText, GitBranch, Clock } from 'lucide-react';
+import { IssueStatus, IssueKind } from '@/core/issue';
+import { FileText, GitBranch, Clock, Heart } from 'lucide-react';
 
 export interface IssueCardData {
   id: string;
@@ -18,6 +18,7 @@ export interface IssueCardData {
   title: string;
   description: string;
   status: IssueStatus;
+  kind?: IssueKind;
   targetFlowId?: string | null;
   targetNodeId?: string | null;
   branchName?: string | null;
@@ -54,11 +55,21 @@ export function IssueCard({ issue, onClick }: IssueCardProps) {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="text-sm font-mono text-gray-700 dark:text-gray-300">
               {issue.humanId}
             </span>
-            <StatusBadge status={issue.status} size="sm" />
+            {issue.kind === 'praise' ? (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-200"
+                aria-label="種別: 感謝・成功事例"
+              >
+                <Heart className="w-3 h-3" aria-hidden="true" />
+                感謝
+              </span>
+            ) : (
+              <StatusBadge status={issue.status} size="sm" />
+            )}
           </div>
           <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
             {issue.title}

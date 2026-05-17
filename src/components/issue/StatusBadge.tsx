@@ -77,8 +77,8 @@ export function StatusBadge({ status, size = 'md', className = '' }: StatusBadge
         ${config.bg} ${config.color} ${sizeClasses[size]} ${className}
       `}
     >
-      <span>{config.emoji}</span>
-      <span>{config.label}</span>
+      <span aria-hidden="true">{config.emoji}</span>
+      {config.label}
     </span>
   );
 }
@@ -98,6 +98,8 @@ export function StatusDot({ status, className = '' }: { status: IssueStatus; cla
 
   return (
     <span
+      role="img"
+      aria-label={`ステータス: ${config.label}`}
       className={`inline-block w-2 h-2 rounded-full ${dotColors[status]} ${className}`}
       title={config.label}
     />

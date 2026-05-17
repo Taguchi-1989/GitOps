@@ -279,6 +279,51 @@ describe('GET /api/issues', () => {
     );
   });
 
+  it('should filter by kind=praise', async () => {
+    vi.mocked(prisma.issue.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.issue.count).mockResolvedValue(0);
+
+    const request = new Request('http://localhost:3000/api/issues?kind=praise', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    expect(prisma.issue.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ kind: 'praise', deletedAt: null }),
+      })
+    );
+  });
+
+  it('should filter by kind=problem', async () => {
+    vi.mocked(prisma.issue.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.issue.count).mockResolvedValue(0);
+
+    const request = new Request('http://localhost:3000/api/issues?kind=problem', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    expect(prisma.issue.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ kind: 'problem' }),
+      })
+    );
+  });
+
+  it('should not filter by kind when not specified', async () => {
+    vi.mocked(prisma.issue.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.issue.count).mockResolvedValue(0);
+
+    const request = new Request('http://localhost:3000/api/issues', { method: 'GET' });
+    await GET(request as any);
+
+    const call = vi.mocked(prisma.issue.findMany).mock.calls[0]?.[0];
+    expect(call?.where).not.toHaveProperty('kind');
+  });
+
   it('should return empty issues list when no issues match', async () => {
     vi.mocked(prisma.issue.findMany).mockResolvedValue([]);
     vi.mocked(prisma.issue.count).mockResolvedValue(0);
@@ -362,6 +407,7 @@ describe('POST /api/issues', () => {
         targetFlowId: undefined,
         targetNodeId: undefined,
         status: 'new',
+        kind: 'problem',
       },
     });
     expect(auditLog.record).toHaveBeenCalledWith({
@@ -372,6 +418,7 @@ describe('POST /api/issues', () => {
         humanId: 'ISS-043',
         title: 'New Issue',
         targetFlowId: undefined,
+        kind: 'problem',
       },
     });
   });
@@ -454,8 +501,54 @@ describe('POST /api/issues', () => {
         targetFlowId: 'flow-456',
         targetNodeId: 'node-789',
         status: 'new',
+        kind: 'problem',
       },
     });
+  });
+
+  it('should create praise with status=merged and PRAISE_CREATE audit action', async () => {
+    vi.mocked(generateHumanId).mockReturnValueOnce('ISS-100');
+    vi.mocked(prisma.issue.findFirst).mockResolvedValueOnce(null);
+    vi.mocked(prisma.issue.create).mockResolvedValueOnce({
+      id: 'praise-1',
+      humanId: 'ISS-100',
+      title: '受注フローのおかげで助かった',
+      description: '新人初日からスムーズでした',
+      targetFlowId: 'order',
+      status: 'merged',
+      kind: 'praise',
+    } as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) =>
+      cb({
+        issue: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: prisma.issue.create,
+        },
+      })
+    );
+    vi.mocked(auditLog.record).mockResolvedValueOnce(null);
+
+    const request = new Request('http://localhost:3000/api/issues', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '受注フローのおかげで助かった',
+        description: '新人初日からスムーズでした',
+        targetFlowId: 'order',
+        kind: 'praise',
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const result = await POST(request as any);
+    const body = getBody(result);
+
+    expect(body.ok).toBe(true);
+    expect(prisma.issue.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ status: 'merged', kind: 'praise' }),
+    });
+    expect(auditLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'PRAISE_CREATE' })
+    );
   });
 
   it('should return validation error for missing title', async () => {

@@ -28,6 +28,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
 
+    let reason: string | undefined;
+    try {
+      const body = await request.json();
+      if (typeof body?.reason === 'string' && body.reason.trim()) {
+        reason = body.reason.trim();
+      }
+    } catch {
+      /* body省略は許容 */
+    }
+
     const issue = await prisma.issue.findUnique({
       where: { id },
     });
@@ -81,10 +91,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // 監査ログ
     await auditLog.logGitAction('MERGE_CLOSE', issue.id, {
       branchName: issue.branchName,
+      ...(reason && { reason }),
     });
 
     await auditLog.logIssueAction('ISSUE_CLOSE', issue.id, {
       status: 'merged',
+      ...(reason && { reason }),
     });
 
     return successResponse(updatedIssue);
