@@ -563,6 +563,77 @@ describe('PATCH /api/issues/[id]', () => {
     expect(body.errorCode).toBe('INTERNAL_ERROR');
     expect(result.status).toBe(500);
   });
+
+  it('should include reason in audit payload when rejecting with reason', async () => {
+    const mockExisting = {
+      id: 'issue-1',
+      humanId: 'ISS-001',
+      title: 'Test',
+      description: 'Test',
+      status: 'proposed',
+      targetFlowId: null,
+      targetNodeId: null,
+      deletedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const mockUpdated = { ...mockExisting, status: 'rejected', updatedAt: new Date() };
+
+    vi.mocked(prisma.issue.findUnique).mockResolvedValue(mockExisting as any);
+    vi.mocked(prisma.issue.update).mockResolvedValue(mockUpdated as any);
+    vi.mocked(auditLog.record).mockResolvedValue(null);
+
+    const request = new Request('http://localhost:3000/api/issues/issue-1', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'rejected', reason: '関係部門と未調整のため' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
+    const body = getBody(result);
+
+    expect(body.ok).toBe(true);
+    expect(auditLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ISSUE_UPDATE',
+        entityId: 'issue-1',
+        payload: expect.objectContaining({
+          after: { status: 'rejected' },
+          reason: '関係部門と未調整のため',
+        }),
+      })
+    );
+  });
+
+  it('should omit reason from payload when not provided', async () => {
+    const mockExisting = {
+      id: 'issue-1',
+      humanId: 'ISS-001',
+      title: 'Test',
+      description: 'Test',
+      status: 'new',
+      targetFlowId: null,
+      targetNodeId: null,
+      deletedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    vi.mocked(prisma.issue.findUnique).mockResolvedValue(mockExisting as any);
+    vi.mocked(prisma.issue.update).mockResolvedValue({ ...mockExisting, title: 'X' } as any);
+    vi.mocked(auditLog.record).mockResolvedValue(null);
+
+    const request = new Request('http://localhost:3000/api/issues/issue-1', {
+      method: 'PATCH',
+      body: JSON.stringify({ title: 'X' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
+
+    const call = vi.mocked(auditLog.record).mock.calls[0]?.[0];
+    expect(call?.payload).not.toHaveProperty('reason');
+  });
 });
 
 describe('DELETE /api/issues/[id]', () => {

@@ -12,8 +12,9 @@ import {
   successResponse,
   notFoundResponse,
   internalErrorResponse,
-  parseBody,
+  errorResponse,
 } from '@/lib/api-utils';
+import { API_ERROR_CODES } from '@/core/types/api';
 import { UpdateIssueSchema } from '@/core/issue';
 import { auditLog } from '@/core/audit';
 
@@ -73,8 +74,28 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return notFoundResponse('Issue');
     }
 
-    const { data, error } = await parseBody(request, UpdateIssueSchema);
-    if (error) return error;
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
+      return errorResponse(API_ERROR_CODES.VALIDATION_ERROR, 'Invalid JSON body', 400);
+    }
+
+    const parsed = UpdateIssueSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      const details = parsed.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      return errorResponse(API_ERROR_CODES.VALIDATION_ERROR, details, 400);
+    }
+    const data = parsed.data;
+
+    // 判断理由 (任意。却下や状態変更時の監査エビデンス)
+    const reason =
+      rawBody &&
+      typeof rawBody === 'object' &&
+      'reason' in rawBody &&
+      typeof (rawBody as { reason?: unknown }).reason === 'string'
+        ? (rawBody as { reason: string }).reason.trim() || undefined
+        : undefined;
 
     const before = {
       title: existing.title,
@@ -91,12 +112,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // 監査ログ
     await auditLog.record({
       action: 'ISSUE_UPDATE',
       entityType: 'Issue',
       entityId: issue.id,
-      payload: { before, after: data },
+      payload: { before, after: data, ...(reason && { reason }) },
     });
 
     return successResponse(issue);
