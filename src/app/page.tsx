@@ -458,7 +458,6 @@ export default async function DashboardPage() {
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[issue.status]}`}
                         title={statusDescriptions[issue.status]}
-                        aria-label={`ステータス: ${statusLabels[issue.status] || issue.status}`}
                       >
                         {statusLabels[issue.status] || issue.status}
                       </span>

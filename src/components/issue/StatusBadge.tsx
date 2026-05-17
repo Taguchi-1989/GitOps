@@ -72,15 +72,13 @@ export function StatusBadge({ status, size = 'md', className = '' }: StatusBadge
 
   return (
     <span
-      role="status"
-      aria-label={`ステータス: ${config.label}`}
       className={`
         inline-flex items-center gap-1 rounded-full font-medium
         ${config.bg} ${config.color} ${sizeClasses[size]} ${className}
       `}
     >
       <span aria-hidden="true">{config.emoji}</span>
-      <span>{config.label}</span>
+      {config.label}
     </span>
   );
 }

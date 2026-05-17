@@ -122,7 +122,6 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => setActiveTab(key as TabValue)}
                 onKeyDown={e => handleTabKeyDown(e, key as TabValue)}
-                aria-label={`${config.label} (${counts[key as TabValue]}件)`}
                 className={`
                   inline-flex items-center px-3 py-2.5 min-h-11 text-sm font-medium border-b-2 -mb-px
                   transition-colors whitespace-nowrap
@@ -136,7 +135,6 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
               >
                 {config.label}
                 <span
-                  aria-hidden="true"
                   className={`
                   ml-2 px-2 py-0.5 rounded-full text-xs
                   ${isActive ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}

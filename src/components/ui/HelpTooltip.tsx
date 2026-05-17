@@ -59,7 +59,6 @@ export function HelpTooltip({ content, className = '', size = 'sm' }: HelpToolti
         className="inline-flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         aria-label="ヘルプを表示"
         aria-describedby={isVisible ? tooltipId : undefined}
-        aria-expanded={isVisible}
       >
         <HelpCircle className={iconSize} aria-hidden="true" />
       </button>

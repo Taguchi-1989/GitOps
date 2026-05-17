@@ -209,7 +209,7 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
           required
           aria-required="true"
           aria-invalid={errors.description ? 'true' : 'false'}
-          aria-describedby={errors.description ? 'description-error' : 'description-hint'}
+          aria-describedby={errors.description ? 'description-error' : undefined}
           value={formData.description}
           onChange={e => {
             setFormData(prev => ({ ...prev, description: e.target.value }));
@@ -219,17 +219,13 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
           rows={6}
           className={`${fieldClass(!!errors.description)} resize-y min-h-32`}
         />
-        {errors.description ? (
+        {errors.description && (
           <p
             id="description-error"
             role="alert"
             className="mt-1 text-sm text-red-700 dark:text-red-300 font-medium"
           >
             {errors.description}
-          </p>
-        ) : (
-          <p id="description-hint" className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-            「現在」「期待」「困っていること」を分けて書くと伝わりやすくなります
           </p>
         )}
       </div>
