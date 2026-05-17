@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useId } from 'react';
+import React, { useEffect, useRef, useId, useState } from 'react';
 import { AlertCircle, Loader2, X } from 'lucide-react';
 import { useModalA11y } from '@/lib/use-modal-a11y';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
-  onConfirm: () => void;
+  onConfirm: (reason?: string) => void;
   onCancel: () => void;
   title: string;
   description: string;
@@ -14,6 +14,10 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   confirmColor?: 'blue' | 'green' | 'red';
   isLoading?: boolean;
+  /** 判断理由の入力欄を表示する */
+  reason?: 'none' | 'optional' | 'required';
+  reasonLabel?: string;
+  reasonPlaceholder?: string;
 }
 
 const colorMap = {
@@ -32,19 +36,39 @@ export function ConfirmDialog({
   confirmLabel,
   confirmColor = 'blue',
   isLoading = false,
+  reason = 'none',
+  reasonLabel = '判断理由',
+  reasonPlaceholder = '承認した理由・前提条件・参考にした資料など',
 }: ConfirmDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const reasonId = useId();
+  const reasonErrorId = useId();
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const [reasonText, setReasonText] = useState('');
+  const [reasonError, setReasonError] = useState(false);
 
   useModalA11y(isOpen, onCancel, !isLoading);
 
   // 破壊的操作を誤実行しないようキャンセル側へ初期フォーカス
   useEffect(() => {
-    if (isOpen) cancelButtonRef.current?.focus();
+    if (isOpen) {
+      cancelButtonRef.current?.focus();
+      setReasonText('');
+      setReasonError(false);
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    const trimmed = reasonText.trim();
+    if (reason === 'required' && !trimmed) {
+      setReasonError(true);
+      return;
+    }
+    onConfirm(reason === 'none' ? undefined : trimmed || undefined);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -104,6 +128,53 @@ export function ConfirmDialog({
             </ul>
           </div>
 
+          {reason !== 'none' && (
+            <div className="mb-4">
+              <label
+                htmlFor={reasonId}
+                className="block text-sm font-medium text-gray-800 dark:text-gray-100 mb-1"
+              >
+                {reasonLabel}
+                {reason === 'required' && (
+                  <span className="text-red-600 dark:text-red-400 ml-1" aria-hidden="true">
+                    *
+                  </span>
+                )}
+                {reason === 'optional' && (
+                  <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">(任意)</span>
+                )}
+                <span className="sr-only">{reason === 'required' ? '（必須）' : '（任意）'}</span>
+              </label>
+              <textarea
+                id={reasonId}
+                rows={3}
+                required={reason === 'required'}
+                aria-required={reason === 'required'}
+                aria-invalid={reasonError}
+                aria-describedby={reasonError ? reasonErrorId : undefined}
+                value={reasonText}
+                onChange={e => {
+                  setReasonText(e.target.value);
+                  if (reasonError) setReasonError(false);
+                }}
+                placeholder={reasonPlaceholder}
+                disabled={isLoading}
+                className={`w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 resize-y ${reasonError ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-600'}`}
+              />
+              {reasonError && (
+                <p
+                  id={reasonErrorId}
+                  role="alert"
+                  className="mt-1 text-sm text-red-700 dark:text-red-300 font-medium"
+                >
+                  {reasonLabel}を入力してください
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                入力内容は監査ログに残り、後から検索できます
+              </p>
+            </div>
+          )}
           <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
             <button
               type="button"
@@ -115,7 +186,7 @@ export function ConfirmDialog({
             </button>
             <button
               type="button"
-              onClick={onConfirm}
+              onClick={handleConfirm}
               disabled={isLoading}
               aria-busy={isLoading}
               className={`flex items-center justify-center gap-2 px-4 py-2.5 min-h-11 text-sm font-medium text-white rounded-lg disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${colorMap[confirmColor]}`}

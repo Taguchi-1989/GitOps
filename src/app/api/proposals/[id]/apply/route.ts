@@ -31,6 +31,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
 
+    // 任意の判断理由 (監査エビデンス用)
+    let reason: string | undefined;
+    try {
+      const body = await request.json();
+      if (typeof body?.reason === 'string' && body.reason.trim()) {
+        reason = body.reason.trim();
+      }
+    } catch {
+      /* body省略は許容 */
+    }
+
     // Proposalを取得
     const proposal = await prisma.proposal.findUnique({
       where: { id },
@@ -129,6 +140,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       issueId: proposal.issueId,
       commitHash: commitResult.hash,
       patchCount: (JSON.parse(proposal.jsonPatch) as JsonPatch[]).length,
+      ...(reason && { reason }),
     });
 
     await auditLog.logGitAction('GIT_COMMIT', proposal.issueId, {

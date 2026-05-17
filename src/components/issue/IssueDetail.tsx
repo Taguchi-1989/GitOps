@@ -40,6 +40,7 @@ interface IssueDetailProps {
   onApplyProposal?: (proposalId: string) => void;
   onMergeClose?: () => void;
   onReject?: () => void;
+  onReturnToProgress?: () => void;
   isLoading?: boolean;
 }
 
@@ -212,6 +213,7 @@ export function IssueDetail({
   onApplyProposal,
   onMergeClose,
   onReject,
+  onReturnToProgress,
   isLoading = false,
 }: IssueDetailProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'proposals' | 'history'>('details');
@@ -365,22 +367,30 @@ export function IssueDetail({
                     </span>
                   </button>
                 )}
+                {onReturnToProgress && (
+                  <button
+                    type="button"
+                    onClick={onReturnToProgress}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-4 py-2 min-h-11 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-orange-400"
+                    title="提案者に練り直しを依頼します"
+                  >
+                    <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    差戻し
+                  </button>
+                )}
                 {onReject && (
                   <button
+                    type="button"
                     onClick={onReject}
                     disabled={isLoading}
-                    className="
-                      flex items-center gap-2 px-4 py-2
-                      bg-gray-600 text-white rounded-lg
-                      hover:bg-gray-700 disabled:opacity-50
-                      transition-colors
-                    "
+                    className="flex items-center gap-2 px-4 py-2 min-h-11 bg-gray-700 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400"
                     title="この提案を却下します"
                   >
                     {isLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                     ) : (
-                      <XCircle className="w-4 h-4" />
+                      <XCircle className="w-4 h-4" aria-hidden="true" />
                     )}
                     却下
                   </button>

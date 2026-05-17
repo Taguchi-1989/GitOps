@@ -25,7 +25,7 @@ const tabConfig: Record<TabValue, { label: string; statuses: IssueStatus[] }> = 
     statuses: ['new', 'triage', 'in-progress'],
   },
   proposed: {
-    label: '提案済',
+    label: '承認待ち',
     statuses: ['proposed'],
   },
   closed: {
