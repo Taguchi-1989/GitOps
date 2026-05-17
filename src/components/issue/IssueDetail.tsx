@@ -75,8 +75,133 @@ interface AuditLogItem {
   entityType: string;
   entityId: string;
   actor?: string;
-  payload?: Record<string, unknown>;
+  traceId?: string | null;
+  payload?: string | Record<string, unknown> | null;
   createdAt: string;
+}
+
+function parsePayload(p: AuditLogItem['payload']): Record<string, unknown> | null {
+  if (!p) return null;
+  if (typeof p === 'string') {
+    try {
+      return JSON.parse(p);
+    } catch {
+      return { raw: p };
+    }
+  }
+  return p;
+}
+
+function HistoryTimeline({
+  logs,
+  loading,
+  issueId,
+}: {
+  logs: AuditLogItem[];
+  loading: boolean;
+  issueId: string;
+}) {
+  const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  if (loading) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="text-center py-12 text-gray-700 dark:text-gray-300"
+      >
+        <Loader2 className="w-6 h-6 mx-auto mb-3 animate-spin" aria-hidden="true" />
+        <p>履歴を読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (logs.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-700 dark:text-gray-300">
+        <History
+          className="w-8 h-8 mx-auto mb-3 text-gray-400 dark:text-gray-500"
+          aria-hidden="true"
+        />
+        <p>まだ操作履歴がありません</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <ol className="relative space-y-4 border-l-2 border-gray-200 dark:border-gray-700 pl-6 ml-2">
+        {logs.map(log => {
+          const payload = parsePayload(log.payload);
+          const isExpanded = expandedIds.has(log.id);
+          return (
+            <li key={log.id} className="relative">
+              <span
+                className="absolute -left-[33px] top-1 w-4 h-4 bg-blue-600 dark:bg-blue-500 border-2 border-white dark:border-gray-800 rounded-full"
+                aria-hidden="true"
+              />
+              <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {AUDIT_ACTION_LABELS[log.action] || log.action}
+                  </p>
+                  <time
+                    dateTime={log.createdAt}
+                    className="text-xs text-gray-700 dark:text-gray-300"
+                  >
+                    {formatDate(log.createdAt)}
+                  </time>
+                </div>
+                <div className="mt-1 flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300 flex-wrap">
+                  {log.actor && <span>実行者: {log.actor}</span>}
+                  {log.traceId && (
+                    <a
+                      href={`/governance/trace/${log.traceId}`}
+                      className="font-mono text-blue-700 dark:text-blue-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    >
+                      trace: {log.traceId.slice(0, 8)}...
+                    </a>
+                  )}
+                </div>
+                {payload && (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => toggle(log.id)}
+                      aria-expanded={isExpanded}
+                      className="text-xs text-blue-700 dark:text-blue-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    >
+                      {isExpanded ? '詳細を閉じる' : '詳細を表示'}
+                    </button>
+                    {isExpanded && (
+                      <pre className="mt-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs font-mono overflow-x-auto whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                        {JSON.stringify(payload, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="mt-4 text-right">
+        <a
+          href={`/audit?entityType=Issue&entityId=${issueId}`}
+          className="text-xs text-blue-700 dark:text-blue-300 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+        >
+          監査ログでこの課題を全件表示 →
+        </a>
+      </div>
+    </div>
+  );
 }
 
 export function IssueDetail({
@@ -415,41 +540,7 @@ export function IssueDetail({
       )}
 
       {activeTab === 'history' && (
-        <div>
-          {auditLoading ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <Loader2 className="w-6 h-6 mx-auto mb-3 animate-spin text-gray-400 dark:text-gray-500" />
-              <p>履歴を読み込み中...</p>
-            </div>
-          ) : auditLogs.length > 0 ? (
-            <div className="space-y-3">
-              {auditLogs.map(log => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
-                >
-                  <div className="mt-0.5">
-                    <History className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {AUDIT_ACTION_LABELS[log.action] || log.action}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {formatDate(log.createdAt)}
-                      {log.actor && ` — ${log.actor}`}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <History className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-              <p>まだ操作履歴がありません</p>
-            </div>
-          )}
-        </div>
+        <HistoryTimeline logs={auditLogs} loading={auditLoading} issueId={issue.id} />
       )}
     </div>
   );
