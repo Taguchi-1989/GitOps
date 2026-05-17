@@ -94,10 +94,10 @@ function StatCard({
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</p>
           <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
         </div>
-        <div className={`p-3 rounded-xl ${color}`}>
+        <div className={`p-3 rounded-xl ${color}`} aria-hidden="true">
           <Icon className="w-6 h-6 text-white" />
         </div>
       </div>
@@ -105,7 +105,15 @@ function StatCard({
   );
 
   if (href) {
-    return <Link href={href}>{content}</Link>;
+    return (
+      <Link
+        href={href}
+        aria-label={`${title}: ${value}件 - 一覧を開く`}
+        className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+      >
+        {content}
+      </Link>
+    );
   }
   return content;
 }
@@ -137,6 +145,17 @@ const statusLabels: Record<string, string> = {
   merged: '完了',
   rejected: '却下',
   'merged-duplicate': '重複',
+};
+
+// IT用語が分からないユーザー向けのステータス補足説明
+const statusDescriptions: Record<string, string> = {
+  new: '新しく報告された、まだ確認されていない課題',
+  triage: '内容を確認して優先度や担当を決める段階',
+  'in-progress': '誰かが対応作業中の課題',
+  proposed: '改善案がすでに提案されていて、確認待ちの状態',
+  merged: '対応が完了して反映済みの課題',
+  rejected: '対応しないと判断された課題',
+  'merged-duplicate': '別の課題と内容が重複していたため、まとめられた課題',
 };
 
 /**
@@ -337,12 +356,14 @@ export default async function DashboardPage() {
   const isNewUser = !hasFlows && !hasIssues;
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">ダッシュボード</h1>
-        <p className="mt-1 text-gray-500 dark:text-gray-400">FlowOps プロジェクトの概要</p>
-      </div>
+      <header>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+          ダッシュボード
+        </h1>
+        <p className="mt-1 text-gray-700 dark:text-gray-300">FlowOps プロジェクトの概要</p>
+      </header>
 
       {/* はじめてガイド（チェックリスト） */}
       <GettingStartedChecklist
@@ -409,11 +430,14 @@ export default async function DashboardPage() {
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {recentIssues.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                <p className="text-gray-500 dark:text-gray-400">まだ課題がありません</p>
+                <AlertCircle
+                  className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500"
+                  aria-hidden="true"
+                />
+                <p className="text-gray-700 dark:text-gray-300">まだ課題がありません</p>
                 <Link
                   href="/issues/new"
-                  className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-block"
+                  className="text-sm text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 underline mt-2 inline-block min-h-11 px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                 >
                   最初の課題を報告する
                 </Link>
@@ -423,22 +447,28 @@ export default async function DashboardPage() {
                 <Link
                   key={issue.id}
                   href={`/issues/${issue.id}`}
-                  className="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                  aria-label={`課題 ${issue.humanId} ${statusLabels[issue.status] || issue.status}: ${issue.title}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-sm font-mono text-gray-700 dark:text-gray-300">
                         {issue.humanId}
                       </span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[issue.status]}`}
+                        title={statusDescriptions[issue.status]}
+                        aria-label={`ステータス: ${statusLabels[issue.status] || issue.status}`}
                       >
                         {statusLabels[issue.status] || issue.status}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                    <time
+                      className="text-xs text-gray-600 dark:text-gray-400"
+                      dateTime={new Date(issue.updatedAt).toISOString()}
+                    >
                       {formatDate(issue.updatedAt)}
-                    </span>
+                    </time>
                   </div>
                   <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 truncate">
                     {issue.title}
@@ -463,13 +493,16 @@ export default async function DashboardPage() {
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {flows.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                <p className="text-gray-500 dark:text-gray-400">まだフローがありません</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <FileText
+                  className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500"
+                  aria-hidden="true"
+                />
+                <p className="text-gray-700 dark:text-gray-300">まだフローがありません</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
                     spec/flows/
                   </code>{' '}
-                  にYAMLファイルを追加してください
+                  にYAML（業務フローの設定ファイル）を追加してください
                 </p>
               </div>
             ) : (
@@ -499,20 +532,23 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
+      <section
+        aria-label="課題報告へのショートカット"
+        className="bg-gradient-to-r from-blue-700 to-blue-800 rounded-xl p-6 text-white"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold">フローを改善しませんか？</h2>
-            <p className="mt-1 text-blue-100">課題を報告して、改善の追跡を始めましょう</p>
+            <p className="mt-1 text-white">課題を報告して、改善の追跡を始めましょう</p>
           </div>
           <Link
             href="/issues/new"
-            className="px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 min-h-11 bg-white text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white"
           >
             課題を報告する
           </Link>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
