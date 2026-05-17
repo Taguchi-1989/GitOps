@@ -24,10 +24,6 @@ body {
     rgb(var(--background-start-rgb));
 }
 
-/* ======================================
-   Accessibility - Screen Reader Only
-   ====================================== */
-
 .sr-only {
   position: absolute;
   width: 1px;
@@ -40,7 +36,6 @@ body {
   border-width: 0;
 }
 
-/* Skip to main content link - 表示はフォーカス時のみ */
 .skip-link {
   position: absolute;
   top: -40px;
@@ -60,7 +55,6 @@ body {
   outline-offset: 2px;
 }
 
-/* キーボードフォーカスの可視性を全体的に強化 */
 :focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
@@ -122,7 +116,6 @@ body {
   animation: fade-in 0.2s ease-out;
 }
 
-/* アニメーションを抑える設定をしているユーザー（前庭障害・乗り物酔い等）への配慮 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

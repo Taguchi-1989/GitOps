@@ -1,16 +1,3 @@
-/**
- * FlowOps - Welcome Guide / Onboarding Modal
- *
- * 初回訪問時にFlowOpsの使い方をステップバイステップで説明する。
- *
- * アクセシビリティ:
- * - role="dialog" aria-modal="true"
- * - Escapeキーで閉じる
- * - 開いた時に最初のフォーカス可能要素へフォーカス移動
- * - 閉じた時は呼び出し元へフォーカスを戻す
- * - 矢印キー(←→)でステップ移動
- */
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useId } from 'react';
@@ -26,6 +13,7 @@ import {
   Rocket,
   HelpCircle,
 } from 'lucide-react';
+import { useModalA11y } from '@/lib/use-modal-a11y';
 
 const STORAGE_KEY = 'flowops-welcome-dismissed';
 
@@ -101,80 +89,47 @@ const steps = [
   },
 ];
 
-interface WelcomeGuideContentProps {
-  onClose: () => void;
-  closeLabel: string;
-}
-
-function WelcomeGuideContent({ onClose, closeLabel }: WelcomeGuideContentProps) {
+function WelcomeGuideContent({ onClose, closeLabel }: { onClose: () => void; closeLabel: string }) {
   const [currentStep, setCurrentStep] = useState(0);
   const titleId = useId();
   const descriptionId = useId();
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const step = steps[currentStep];
   const Icon = step.icon;
   const isLast = currentStep === steps.length - 1;
 
   const handleNext = useCallback(() => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(prev => prev + 1);
-    } else {
-      onClose();
-    }
+    if (currentStep < steps.length - 1) setCurrentStep(prev => prev + 1);
+    else onClose();
   }, [currentStep, onClose]);
 
   const handlePrev = useCallback(() => {
-    if (currentStep > 0) {
-      setCurrentStep(prev => prev - 1);
-    }
+    if (currentStep > 0) setCurrentStep(prev => prev - 1);
   }, [currentStep]);
 
-  // 開いた時に「次へ」ボタンへフォーカス、閉じた時に元の位置へ戻す
+  useModalA11y(true, onClose);
+
   useEffect(() => {
-    previousFocusRef.current = document.activeElement as HTMLElement;
     nextButtonRef.current?.focus();
-    return () => {
-      previousFocusRef.current?.focus?.();
-    };
   }, []);
 
-  // Escape, 矢印キーでナビゲーション
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (e.key === 'ArrowRight') {
-        handleNext();
-      } else if (e.key === 'ArrowLeft') {
-        handlePrev();
-      }
+      if (e.key === 'ArrowRight') handleNext();
+      else if (e.key === 'ArrowLeft') handlePrev();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleNext, handlePrev, onClose]);
-
-  // 背景スクロール停止
-  useEffect(() => {
-    const original = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = original;
-    };
-  }, []);
+  }, [handleNext, handlePrev]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
-
-      {/* Modal */}
       <div
         role="dialog"
         aria-modal="true"
@@ -182,9 +137,7 @@ function WelcomeGuideContent({ onClose, closeLabel }: WelcomeGuideContentProps) 
         aria-describedby={descriptionId}
         className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in overflow-hidden max-h-[90vh] flex flex-col"
       >
-        {/* Close button */}
         <button
-          ref={closeButtonRef}
           type="button"
           onClick={onClose}
           aria-label="ガイドを閉じる"
@@ -193,7 +146,6 @@ function WelcomeGuideContent({ onClose, closeLabel }: WelcomeGuideContentProps) 
           <X className="w-5 h-5" aria-hidden="true" />
         </button>
 
-        {/* Header */}
         <div className={`${step.color} px-8 pt-8 pb-6 flex-shrink-0`}>
           <div
             className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4"
@@ -212,7 +164,6 @@ function WelcomeGuideContent({ onClose, closeLabel }: WelcomeGuideContentProps) 
           </p>
         </div>
 
-        {/* Content */}
         <div className="px-8 py-6 overflow-y-auto">
           <ul className="space-y-3">
             {step.details.map((detail, i) => (
@@ -232,9 +183,7 @@ function WelcomeGuideContent({ onClose, closeLabel }: WelcomeGuideContentProps) 
           </ul>
         </div>
 
-        {/* Footer */}
         <div className="px-8 py-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
-          {/* Step indicators */}
           <div className="flex gap-1.5" role="tablist" aria-label="ガイドのステップ">
             {steps.map((s, i) => (
               <button
@@ -255,7 +204,6 @@ function WelcomeGuideContent({ onClose, closeLabel }: WelcomeGuideContentProps) 
             ))}
           </div>
 
-          {/* Navigation buttons */}
           <div className="flex gap-2">
             {currentStep > 0 && (
               <button
@@ -287,10 +235,7 @@ export function WelcomeGuide() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const dismissed = localStorage.getItem(STORAGE_KEY);
-    if (!dismissed) {
-      setIsOpen(true);
-    }
+    if (!localStorage.getItem(STORAGE_KEY)) setIsOpen(true);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -302,9 +247,6 @@ export function WelcomeGuide() {
   return <WelcomeGuideContent onClose={handleClose} closeLabel="はじめる" />;
 }
 
-/**
- * サイドバーのヘルプボタン - ウェルカムガイドを再表示
- */
 export function WelcomeGuideButton() {
   const [isOpen, setIsOpen] = useState(false);
 

@@ -1,9 +1,6 @@
 /**
- * FlowOps - Main Layout Component
- *
- * アプリケーション全体のレイアウト
- * - モバイル: ハンバーガーメニューでDrawer表示
- * - デスクトップ: 固定サイドバー
+ * FlowOps - Main Layout
+ * モバイル: ハンバーガーDrawer / デスクトップ: 固定サイドバー
  */
 
 'use client';
@@ -44,12 +41,10 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { isDark, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // ページ遷移時にモバイルメニューを閉じる
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  // Escapeキーでモバイルメニューを閉じる
   useEffect(() => {
     if (!isMobileMenuOpen) return;
     const handleEscape = (e: KeyboardEvent) => {
@@ -61,15 +56,12 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* スクリーンリーダー/キーボードユーザー向け: メインコンテンツへスキップ */}
       <a href="#main-content" className="skip-link">
         メインコンテンツへスキップ
       </a>
 
-      {/* Welcome Guide (初回表示) */}
       <WelcomeGuide />
 
-      {/* モバイル用 ヘッダー (md未満で表示) */}
       <header
         className="md:hidden sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3 bg-gray-900 text-white shadow"
         role="banner"
@@ -92,7 +84,6 @@ export function MainLayout({ children }: MainLayoutProps) {
         </button>
       </header>
 
-      {/* モバイル Drawer のバックドロップ */}
       {isMobileMenuOpen && (
         <div
           className="md:hidden fixed inset-0 z-40 bg-black/50"
@@ -101,7 +92,6 @@ export function MainLayout({ children }: MainLayoutProps) {
         />
       )}
 
-      {/* Sidebar (デスクトップは常時表示 / モバイルは Drawer) */}
       <aside
         id="main-navigation"
         className={`
@@ -112,7 +102,6 @@ export function MainLayout({ children }: MainLayoutProps) {
         `}
         aria-label="メインナビゲーション"
       >
-        {/* Logo + モバイル用閉じるボタン */}
         <div className="flex items-center justify-between gap-3 px-6 py-5 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -130,7 +119,6 @@ export function MainLayout({ children }: MainLayoutProps) {
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="px-4 py-6" aria-label="主要セクション">
           <p className="px-3 mb-2 text-xs font-medium text-gray-400 uppercase tracking-wider">
             メニュー
@@ -172,9 +160,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           </ul>
         </nav>
 
-        {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800 space-y-2">
-          {/* ダークモード トグル */}
           <button
             type="button"
             onClick={toggleTheme}
@@ -201,7 +187,6 @@ export function MainLayout({ children }: MainLayoutProps) {
               />
             </span>
           </button>
-          {/* かんたんモード トグル */}
           <button
             type="button"
             onClick={toggleSimpleMode}

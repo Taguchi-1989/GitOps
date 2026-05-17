@@ -1,12 +1,3 @@
-/**
- * FlowOps - Help Tooltip Component
- *
- * コンテキストヘルプ用のツールチップ
- * - マウス: ホバー/クリックで表示
- * - キーボード: Enter/Space/Tabで表示、Escapeで閉じる
- * - スクリーンリーダー: aria-describedby で内容を読み上げ
- */
-
 'use client';
 
 import React, { useState, useRef, useEffect, useId } from 'react';

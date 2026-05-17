@@ -1,21 +1,8 @@
-/**
- * FlowOps - Confirm Dialog Component
- *
- * 操作前に「この操作で何が起きるか」を平易に表示する確認ダイアログ。
- * ITリテラシーの低いユーザーでも安心して操作できるよう、
- * 結果を箇条書きで分かりやすく提示する。
- *
- * アクセシビリティ:
- * - role="dialog" aria-modal="true" でモーダル属性を明示
- * - Escapeキーで閉じる
- * - 開いた時にキャンセルボタンへフォーカスを移動（破壊的操作の誤実行を防止）
- * - 閉じた時は呼び出し元へフォーカスを戻す
- */
-
 'use client';
 
 import React, { useEffect, useRef, useId } from 'react';
 import { AlertCircle, Loader2, X } from 'lucide-react';
+import { useModalA11y } from '@/lib/use-modal-a11y';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -49,54 +36,23 @@ export function ConfirmDialog({
   const titleId = useId();
   const descriptionId = useId();
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // モーダルが開いた時、現在のフォーカス要素を覚えておきキャンセルボタンへ移動
-  // 閉じた時に元の要素へフォーカスを戻す（キーボードユーザーの操作位置が失われない）
+  useModalA11y(isOpen, onCancel, !isLoading);
+
+  // 破壊的操作を誤実行しないようキャンセル側へ初期フォーカス
   useEffect(() => {
-    if (!isOpen) return;
-    previousFocusRef.current = document.activeElement as HTMLElement;
-    cancelButtonRef.current?.focus();
-
-    return () => {
-      previousFocusRef.current?.focus?.();
-    };
-  }, [isOpen]);
-
-  // Escapeキーで閉じる
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isLoading) {
-        onCancel();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isLoading, onCancel]);
-
-  // モーダル表示中は背景のスクロールを止める
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
+    if (isOpen) cancelButtonRef.current?.focus();
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
         onClick={isLoading ? undefined : onCancel}
         aria-hidden="true"
       />
-
-      {/* Dialog */}
       <div
         role="dialog"
         aria-modal="true"
@@ -104,7 +60,6 @@ export function ConfirmDialog({
         aria-describedby={descriptionId}
         className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 animate-fade-in"
       >
-        {/* Close button */}
         <button
           type="button"
           ref={cancelButtonRef}
@@ -117,7 +72,6 @@ export function ConfirmDialog({
         </button>
 
         <div className="p-6">
-          {/* Title */}
           <h3 id={titleId} className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2 pr-8">
             {title}
           </h3>
@@ -125,12 +79,7 @@ export function ConfirmDialog({
             {description}
           </p>
 
-          {/* What happens */}
-          <div
-            className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6"
-            role="region"
-            aria-label="この操作の結果"
-          >
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle
                 className="w-4 h-4 text-blue-700 dark:text-blue-300"
@@ -155,7 +104,6 @@ export function ConfirmDialog({
             </ul>
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
             <button
               type="button"

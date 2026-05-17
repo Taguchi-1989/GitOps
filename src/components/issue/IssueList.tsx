@@ -63,22 +63,19 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
     return true;
   });
 
-  // 矢印キーでタブ切替（WAI-ARIA tab patternに準拠）
   const tabKeys = Object.keys(tabConfig) as TabValue[];
   const handleTabKeyDown = (e: React.KeyboardEvent, currentKey: TabValue) => {
-    const currentIdx = tabKeys.indexOf(currentKey);
-    if (e.key === 'ArrowRight') {
+    const i = tabKeys.indexOf(currentKey);
+    const n = tabKeys.length;
+    const target: Record<string, TabValue | undefined> = {
+      ArrowRight: tabKeys[(i + 1) % n],
+      ArrowLeft: tabKeys[(i - 1 + n) % n],
+      Home: tabKeys[0],
+      End: tabKeys[n - 1],
+    };
+    if (target[e.key]) {
       e.preventDefault();
-      setActiveTab(tabKeys[(currentIdx + 1) % tabKeys.length]);
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      setActiveTab(tabKeys[(currentIdx - 1 + tabKeys.length) % tabKeys.length]);
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      setActiveTab(tabKeys[0]);
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      setActiveTab(tabKeys[tabKeys.length - 1]);
+      setActiveTab(target[e.key]!);
     }
   };
 

@@ -117,7 +117,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
 
-      {/* Toast Container - スクリーンリーダーがすべての通知を読み上げられるようライブリージョン化 */}
       <div
         aria-label="通知"
         className="fixed bottom-4 right-4 left-4 sm:left-auto z-50 space-y-2 sm:max-w-sm pointer-events-none"

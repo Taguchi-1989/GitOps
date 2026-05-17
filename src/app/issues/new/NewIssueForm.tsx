@@ -1,12 +1,3 @@
-/**
- * FlowOps - New Issue Form
- *
- * アクセシビリティ:
- * - 必須項目には aria-required と視覚的な「必須」ラベル
- * - エラーは aria-invalid + aria-describedby でフィールド直下にインライン表示
- * - 送信失敗時に最初のエラー項目へフォーカス
- */
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -62,12 +53,8 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
     const nextErrors = validate();
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
-      // 最初のエラー項目へフォーカス（キーボードユーザーが迷子にならないように）
-      if (nextErrors.title) {
-        titleRef.current?.focus();
-      } else if (nextErrors.description) {
-        descriptionRef.current?.focus();
-      }
+      if (nextErrors.title) titleRef.current?.focus();
+      else if (nextErrors.description) descriptionRef.current?.focus();
       addToast('error', '入力内容を確認してください');
       return;
     }
