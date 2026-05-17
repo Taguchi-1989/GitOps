@@ -61,6 +61,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   ISSUE_START: '作業を開始',
   ISSUE_CLOSE: '課題を完了',
   ISSUE_DELETE: '課題を削除',
+  PRAISE_CREATE: '感謝を送る',
   PROPOSAL_GENERATE: '改善案を生成',
   PATCH_APPLY: '改善案を適用',
   MERGE_CLOSE: 'マージして完了',

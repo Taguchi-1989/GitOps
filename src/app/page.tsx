@@ -37,25 +37,31 @@ async function getExecutiveKpi(): Promise<ExecutiveKpiData> {
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+  // KPIはあくまで「課題(problem)」の指標。praise(感謝)はノイズになるので除外
   const [stalledCount, merged6m, adoption, topFlowsRaw] = await Promise.all([
     prisma.issue.count({
       where: {
+        kind: 'problem',
         status: { in: ['new', 'triage', 'in-progress', 'proposed'] },
         updatedAt: { lt: stalledThreshold },
       },
     }),
     prisma.issue.findMany({
-      where: { status: 'merged', updatedAt: { gte: sixMonthsAgo } },
+      where: { kind: 'problem', status: 'merged', updatedAt: { gte: sixMonthsAgo } },
       select: { updatedAt: true },
     }),
     prisma.issue.groupBy({
       by: ['status'],
-      where: { status: { in: ['merged', 'rejected'] }, updatedAt: { gte: thirtyDaysAgo } },
+      where: {
+        kind: 'problem',
+        status: { in: ['merged', 'rejected'] },
+        updatedAt: { gte: thirtyDaysAgo },
+      },
       _count: { id: true },
     }),
     prisma.issue.groupBy({
       by: ['targetFlowId'],
-      where: { targetFlowId: { not: null } },
+      where: { kind: 'problem', targetFlowId: { not: null } },
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
       take: 5,

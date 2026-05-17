@@ -279,6 +279,51 @@ describe('GET /api/issues', () => {
     );
   });
 
+  it('should filter by kind=praise', async () => {
+    vi.mocked(prisma.issue.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.issue.count).mockResolvedValue(0);
+
+    const request = new Request('http://localhost:3000/api/issues?kind=praise', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    expect(prisma.issue.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ kind: 'praise', deletedAt: null }),
+      })
+    );
+  });
+
+  it('should filter by kind=problem', async () => {
+    vi.mocked(prisma.issue.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.issue.count).mockResolvedValue(0);
+
+    const request = new Request('http://localhost:3000/api/issues?kind=problem', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    expect(prisma.issue.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ kind: 'problem' }),
+      })
+    );
+  });
+
+  it('should not filter by kind when not specified', async () => {
+    vi.mocked(prisma.issue.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.issue.count).mockResolvedValue(0);
+
+    const request = new Request('http://localhost:3000/api/issues', { method: 'GET' });
+    await GET(request as any);
+
+    const call = vi.mocked(prisma.issue.findMany).mock.calls[0]?.[0];
+    expect(call?.where).not.toHaveProperty('kind');
+  });
+
   it('should return empty issues list when no issues match', async () => {
     vi.mocked(prisma.issue.findMany).mockResolvedValue([]);
     vi.mocked(prisma.issue.count).mockResolvedValue(0);
