@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { listFlows } from '@/lib/flow-service';
 import { TaskQueue } from '@/components/ui/TaskQueue';
+import { ExecutiveKpi, ExecutiveKpiData } from '@/components/dashboard/ExecutiveKpi';
 import {
   FileText,
   AlertCircle,
@@ -27,8 +28,70 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+const STALLED_DAYS = 7;
+
+async function getExecutiveKpi(): Promise<ExecutiveKpiData> {
+  const now = new Date();
+  const stalledThreshold = new Date(now.getTime() - STALLED_DAYS * 24 * 60 * 60 * 1000);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const [stalledCount, merged6m, adoption, topFlowsRaw] = await Promise.all([
+    prisma.issue.count({
+      where: {
+        status: { in: ['new', 'triage', 'in-progress', 'proposed'] },
+        updatedAt: { lt: stalledThreshold },
+      },
+    }),
+    prisma.issue.findMany({
+      where: { status: 'merged', updatedAt: { gte: sixMonthsAgo } },
+      select: { updatedAt: true },
+    }),
+    prisma.issue.groupBy({
+      by: ['status'],
+      where: { status: { in: ['merged', 'rejected'] }, updatedAt: { gte: thirtyDaysAgo } },
+      _count: { id: true },
+    }),
+    prisma.issue.groupBy({
+      by: ['targetFlowId'],
+      where: { targetFlowId: { not: null } },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 5,
+    }),
+  ]);
+
+  const monthlyMap = new Map<string, number>();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthlyMap.set(`${d.getMonth() + 1}月`, 0);
+  }
+  merged6m.forEach(i => {
+    const key = `${i.updatedAt.getMonth() + 1}月`;
+    if (monthlyMap.has(key)) monthlyMap.set(key, (monthlyMap.get(key) ?? 0) + 1);
+  });
+
+  const mergedCount = adoption.find(a => a.status === 'merged')?._count.id ?? 0;
+  const rejectedCount = adoption.find(a => a.status === 'rejected')?._count.id ?? 0;
+  const total = mergedCount + rejectedCount;
+
+  return {
+    stalledCount,
+    stalledThresholdDays: STALLED_DAYS,
+    monthlyMerged: [...monthlyMap.entries()].map(([month, count]) => ({ month, count })),
+    adoptionRate: {
+      merged: mergedCount,
+      rejected: rejectedCount,
+      rate: total === 0 ? null : mergedCount / total,
+    },
+    topFlows: topFlowsRaw
+      .filter(f => f.targetFlowId !== null)
+      .map(f => ({ flowId: f.targetFlowId as string, count: f._count.id })),
+  };
+}
+
 async function getDashboardStats() {
-  const [issueStats, recentIssues, flows] = await Promise.all([
+  const [issueStats, recentIssues, flows, kpi] = await Promise.all([
     prisma.issue.groupBy({
       by: ['status'],
       _count: { id: true },
@@ -45,6 +108,7 @@ async function getDashboardStats() {
       },
     }),
     listFlows(),
+    getExecutiveKpi(),
   ]);
 
   const stats = {
@@ -68,7 +132,7 @@ async function getDashboardStats() {
     }
   });
 
-  return { stats, recentIssues, flows };
+  return { stats, recentIssues, flows, kpi };
 }
 
 function StatCard({
@@ -346,7 +410,7 @@ function WorkflowOverview() {
 }
 
 export default async function DashboardPage() {
-  const { stats, recentIssues, flows } = await getDashboardStats();
+  const { stats, recentIssues, flows, kpi } = await getDashboardStats();
 
   const hasFlows = flows.length > 0;
   const hasIssues = stats.total > 0;
@@ -373,6 +437,9 @@ export default async function DashboardPage() {
         hasProposed={hasProposed}
         hasMerged={hasMerged}
       />
+
+      {/* 経営層向け KPI (停滞・完了推移・採択率・改善頻度) */}
+      {hasIssues && <ExecutiveKpi data={kpi} />}
 
       {/* やることリスト */}
       <TaskQueue
