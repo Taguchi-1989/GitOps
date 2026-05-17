@@ -30,7 +30,14 @@ function buildWhere(searchParams: URLSearchParams): AuditWhere {
   if (startDate || endDate) {
     where.createdAt = {};
     if (startDate) where.createdAt.gte = new Date(startDate);
-    if (endDate) where.createdAt.lte = new Date(endDate);
+    if (endDate) {
+      // YYYY-MM-DD のような日付指定は当日終端まで含める
+      const d = new Date(endDate);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+        d.setUTCHours(23, 59, 59, 999);
+      }
+      where.createdAt.lte = d;
+    }
   }
   return where;
 }
