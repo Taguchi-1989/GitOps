@@ -260,19 +260,21 @@ export function IssueDetail({
           </button>
         )}
 
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-lg font-mono text-gray-500 dark:text-gray-400">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <span className="text-lg font-mono text-gray-700 dark:text-gray-300">
                 {issue.humanId}
               </span>
               <StatusBadge status={issue.status} />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{issue.title}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">
+              {issue.title}
+            </h1>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex flex-wrap gap-2 lg:flex-shrink-0">
             {canStart && onStart && (
               <button
                 onClick={onStart}
@@ -401,15 +403,14 @@ export function IssueDetail({
         </div>
       </div>
 
-      {/* Guided Workflow (シンプルモード時のみ) */}
-      {isSimpleMode && (
-        <GuidedWorkflow
-          currentStatus={issue.status}
-          hasProposals={!!issue.proposals && issue.proposals.length > 0}
-          hasAppliedProposal={!!issue.proposals?.some(p => p.isApplied)}
-          className="mb-4"
-        />
-      )}
+      {/* 次にすべきことガイド (全ユーザーに常時表示。現場の人が迷子にならないため) */}
+      <GuidedWorkflow
+        currentStatus={issue.status}
+        hasProposals={!!issue.proposals && issue.proposals.length > 0}
+        hasAppliedProposal={!!issue.proposals?.some(p => p.isApplied)}
+        hasTargetFlow={!!issue.targetFlowId}
+        className="mb-4"
+      />
 
       {/* Status Lifecycle */}
       <StatusLifecycle currentStatus={issue.status} className="mb-6" />
