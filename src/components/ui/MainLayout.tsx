@@ -20,6 +20,7 @@ import {
   Moon,
   Menu,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import { WelcomeGuide, WelcomeGuideButton } from './WelcomeGuide';
 import { useSimpleMode } from '@/lib/simple-mode-context';
@@ -33,6 +34,7 @@ const navigation = [
   { name: 'ダッシュボード', href: '/', icon: Home, description: 'プロジェクト概要' },
   { name: 'フロー', href: '/flows', icon: FileText, description: '業務フロー一覧' },
   { name: '課題', href: '/issues', icon: AlertCircle, description: '課題・改善の管理' },
+  { name: '監査ログ', href: '/audit', icon: ShieldCheck, description: '操作履歴・エビデンス' },
 ];
 
 export function MainLayout({ children }: MainLayoutProps) {
