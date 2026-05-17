@@ -17,40 +17,45 @@ interface IssueListProps {
   onCreateClick?: () => void;
 }
 
-type TabValue = 'open' | 'proposed' | 'closed';
+type TabValue = 'open' | 'proposed' | 'closed' | 'praise';
 
-const tabConfig: Record<TabValue, { label: string; statuses: IssueStatus[] }> = {
-  open: {
-    label: '未対応',
-    statuses: ['new', 'triage', 'in-progress'],
-  },
-  proposed: {
-    label: '承認待ち',
-    statuses: ['proposed'],
-  },
+interface TabConfig {
+  label: string;
+  statuses: IssueStatus[];
+  /** 種別フィルタ。未指定なら problem のみ */
+  kind: 'problem' | 'praise';
+}
+
+const tabConfig: Record<TabValue, TabConfig> = {
+  open: { label: '未対応', statuses: ['new', 'triage', 'in-progress'], kind: 'problem' },
+  proposed: { label: '承認待ち', statuses: ['proposed'], kind: 'problem' },
   closed: {
     label: '完了',
     statuses: ['merged', 'rejected', 'merged-duplicate'],
+    kind: 'problem',
   },
+  praise: { label: '感謝', statuses: ['merged', 'new'], kind: 'praise' },
 };
+
+function matchesTab(issue: IssueCardData, cfg: TabConfig): boolean {
+  const issueKind = issue.kind ?? 'problem';
+  return issueKind === cfg.kind && cfg.statuses.includes(issue.status);
+}
 
 export function IssueList({ issues, isLoading = false, onCreateClick }: IssueListProps) {
   const [activeTab, setActiveTab] = useState<TabValue>('open');
   const [searchQuery, setSearchQuery] = useState('');
 
   const counts = Object.entries(tabConfig).reduce(
-    (acc, [key, config]) => {
-      acc[key as TabValue] = issues.filter(i => config.statuses.includes(i.status)).length;
+    (acc, [key, cfg]) => {
+      acc[key as TabValue] = issues.filter(i => matchesTab(i, cfg)).length;
       return acc;
     },
     {} as Record<TabValue, number>
   );
 
   const filteredIssues = issues.filter(issue => {
-    if (!tabConfig[activeTab].statuses.includes(issue.status)) {
-      return false;
-    }
-
+    if (!matchesTab(issue, tabConfig[activeTab])) return false;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -59,7 +64,6 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
         issue.humanId.toLowerCase().includes(query)
       );
     }
-
     return true;
   });
 

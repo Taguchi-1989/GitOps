@@ -24,6 +24,7 @@ import {
   Play,
   Eye,
   Plus,
+  Heart,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -90,13 +91,32 @@ async function getExecutiveKpi(): Promise<ExecutiveKpiData> {
   };
 }
 
+async function getWeeklyPraises() {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  return prisma.issue.findMany({
+    where: { kind: 'praise', createdAt: { gte: weekAgo }, deletedAt: null },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+    select: {
+      id: true,
+      humanId: true,
+      title: true,
+      description: true,
+      createdAt: true,
+      targetFlowId: true,
+    },
+  });
+}
+
 async function getDashboardStats() {
-  const [issueStats, recentIssues, flows, kpi] = await Promise.all([
+  const [issueStats, recentIssues, flows, kpi, praises] = await Promise.all([
     prisma.issue.groupBy({
       by: ['status'],
+      where: { kind: 'problem' },
       _count: { id: true },
     }),
     prisma.issue.findMany({
+      where: { kind: 'problem' },
       orderBy: { updatedAt: 'desc' },
       take: 5,
       select: {
@@ -109,6 +129,7 @@ async function getDashboardStats() {
     }),
     listFlows(),
     getExecutiveKpi(),
+    getWeeklyPraises(),
   ]);
 
   const stats = {
@@ -132,7 +153,7 @@ async function getDashboardStats() {
     }
   });
 
-  return { stats, recentIssues, flows, kpi };
+  return { stats, recentIssues, flows, kpi, praises };
 }
 
 function StatCard({
@@ -410,7 +431,7 @@ function WorkflowOverview() {
 }
 
 export default async function DashboardPage() {
-  const { stats, recentIssues, flows, kpi } = await getDashboardStats();
+  const { stats, recentIssues, flows, kpi, praises } = await getDashboardStats();
 
   const hasFlows = flows.length > 0;
   const hasIssues = stats.total > 0;
@@ -596,6 +617,53 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* 今週の感謝 (ポジティブフィードバック) */}
+      <section
+        aria-label="今週の感謝・成功事例"
+        className="bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-xl p-5"
+      >
+        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-pink-900 dark:text-pink-100">
+            <Heart className="w-5 h-5 text-pink-600 dark:text-pink-400" aria-hidden="true" />
+            今週の感謝
+          </h2>
+          <Link
+            href="/issues/new?kind=praise"
+            className="inline-flex items-center justify-center gap-1 px-4 py-2 min-h-11 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-pink-400"
+          >
+            <Heart className="w-4 h-4" aria-hidden="true" />
+            感謝を送る
+          </Link>
+        </div>
+        {praises.length === 0 ? (
+          <p className="text-sm text-pink-900 dark:text-pink-200">
+            まだ感謝の声がありません。良かった事例があれば「感謝を送る」から共有しましょう。
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {praises.map(p => (
+              <li key={p.id}>
+                <Link
+                  href={`/issues/${p.id}`}
+                  className="block bg-white dark:bg-gray-800 rounded-lg p-3 hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
+                >
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-gray-700 dark:text-gray-300">
+                    <span className="font-mono">{p.humanId}</span>
+                    {p.targetFlowId && <span>{p.targetFlowId}</span>}
+                    <time dateTime={new Date(p.createdAt).toISOString()} className="ml-auto">
+                      {formatDate(p.createdAt)}
+                    </time>
+                  </div>
+                  <p className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {p.title}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* Quick Actions */}
       <section

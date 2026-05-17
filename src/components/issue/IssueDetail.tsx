@@ -242,9 +242,10 @@ export function IssueDetail({
       fetchAuditLogs();
     }
   }, [activeTab, fetchAuditLogs]);
-  const canStart = issue.status === 'new' || issue.status === 'triage';
-  const canGenerateProposal = issue.status === 'in-progress';
-  const canMergeOrReject = issue.status === 'proposed';
+  const isPraise = issue.kind === 'praise';
+  const canStart = !isPraise && (issue.status === 'new' || issue.status === 'triage');
+  const canGenerateProposal = !isPraise && issue.status === 'in-progress';
+  const canMergeOrReject = !isPraise && issue.status === 'proposed';
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -266,7 +267,13 @@ export function IssueDetail({
               <span className="text-lg font-mono text-gray-700 dark:text-gray-300">
                 {issue.humanId}
               </span>
-              <StatusBadge status={issue.status} />
+              {isPraise ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-200">
+                  感謝・成功事例
+                </span>
+              ) : (
+                <StatusBadge status={issue.status} />
+              )}
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">
               {issue.title}
@@ -404,13 +411,15 @@ export function IssueDetail({
       </div>
 
       {/* 次にすべきことガイド (全ユーザーに常時表示。現場の人が迷子にならないため) */}
-      <GuidedWorkflow
-        currentStatus={issue.status}
-        hasProposals={!!issue.proposals && issue.proposals.length > 0}
-        hasAppliedProposal={!!issue.proposals?.some(p => p.isApplied)}
-        hasTargetFlow={!!issue.targetFlowId}
-        className="mb-4"
-      />
+      {!isPraise && (
+        <GuidedWorkflow
+          currentStatus={issue.status}
+          hasProposals={!!issue.proposals && issue.proposals.length > 0}
+          hasAppliedProposal={!!issue.proposals?.some(p => p.isApplied)}
+          hasTargetFlow={!!issue.targetFlowId}
+          className="mb-4"
+        />
+      )}
 
       {/* Status Lifecycle */}
       <StatusLifecycle currentStatus={issue.status} className="mb-6" />
@@ -464,9 +473,10 @@ export function IssueDetail({
           >
             詳細
           </button>
-          <button
-            onClick={() => setActiveTab('proposals')}
-            className={`
+          {!isPraise && (
+            <button
+              onClick={() => setActiveTab('proposals')}
+              className={`
               flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
               ${
                 activeTab === 'proposals'
@@ -474,19 +484,20 @@ export function IssueDetail({
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }
             `}
-          >
-            改善案
-            {issue.proposals && issue.proposals.length > 0 && (
-              <span
-                className={`
+            >
+              改善案
+              {issue.proposals && issue.proposals.length > 0 && (
+                <span
+                  className={`
                 px-2 py-0.5 rounded-full text-xs
                 ${activeTab === 'proposals' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}
               `}
-              >
-                {issue.proposals.length}
-              </span>
-            )}
-          </button>
+                >
+                  {issue.proposals.length}
+                </span>
+              )}
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('history')}
             className={`

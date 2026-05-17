@@ -21,6 +21,14 @@ export const IssueStatusSchema = z.enum([
 
 export type IssueStatus = z.infer<typeof IssueStatusSchema>;
 
+/**
+ * 課題の種別。
+ * - problem: 改善したい問題・課題 (デフォルト)
+ * - praise: 感謝・成功事例 ("このフローのおかげで助かった"等のポジティブフィードバック)
+ */
+export const IssueKindSchema = z.enum(['problem', 'praise']);
+export type IssueKind = z.infer<typeof IssueKindSchema>;
+
 // --------------------------------------------------------
 // Issue Create/Update DTOs
 // --------------------------------------------------------
@@ -29,6 +37,7 @@ export const CreateIssueSchema = z.object({
   description: z.string().min(1),
   targetFlowId: z.string().optional(),
   targetNodeId: z.string().optional(),
+  kind: IssueKindSchema.optional(),
 });
 
 export type CreateIssueInput = z.infer<typeof CreateIssueSchema>;

@@ -17,6 +17,9 @@ export const AuditActionSchema = z.enum([
   'ISSUE_CLOSE',
   'ISSUE_DELETE',
 
+  // Praise (感謝・成功事例)
+  'PRAISE_CREATE',
+
   // Proposal lifecycle
   'PROPOSAL_GENERATE',
   'PATCH_APPLY',

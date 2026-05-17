@@ -5,23 +5,76 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toast';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { FlowSummary } from '@/lib/flow-service';
-import { Loader2, ArrowLeft, Lightbulb } from 'lucide-react';
+import { Loader2, ArrowLeft, Lightbulb, Heart, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import type { IssueKind } from '@/core/issue';
 
 interface NewIssueFormProps {
   flows: FlowSummary[];
   defaultFlowId?: string;
   defaultNodeId?: string;
+  kind?: IssueKind;
 }
+
+const COPY = {
+  problem: {
+    Icon: AlertCircle,
+    iconColor: 'text-red-600 dark:text-red-400',
+    pageTitle: '新しい課題を作成',
+    pageDescription: 'フローの改善点や課題を記録します。作成後、AIが改善案を自動生成できます。',
+    tipsTitle: '良い課題の書き方',
+    tips: [
+      '現在の状態と期待される状態を明確に記述する',
+      '対象フローとノードを指定すると、AIがより正確な提案を生成できます',
+      '具体的な改善案がある場合は説明に含めると効果的です',
+    ],
+    titlePlaceholder: '例: 承認フローにマネージャー確認ステップを追加',
+    descriptionPlaceholder: '現在の問題点、期待される動作、改善案などを記述してください',
+    submitLabel: '課題を作成',
+    submittingLabel: '作成中...',
+    successPrefix: '課題',
+    failureMessage: '課題の作成に失敗しました',
+    backLabel: '課題一覧に戻る',
+    submitColor: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-400',
+  },
+  praise: {
+    Icon: Heart,
+    iconColor: 'text-pink-600 dark:text-pink-400',
+    pageTitle: '感謝・成功事例を送る',
+    pageDescription:
+      '「このフローのおかげで助かった」「うまくいった」を記録して、チームで共有しましょう。',
+    tipsTitle: '良い感謝の書き方',
+    tips: [
+      '誰の・どのフローのおかげで、何が良かったかを書く',
+      '対象フローを指定すると、ダッシュボードでフロー別に集計できます',
+      '具体的なエピソードがあると伝わりやすくなります',
+    ],
+    titlePlaceholder: '例: 受注フローのおかげで初日からスムーズに業務できました',
+    descriptionPlaceholder: 'どんな場面で・どう役立ったか・誰に感謝したいか などを書いてください',
+    submitLabel: '感謝を送る',
+    submittingLabel: '送信中...',
+    successPrefix: '感謝',
+    failureMessage: '感謝の送信に失敗しました',
+    backLabel: '一覧に戻る',
+    submitColor: 'bg-pink-600 hover:bg-pink-700 focus-visible:ring-pink-400',
+  },
+} as const;
 
 type FieldErrors = {
   title?: string;
   description?: string;
 };
 
-export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFormProps) {
+export function NewIssueForm({
+  flows,
+  defaultFlowId,
+  defaultNodeId,
+  kind = 'problem',
+}: NewIssueFormProps) {
   const router = useRouter();
   const { addToast } = useToast();
+  const copy = COPY[kind];
+  const { Icon: HeaderIcon } = copy;
   const titleRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
@@ -71,19 +124,20 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
           description: formData.description.trim(),
           targetFlowId: formData.targetFlowId || undefined,
           targetNodeId: formData.targetNodeId || undefined,
+          kind,
         }),
       });
 
       const data = await res.json();
 
       if (!data.ok) {
-        throw new Error(data.details || '課題の作成に失敗しました');
+        throw new Error(data.details || copy.failureMessage);
       }
 
-      addToast('success', `課題 ${data.data.humanId} を作成しました`);
+      addToast('success', `${copy.successPrefix} ${data.data.humanId} を作成しました`);
       router.push(`/issues/${data.data.id}`);
     } catch (error) {
-      addToast('error', error instanceof Error ? error.message : '課題の作成に失敗しました');
+      addToast('error', error instanceof Error ? error.message : copy.failureMessage);
       setIsSubmitting(false);
     }
   };
@@ -101,21 +155,22 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
       onSubmit={handleSubmit}
       className="space-y-6"
       noValidate
-      aria-label="新しい課題の作成フォーム"
+      aria-label={`${copy.pageTitle}フォーム`}
     >
       <Link
         href="/issues"
         className="inline-flex items-center gap-1 min-h-11 px-2 -ml-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded"
       >
         <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-        課題一覧に戻る
+        {copy.backLabel}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">新しい課題を作成</h1>
-        <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-          フローの改善点や課題を記録します。作成後、AIが改善案を自動生成できます。
-        </p>
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <HeaderIcon className={`w-6 h-6 ${copy.iconColor}`} aria-hidden="true" />
+          {copy.pageTitle}
+        </h1>
+        <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{copy.pageDescription}</p>
         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
           <span className="text-red-600 dark:text-red-400" aria-hidden="true">
             *
@@ -124,21 +179,34 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
         </p>
       </div>
 
-      {/* ヒント */}
       <aside
-        className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex gap-3"
-        aria-label="課題作成のヒント"
+        className={
+          kind === 'praise'
+            ? 'bg-pink-50 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-800 rounded-lg p-4 flex gap-3'
+            : 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex gap-3'
+        }
+        aria-label={`${copy.pageTitle}のヒント`}
       >
         <Lightbulb
-          className="w-5 h-5 text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5"
+          className={
+            kind === 'praise'
+              ? 'w-5 h-5 text-pink-700 dark:text-pink-300 flex-shrink-0 mt-0.5'
+              : 'w-5 h-5 text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5'
+          }
           aria-hidden="true"
         />
-        <div className="text-sm text-blue-900 dark:text-blue-100">
-          <p className="font-medium">良い課題の書き方</p>
-          <ul className="mt-1 space-y-0.5 text-blue-900 dark:text-blue-200 list-disc list-inside">
-            <li>現在の状態と期待される状態を明確に記述する</li>
-            <li>対象フローとノードを指定すると、AIがより正確な提案を生成できます</li>
-            <li>具体的な改善案がある場合は説明に含めると効果的です</li>
+        <div
+          className={
+            kind === 'praise'
+              ? 'text-sm text-pink-900 dark:text-pink-100'
+              : 'text-sm text-blue-900 dark:text-blue-100'
+          }
+        >
+          <p className="font-medium">{copy.tipsTitle}</p>
+          <ul className="mt-1 space-y-0.5 list-disc list-inside">
+            {copy.tips.map(t => (
+              <li key={t}>{t}</li>
+            ))}
           </ul>
         </div>
       </aside>
@@ -168,7 +236,7 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
             setFormData(prev => ({ ...prev, title: e.target.value }));
             if (errors.title) setErrors(prev => ({ ...prev, title: undefined }));
           }}
-          placeholder="例: 承認フローにマネージャー確認ステップを追加"
+          placeholder={copy.titlePlaceholder}
           className={fieldClass(!!errors.title)}
           maxLength={200}
         />
@@ -215,7 +283,7 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
             setFormData(prev => ({ ...prev, description: e.target.value }));
             if (errors.description) setErrors(prev => ({ ...prev, description: undefined }));
           }}
-          placeholder="現在の問題点、期待される動作、改善案などを記述してください"
+          placeholder={copy.descriptionPlaceholder}
           rows={6}
           className={`${fieldClass(!!errors.description)} resize-y min-h-32`}
         />
@@ -300,10 +368,10 @@ export function NewIssueForm({ flows, defaultFlowId, defaultNodeId }: NewIssueFo
           type="submit"
           disabled={isSubmitting}
           aria-busy={isSubmitting}
-          className="inline-flex items-center justify-center gap-2 px-6 py-2.5 min-h-11 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-400 font-medium"
+          className={`inline-flex items-center justify-center gap-2 px-6 py-2.5 min-h-11 text-white rounded-lg disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 font-medium ${copy.submitColor}`}
         >
           {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
-          {isSubmitting ? '作成中...' : '課題を作成'}
+          {isSubmitting ? copy.submittingLabel : copy.submitLabel}
         </button>
       </div>
     </form>
