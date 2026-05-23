@@ -21,7 +21,7 @@ import { getGitManager } from '@/core/git';
 import { auditLog } from '@/core/audit';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const MergeDuplicateBodySchema = z.object({
@@ -34,13 +34,15 @@ const MergeDuplicateBodySchema = z.object({
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
+
     // リクエストボディを解析
     const { data, error } = await parseBody(request, MergeDuplicateBodySchema);
     if (error) return error;
 
     // 重複Issue（統合される側）を取得
     const duplicate = await prisma.issue.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!duplicate) {
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // DB更新（Git操作成功後のみ）
     const updatedDuplicate = await prisma.issue.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: 'merged-duplicate',
         canonicalId: canonical.id,

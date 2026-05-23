@@ -16,7 +16,7 @@ import { getFlow } from '@/lib/flow-service';
 import { API_ERROR_CODES } from '@/core/types/api';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -25,10 +25,12 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    if (!sanitizeFlowId(params.id)) {
+    const { id } = await params;
+
+    if (!sanitizeFlowId(id)) {
       return errorResponse(API_ERROR_CODES.VALIDATION_ERROR, 'Invalid flow ID', 400);
     }
-    const flowData = await getFlow(params.id);
+    const flowData = await getFlow(id);
 
     if (!flowData) {
       return notFoundResponse('Flow');

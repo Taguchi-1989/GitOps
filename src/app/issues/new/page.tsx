@@ -13,13 +13,14 @@ export const metadata = {
 };
 
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     targetFlowId?: string;
     targetNodeId?: string;
-  };
+  }>;
 }
 
 export default async function NewIssuePage({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
   const flows = await listFlows();
 
   // SSR側で全フローのFlowデータを取得（APIを経由せず直接ファイル読み込み）
@@ -36,8 +37,8 @@ export default async function NewIssuePage({ searchParams }: PageProps) {
       <NewIssueForm
         flows={flows}
         flowsMap={flowsMap}
-        defaultFlowId={searchParams.targetFlowId}
-        defaultNodeId={searchParams.targetNodeId}
+        defaultFlowId={resolvedSearchParams.targetFlowId}
+        defaultNodeId={resolvedSearchParams.targetNodeId}
       />
     </div>
   );

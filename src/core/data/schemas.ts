@@ -101,9 +101,9 @@ export const TransformationEventSchema = z.object({
   outputObjectIds: z.array(ObjectIDSchema), // 出力オブジェクトID群
   executedBy: z.string().min(1), // 実行者/システム
   executedAt: DateTimeSchema, // ISO 8601
-  parameters: z.record(z.unknown()).optional(), // 処理パラメータ
+  parameters: z.record(z.string(), z.unknown()).optional(), // 処理パラメータ
   confidence: z.number().min(0).max(1).optional(), // 処理結果の信頼度
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 export type TransformationEvent = z.infer<typeof TransformationEventSchema>;
 
@@ -224,7 +224,7 @@ export const DataObjectSchema = z.object({
   outputArtifactMetadata: OutputArtifactMetadataSchema.optional(),
 
   // 拡張用
-  meta: z.record(z.unknown()).optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
 });
 export type DataObject = z.infer<typeof DataObjectSchema>;
 

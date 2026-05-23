@@ -35,7 +35,7 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
-export default auth(async function middleware(request) {
+export default auth(async function proxy(request) {
   const { pathname } = request.nextUrl;
   const origin = request.headers.get('origin');
   const actorId =

@@ -1,7 +1,7 @@
 /**
  * FlowOps - Generate Proposal API Route Tests
  *
- * POST /api/issues/[id]/proposals/generate - LLMで提案を生成
+ * POST /api/issues/[id]/proposals/generate - LLMで提案を生�E
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -111,7 +111,7 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'nonexistent' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'nonexistent' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -140,7 +140,7 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -169,7 +169,7 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -200,7 +200,7 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);
@@ -249,7 +249,7 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(true);
@@ -310,7 +310,7 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
       method: 'POST',
     });
 
-    const result = await POST(request as any, { params: { id: 'issue-1' } });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
     const body = getBody(result);
 
     expect(body.ok).toBe(false);

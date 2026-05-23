@@ -25,12 +25,12 @@ export type WorkflowStatus = z.infer<typeof WorkflowStatusSchema>;
 export const WorkflowExecutionRequestSchema = z.object({
   flowId: z.string().min(1),
   initiatorId: z.string().min(1),
-  inputData: z.record(z.unknown()).default({}),
+  inputData: z.record(z.string(), z.unknown()).default({}),
   options: z
     .object({
       dryRun: z.boolean().default(false),
       // タスクバージョンのオーバーライド: taskId -> gitCommitHash
-      taskVersionOverrides: z.record(z.string()).optional(),
+      taskVersionOverrides: z.record(z.string(), z.string()).optional(),
     })
     .optional(),
 });
@@ -47,8 +47,8 @@ export const NodeExecutionRecordSchema = z.object({
   gitCommitHash: z.string().optional(),
   startedAt: z.string().datetime(),
   completedAt: z.string().datetime().optional(),
-  input: z.record(z.unknown()),
-  output: z.record(z.unknown()).optional(),
+  input: z.record(z.string(), z.unknown()),
+  output: z.record(z.string(), z.unknown()).optional(),
   llmModelUsed: z.string().optional(),
   humanDecision: z
     .object({
@@ -71,7 +71,7 @@ export const WorkflowExecutionStateSchema = z.object({
   traceId: z.string().uuid(),
   status: WorkflowStatusSchema,
   currentNodeId: z.string(),
-  stateData: z.record(z.unknown()),
+  stateData: z.record(z.string(), z.unknown()),
   history: z.array(NodeExecutionRecordSchema),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),

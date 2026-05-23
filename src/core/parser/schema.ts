@@ -148,7 +148,7 @@ export const NodeSchema = z.object({
   system: z.string().optional(), // systems.yaml のキーと一致すること
   taskId: z.string().optional(), // spec/tasks/{taskId}.yaml への参照
   dataClassification: DataClassificationSchema.optional(), // GPTsiteki: ノード単位のデータ分類
-  meta: z.record(z.unknown()).optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type Node = z.infer<typeof NodeSchema>;
