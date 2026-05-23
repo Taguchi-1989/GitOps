@@ -11,6 +11,7 @@ import {
   notFoundResponse,
   errorResponse,
   internalErrorResponse,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 import { getFlowYaml, getDictionary } from '@/lib/flow-service';
@@ -127,12 +128,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     // 監査ログ
-    await auditLog.logProposalAction('PROPOSAL_GENERATE', proposal.id, {
-      issueId: issue.id,
-      baseHash,
-      intent: proposalOutput.intent,
-      patchCount: proposalOutput.patches.length,
-    });
+    const actor = getAuditActor(request);
+    if (actor) {
+      await auditLog.logProposalAction(
+        'PROPOSAL_GENERATE',
+        proposal.id,
+        {
+          issueId: issue.id,
+          baseHash,
+          intent: proposalOutput.intent,
+          patchCount: proposalOutput.patches.length,
+        },
+        actor
+      );
+    } else {
+      await auditLog.logProposalAction('PROPOSAL_GENERATE', proposal.id, {
+        issueId: issue.id,
+        baseHash,
+        intent: proposalOutput.intent,
+        patchCount: proposalOutput.patches.length,
+      });
+    }
 
     return successResponse(proposal, 201);
   } catch (error) {

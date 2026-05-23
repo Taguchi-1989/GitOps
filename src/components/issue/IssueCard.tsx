@@ -23,6 +23,22 @@ export interface IssueCardData {
   branchName?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  // PDCA Plan fields
+  currentSituation?: string | null;
+  frequency?: string | null;
+  impact?: string | null;
+  expectedState?: string | null;
+  hypothesisCause?: string | null;
+  successMetric?: string | null;
+  checkDueDate?: Date | string | null;
+  // PDCA Check fields
+  metricBefore?: string | null;
+  metricAfter?: string | null;
+  checkDate?: Date | string | null;
+  checkResult?: string | null;
+  learning?: string | null;
+  nextAction?: string | null;
+  standardizedAt?: Date | string | null;
 }
 
 interface IssueCardProps {

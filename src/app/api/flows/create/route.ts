@@ -10,7 +10,13 @@
 
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { successResponse, errorResponse, internalErrorResponse, parseBody } from '@/lib/api-utils';
+import {
+  successResponse,
+  errorResponse,
+  internalErrorResponse,
+  parseBody,
+  getAuditActor,
+} from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 import { parseFlowYaml, stringifyFlow } from '@/core/parser';
 import { FlowSchema, Flow } from '@/core/parser/schema';
@@ -77,6 +83,7 @@ export async function POST(request: NextRequest) {
       action: 'FLOW_CREATE',
       entityType: 'Flow',
       entityId: data.id,
+      actor: getAuditActor(request),
       payload: {
         method: data.yaml ? 'direct-yaml' : `template-${data.template}`,
         layer: parseResult.flow.layer,

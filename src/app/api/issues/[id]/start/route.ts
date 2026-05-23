@@ -11,6 +11,7 @@ import {
   notFoundResponse,
   errorResponse,
   internalErrorResponse,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 import { generateBranchName, titleToSlug } from '@/core/issue/humanId';
@@ -73,8 +74,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     // 監査ログ
-    await auditLog.logGitAction('GIT_BRANCH_CREATE', issue.id, { branchName });
-    await auditLog.logIssueAction('ISSUE_START', issue.id, { branchName });
+    const actor = getAuditActor(request);
+    if (actor) {
+      await auditLog.logGitAction('GIT_BRANCH_CREATE', issue.id, { branchName }, actor);
+      await auditLog.logIssueAction('ISSUE_START', issue.id, { branchName }, actor);
+    } else {
+      await auditLog.logGitAction('GIT_BRANCH_CREATE', issue.id, { branchName });
+      await auditLog.logIssueAction('ISSUE_START', issue.id, { branchName });
+    }
 
     return successResponse(updatedIssue);
   } catch (error) {

@@ -27,10 +27,8 @@ interface EdgeDiff {
 function computeDiff(current: Flow, proposed: Flow): { nodes: NodeDiff[]; edges: EdgeDiff[] } {
   const currentNodeIds = new Set(Object.keys(current.nodes));
   const proposedNodeIds = new Set(Object.keys(proposed.nodes));
-
   const nodes: NodeDiff[] = [];
 
-  // Added nodes
   for (const id of proposedNodeIds) {
     if (!currentNodeIds.has(id)) {
       const node = proposed.nodes[id];
@@ -38,7 +36,6 @@ function computeDiff(current: Flow, proposed: Flow): { nodes: NodeDiff[]; edges:
     }
   }
 
-  // Removed nodes
   for (const id of currentNodeIds) {
     if (!proposedNodeIds.has(id)) {
       const node = current.nodes[id];
@@ -46,12 +43,28 @@ function computeDiff(current: Flow, proposed: Flow): { nodes: NodeDiff[]; edges:
     }
   }
 
-  // Changed or unchanged nodes
   for (const id of currentNodeIds) {
     if (proposedNodeIds.has(id)) {
       const cur = current.nodes[id];
       const prop = proposed.nodes[id];
-      const changed = cur.label !== prop.label || cur.type !== prop.type;
+      const changed =
+        JSON.stringify({
+          label: cur.label,
+          type: cur.type,
+          role: cur.role,
+          system: cur.system,
+          taskId: cur.taskId,
+          meta: cur.meta,
+        }) !==
+        JSON.stringify({
+          label: prop.label,
+          type: prop.type,
+          role: prop.role,
+          system: prop.system,
+          taskId: prop.taskId,
+          meta: prop.meta,
+        });
+
       nodes.push({
         id,
         status: changed ? 'changed' : 'unchanged',
@@ -63,20 +76,19 @@ function computeDiff(current: Flow, proposed: Flow): { nodes: NodeDiff[]; edges:
 
   const currentEdgeIds = new Set(Object.keys(current.edges));
   const proposedEdgeIds = new Set(Object.keys(proposed.edges));
-
   const edges: EdgeDiff[] = [];
 
   for (const id of proposedEdgeIds) {
     if (!currentEdgeIds.has(id)) {
       const edge = proposed.edges[id];
-      edges.push({ id, status: 'added', label: `${edge.from} → ${edge.to}` });
+      edges.push({ id, status: 'added', label: `${edge.from} -> ${edge.to}` });
     }
   }
 
   for (const id of currentEdgeIds) {
     if (!proposedEdgeIds.has(id)) {
       const edge = current.edges[id];
-      edges.push({ id, status: 'removed', label: `${edge.from} → ${edge.to}` });
+      edges.push({ id, status: 'removed', label: `${edge.from} -> ${edge.to}` });
     }
   }
 
@@ -84,11 +96,16 @@ function computeDiff(current: Flow, proposed: Flow): { nodes: NodeDiff[]; edges:
     if (proposedEdgeIds.has(id)) {
       const cur = current.edges[id];
       const prop = proposed.edges[id];
-      const changed = cur.from !== prop.from || cur.to !== prop.to || cur.label !== prop.label;
+      const changed =
+        cur.from !== prop.from ||
+        cur.to !== prop.to ||
+        cur.label !== prop.label ||
+        cur.condition !== prop.condition;
+
       edges.push({
         id,
         status: changed ? 'changed' : 'unchanged',
-        label: `${prop.from} → ${prop.to}`,
+        label: `${prop.from} -> ${prop.to}`,
       });
     }
   }
@@ -122,18 +139,19 @@ export function DiffPreview({ currentFlow, proposedFlow, onApply, onReject }: Di
   const changedNodes = diff.nodes.filter(n => n.status === 'changed').length;
   const addedEdges = diff.edges.filter(e => e.status === 'added').length;
   const removedEdges = diff.edges.filter(e => e.status === 'removed').length;
+  const changedEdges = diff.edges.filter(e => e.status === 'changed').length;
 
-  const hasChanges = addedNodes + removedNodes + changedNodes + addedEdges + removedEdges > 0;
+  const hasChanges =
+    addedNodes + removedNodes + changedNodes + addedEdges + removedEdges + changedEdges > 0;
 
   const visibleNodes = diff.nodes.filter(n => n.status !== 'unchanged');
   const visibleEdges = diff.edges.filter(e => e.status !== 'unchanged');
 
   return (
     <div className="flex flex-col h-full">
-      {/* Summary */}
       <div className="p-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          変更内容のプレビュー
+          変更プレビュー
         </h3>
         {hasChanges ? (
           <div className="flex flex-wrap gap-2 text-xs">
@@ -152,7 +170,7 @@ export function DiffPreview({ currentFlow, proposedFlow, onApply, onReject }: Di
             {changedNodes > 0 && (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
                 <Edit2 className="w-3 h-3" />
-                変更 {changedNodes}
+                ノード変更 {changedNodes}
               </span>
             )}
             {addedEdges > 0 && (
@@ -167,13 +185,18 @@ export function DiffPreview({ currentFlow, proposedFlow, onApply, onReject }: Di
                 エッジ -{removedEdges}
               </span>
             )}
+            {changedEdges > 0 && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
+                <Edit2 className="w-3 h-3" />
+                エッジ変更 {changedEdges}
+              </span>
+            )}
           </div>
         ) : (
           <p className="text-xs text-gray-500 dark:text-gray-400">変更なし</p>
         )}
       </div>
 
-      {/* Diff detail */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {visibleNodes.length > 0 && (
           <div>
@@ -205,19 +228,9 @@ export function DiffPreview({ currentFlow, proposedFlow, onApply, onReject }: Di
               {visibleEdges.map(edge => (
                 <div
                   key={`${edge.status}-${edge.id}`}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-xs ${
-                    edge.status === 'added'
-                      ? STATUS_STYLES.added
-                      : edge.status === 'removed'
-                        ? STATUS_STYLES.removed
-                        : STATUS_STYLES.unchanged
-                  }`}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-xs ${STATUS_STYLES[edge.status]}`}
                 >
-                  {edge.status === 'added' ? (
-                    <Plus className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <Minus className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                  )}
+                  {STATUS_ICONS[edge.status]}
                   <span className="font-mono">{edge.label}</span>
                 </div>
               ))}
@@ -232,7 +245,6 @@ export function DiffPreview({ currentFlow, proposedFlow, onApply, onReject }: Di
         )}
       </div>
 
-      {/* Action buttons */}
       <div className="p-3 border-t border-gray-200 dark:border-gray-700 flex gap-2">
         <button
           type="button"

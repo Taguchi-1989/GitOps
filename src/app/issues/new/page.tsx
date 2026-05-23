@@ -4,7 +4,7 @@
  * Issue作成ページ
  */
 
-import { listFlows } from '@/lib/flow-service';
+import { listFlows, getFlow } from '@/lib/flow-service';
 import { NewIssueForm } from './NewIssueForm';
 
 export const metadata = {
@@ -23,11 +23,20 @@ export default async function NewIssuePage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const flows = await listFlows();
 
+  // SSR側で全フローのFlowデータを取得（APIを経由せず直接ファイル読み込み）
+  const flowsMap: Record<string, import('@/core/parser/schema').Flow> = {};
+  for (const f of flows) {
+    const flowData = await getFlow(f.id);
+    if (flowData?.flow) {
+      flowsMap[f.id] = flowData.flow;
+    }
+  }
+
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Create New Issue</h1>
+    <div className="p-6 max-w-7xl mx-auto">
       <NewIssueForm
         flows={flows}
+        flowsMap={flowsMap}
         defaultFlowId={resolvedSearchParams.targetFlowId}
         defaultNodeId={resolvedSearchParams.targetNodeId}
       />

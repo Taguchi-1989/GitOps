@@ -9,10 +9,11 @@
 import React from 'react';
 import { IssueStatus } from '@/core/issue';
 import {
-  AlertCircle,
+  ClipboardList,
   Play,
   Sparkles,
-  GitMerge,
+  Search,
+  Star,
   CheckCircle,
   XCircle,
   ArrowRight,
@@ -37,18 +38,18 @@ interface LifecycleStep {
 const lifecycleSteps: LifecycleStep[] = [
   {
     status: 'new',
-    label: '起票',
-    hint: 'Issueを作成',
-    simpleHint: '課題を報告',
-    icon: AlertCircle,
+    label: 'Plan',
+    hint: '課題を整理する',
+    simpleHint: '困りごとを記録する',
+    icon: ClipboardList,
     color: 'text-gray-300 dark:text-gray-600',
     activeColor: 'text-red-500 bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800',
   },
   {
     status: 'in-progress',
-    label: '作業中',
-    hint: '「作業を開始」を押す',
-    simpleHint: '「改善を始める」を押してください',
+    label: 'Do',
+    hint: '改善を試す',
+    simpleHint: '改善に取り組む',
     icon: Play,
     color: 'text-gray-300 dark:text-gray-600',
     activeColor:
@@ -56,9 +57,9 @@ const lifecycleSteps: LifecycleStep[] = [
   },
   {
     status: 'proposed',
-    label: '改善案あり',
-    hint: 'AIが改善案を生成',
-    simpleHint: 'AIが改善案を生成',
+    label: 'Do',
+    hint: '改善案を確認する',
+    simpleHint: 'AIの改善案を確認する',
     icon: Sparkles,
     color: 'text-gray-300 dark:text-gray-600',
     activeColor:
@@ -66,17 +67,27 @@ const lifecycleSteps: LifecycleStep[] = [
   },
   {
     status: 'merged',
-    label: '完了',
-    hint: 'マージして完了',
-    simpleHint: '変更を確定',
-    icon: GitMerge,
+    label: 'Check',
+    hint: '効果を確認する',
+    simpleHint: '改善が効いたか確認する',
+    icon: Search,
     color: 'text-gray-300 dark:text-gray-600',
     activeColor:
-      'text-green-500 bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800',
+      'text-teal-500 bg-teal-50 border-teal-200 dark:bg-teal-900/30 dark:border-teal-800',
+  },
+  {
+    status: 'merged',
+    label: 'Act',
+    hint: '標準化する',
+    simpleHint: 'この方法を定着させる',
+    icon: Star,
+    color: 'text-gray-300 dark:text-gray-600',
+    activeColor:
+      'text-purple-500 bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800',
   },
 ];
 
-// ステータスの順序マッピング
+// ステータスの順序マッピング（5ステップ: Plan/Do/Do/Check/Act）
 const statusOrder: Record<string, number> = {
   new: 0,
   triage: 0,
@@ -142,8 +153,8 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
     >
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">進行状況</h3>
-        {currentOrder < 3 && (
+        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">PDCAの進行状況</h3>
+        {currentOrder < lifecycleSteps.length - 1 && (
           <span className="text-xs text-gray-400 dark:text-gray-500">
             次のステップ:{' '}
             {isSimpleMode

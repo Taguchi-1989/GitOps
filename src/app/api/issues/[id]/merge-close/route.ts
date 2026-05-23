@@ -11,6 +11,7 @@ import {
   notFoundResponse,
   errorResponse,
   internalErrorResponse,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 import { getGitManager } from '@/core/git';
@@ -79,13 +80,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     // 監査ログ
-    await auditLog.logGitAction('MERGE_CLOSE', issue.id, {
-      branchName: issue.branchName,
-    });
-
-    await auditLog.logIssueAction('ISSUE_CLOSE', issue.id, {
-      status: 'merged',
-    });
+    const actor = getAuditActor(request);
+    if (actor) {
+      await auditLog.logGitAction(
+        'MERGE_CLOSE',
+        issue.id,
+        {
+          branchName: issue.branchName,
+        },
+        actor
+      );
+      await auditLog.logIssueAction('ISSUE_CLOSE', issue.id, { status: 'merged' }, actor);
+    } else {
+      await auditLog.logGitAction('MERGE_CLOSE', issue.id, {
+        branchName: issue.branchName,
+      });
+      await auditLog.logIssueAction('ISSUE_CLOSE', issue.id, { status: 'merged' });
+    }
 
     return successResponse(updatedIssue);
   } catch (error) {

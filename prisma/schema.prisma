@@ -7,7 +7,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 // --------------------------------------------------------
@@ -61,6 +62,24 @@ model Issue {
   // Git Operations
   branchName String? // 作業用ブランチ (例: cr/ISS-001-fix-typo)
 
+  // PDCA: Plan フェーズ（改善カード入力）
+  currentSituation String?   // 現状の困りごと
+  frequency        String?   // 発生頻度 (daily/weekly/monthly/irregular)
+  impact           String?   // 影響
+  expectedState    String?   // 期待する状態
+  hypothesisCause  String?   // 原因の仮説
+  successMetric    String?   // 効果を測る指標
+  checkDueDate     DateTime? // 効果確認の予定日
+
+  // PDCA: Check フェーズ（効果確認）
+  metricBefore   String?   // 改善前の数値・状態
+  metricAfter    String?   // 改善後の数値・状態
+  checkDate      DateTime? // 確認日
+  checkResult    String?   // effective | ineffective | pending
+  learning       String?   // 学び
+  nextAction     String?   // 次のアクション
+  standardizedAt DateTime? // 標準化完了日時
+
   // Relationships
   proposals Proposal[]
   evidences Evidence[]
@@ -74,6 +93,8 @@ model Issue {
   @@index([targetFlowId])
   @@index([canonicalId])
   @@index([deletedAt])
+  @@index([checkDueDate])
+  @@index([standardizedAt])
 }
 
 // --------------------------------------------------------
@@ -151,7 +172,7 @@ model WorkflowExecution {
   traceId       String   @unique
   status        String   @default("running") // running, paused-human-review, completed, failed, cancelled
   currentNodeId String
-  stateData     Json     @default("{}")
+  stateData     String   @default("{}")
   initiatorId   String
 
   taskExecutions   TaskExecution[]
@@ -178,8 +199,8 @@ model TaskExecution {
   gitCommitHash String
 
   status String @default("pending") // pending, running, success, failure
-  input  Json
-  output Json?
+  input  String
+  output String?
 
   llmModelUsed    String?
   llmTokensInput  Int?
@@ -188,7 +209,7 @@ model TaskExecution {
 
   traceId String
 
-  error Json?
+  error String?
 
   createdAt   DateTime  @default(now())
   completedAt DateTime?
@@ -208,7 +229,7 @@ model ApprovalRequest {
   nodeId     String
 
   description String
-  context     Json // 承認者に提示するコンテキスト情報
+  context     String // 承認者に提示するコンテキスト情報 (JSON文字列)
 
   status    String    @default("pending") // pending, approved, rejected
   decision  String? // approved / rejected
@@ -240,16 +261,16 @@ model DataObject {
   contentRef      String?
   exportPolicy    String  @default("unrestricted")
 
-  semanticTags    Json? // String[] as JSON
+  semanticTags    String? // String[] as JSON文字列
   provenanceRef   String?
   validationRef   String?
   validationStatus String? // unverified, machine-verified, human-verified, official
 
   fragmentType       String?
   semanticObjectType String?
-  abstractionMetadata    Json? // AbstractionMetadata as JSON
-  outputArtifactMetadata Json? // OutputArtifactMetadata as JSON
-  meta                   Json?
+  abstractionMetadata    String? // AbstractionMetadata as JSON文字列
+  outputArtifactMetadata String? // OutputArtifactMetadata as JSON文字列
+  meta                   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -321,9 +342,9 @@ model TransformationEvent {
   type       String // ocr, extraction, conversion, summarization, verification, approval, abstraction
   executedBy String
   executedAt DateTime
-  parameters Json?
+  parameters String?
   confidence Float?
-  metadata   Json?
+  metadata   String?
 
   inputs  TransformationInput[]
   outputs TransformationOutput[]

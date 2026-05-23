@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, RotateCcw, Sparkles, Loader2, ChevronDown } from 'lucide-react';
+import { Send, RotateCcw, Sparkles, Loader2, ChevronDown, ImagePlus, X } from 'lucide-react';
 import type { Flow } from '@/core/parser/schema';
 import { stringifyFlow } from '@/core/parser';
 import { useAIFlowGeneration } from './useAIFlowGeneration';
@@ -23,8 +23,12 @@ const SUGGESTED_PROMPTS = [
 export function AIChatPanel({ currentFlow, onApplyFlow, className = '' }: AIChatPanelProps) {
   const [input, setInput] = useState('');
   const [showDiff, setShowDiff] = useState(false);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isImageMode, setIsImageMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { messages, isGenerating, lastResult, error, generate, reset } = useAIFlowGeneration();
 
@@ -43,9 +47,57 @@ export function AIChatPanel({ currentFlow, onApplyFlow, className = '' }: AIChat
     }
   }, [lastResult]);
 
+  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setImageBase64(result);
+      setImagePreview(result);
+      setIsImageMode(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }, []);
+
+  const clearImage = useCallback(() => {
+    setImageBase64(null);
+    setImagePreview(null);
+    setIsImageMode(false);
+  }, []);
+
   const handleSend = useCallback(async () => {
     const prompt = input.trim();
-    if (!prompt || isGenerating) return;
+    if (isGenerating) return;
+
+    // 画像モード: /api/flows/from-image を呼ぶ
+    if (isImageMode && imageBase64) {
+      setInput('');
+      setShowDiff(false);
+
+      // メッセージ履歴に画像送信を追加
+      const userMsg = prompt || '画像からフローを読み取ってください';
+
+      let currentYaml: string | undefined;
+      try {
+        currentYaml = stringifyFlow(currentFlow);
+      } catch {
+        /* ignore */
+      }
+
+      try {
+        // generate hook 経由ではなく直接 /api/flows/from-image を呼ぶ
+        await generate(`[画像からフロー生成] ${userMsg}`, currentYaml, currentFlow.id, imageBase64);
+        clearImage();
+      } catch {
+        // error is handled by the hook
+      }
+      return;
+    }
+
+    // テキストモード
+    if (!prompt) return;
 
     setInput('');
     setShowDiff(false);
@@ -58,7 +110,7 @@ export function AIChatPanel({ currentFlow, onApplyFlow, className = '' }: AIChat
     }
 
     await generate(prompt, currentYaml, currentFlow.id);
-  }, [input, isGenerating, currentFlow, generate]);
+  }, [input, isGenerating, currentFlow, generate, isImageMode, imageBase64, clearImage]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -192,13 +244,52 @@ export function AIChatPanel({ currentFlow, onApplyFlow, className = '' }: AIChat
 
       {/* Input area */}
       <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+        {/* Image preview (base64 data URL, not optimizable by next/image) */}
+        {imagePreview && (
+          <div className="mb-2 relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imagePreview}
+              alt="アップロード画像"
+              className="h-16 rounded-md border border-gray-200 dark:border-gray-600"
+            />
+            <button
+              type="button"
+              onClick={clearImage}
+              className="absolute -top-1.5 -right-1.5 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+              title="画像を削除"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
         <div className="flex gap-2 items-end">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+            title="画像ファイルを選択"
+            aria-label="画像ファイルを選択"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isGenerating}
+            className="flex-shrink-0 p-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-300 dark:hover:border-purple-600 disabled:opacity-40 transition-colors"
+            title="画像からフロー生成"
+          >
+            <ImagePlus className="w-4 h-4" />
+          </button>
           <textarea
             ref={textareaRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="フローの変更を指示してください..."
+            placeholder={
+              isImageMode ? '画像の補足説明（任意）...' : 'フローの変更を指示してください...'
+            }
             rows={2}
             disabled={isGenerating}
             className="flex-1 resize-none text-sm px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 disabled:opacity-50"
@@ -206,7 +297,7 @@ export function AIChatPanel({ currentFlow, onApplyFlow, className = '' }: AIChat
           <button
             type="button"
             onClick={() => void handleSend()}
-            disabled={!input.trim() || isGenerating}
+            disabled={(!input.trim() && !isImageMode) || isGenerating}
             className="flex-shrink-0 p-2.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             title="送信 (Enter)"
           >
@@ -218,7 +309,7 @@ export function AIChatPanel({ currentFlow, onApplyFlow, className = '' }: AIChat
           </button>
         </div>
         <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
-          Enter で送信 / Shift+Enter で改行
+          Enter で送信 / Shift+Enter で改行 / 📷 画像からフロー生成
         </p>
       </div>
     </div>

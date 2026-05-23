@@ -8,11 +8,10 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { MermaidViewer } from './MermaidViewer';
 import { FlowExportImport } from './FlowExportImport';
-import { Flow } from '@/core/parser';
+import { Flow, stringifyFlow } from '@/core/parser';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { ArrowLeft, FileText, Layers, Eye, Code, AlertCircle, Upload } from 'lucide-react';
 import { EditorToolbar } from './editor/EditorToolbar';
@@ -68,9 +67,30 @@ export function FlowViewer({
   const [isTemplateGalleryOpen, setIsTemplateGalleryOpen] = useState(false);
 
   const editor = useFlowEditor(flow);
+  const currentFlow = useMemo(
+    () =>
+      editor.toFlow({
+        id: flow.id,
+        title: flow.title,
+        layer: flow.layer,
+        updatedAt: flow.updatedAt,
+      }),
+    // editor.toFlow is stable (useCallback on [nodes, edges]); using it instead of
+    // the editor object literal prevents currentFlow from recomputing on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editor.toFlow, flow.id, flow.title, flow.layer, flow.updatedAt]
+  );
+  const displayedFlow = currentFlow;
+  const displayedYaml = useMemo(
+    () =>
+      editor.isDirty || editable
+        ? stringifyFlow(currentFlow)
+        : (yamlContent ?? stringifyFlow(flow)),
+    [editor.isDirty, editable, currentFlow, yamlContent, flow]
+  );
 
-  const nodeCount = Object.keys(flow.nodes).length;
-  const edgeCount = Object.keys(flow.edges).length;
+  const nodeCount = Object.keys(displayedFlow.nodes).length;
+  const edgeCount = Object.keys(displayedFlow.edges).length;
 
   // Warn on page leave if dirty
   useEffect(() => {
@@ -164,8 +184,7 @@ export function FlowViewer({
     ? (editor.edges.find((e: FlowEdge) => e.id === selectedEdge) ?? null)
     : null;
 
-  // View-only selected node fallback (from original flow when not in edit mode)
-  const viewSelectedNodeData = !editable && selectedNode ? flow.nodes[selectedNode] : null;
+  const viewSelectedNodeData = !editable && selectedNode ? displayedFlow.nodes[selectedNode] : null;
 
   return (
     <div className="h-full flex flex-col">
@@ -321,7 +340,7 @@ export function FlowViewer({
               <div className="flex-1 min-h-[400px]">
                 <FlowCanvas
                   key={`${flow.id}-${editable ? 'edit' : 'view'}`}
-                  flow={flow}
+                  flow={displayedFlow}
                   onNodeClick={handleNodeClick}
                   onEdgeClick={handleEdgeClick}
                   selectedNodeId={selectedNode}
@@ -340,12 +359,13 @@ export function FlowViewer({
             </div>
           ) : activeTab === 'data' ? (
             <pre className="p-4 bg-gray-900 text-gray-100 rounded-lg text-sm overflow-x-auto">
-              {JSON.stringify(flow, null, 2)}
+              {JSON.stringify(displayedFlow, null, 2)}
             </pre>
-          ) : yamlContent ? (
+          ) : displayedYaml ? (
             <FlowExportImport
-              flow={flow}
-              yamlContent={yamlContent}
+              flow={displayedFlow}
+              yamlContent={displayedYaml}
+              mermaidContent={mermaidContent}
               onImportSuccess={() => window.location.reload()}
             />
           ) : null}
@@ -380,16 +400,7 @@ export function FlowViewer({
         {isAIPanelOpen && activeTab === 'diagram' && (
           <div className="w-80 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 overflow-hidden">
             <AIChatPanel
-              currentFlow={
-                editable
-                  ? editor.toFlow({
-                      id: flow.id,
-                      title: flow.title,
-                      layer: flow.layer,
-                      updatedAt: flow.updatedAt,
-                    })
-                  : flow
-              }
+              currentFlow={displayedFlow}
               onApplyFlow={handleApplyFlow}
               className="h-full"
             />
@@ -459,7 +470,7 @@ export function FlowViewer({
               <div className="mt-6">
                 <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">接続先</h4>
                 <ul className="space-y-2 text-sm">
-                  {Object.values(flow.edges)
+                  {Object.values(displayedFlow.edges)
                     .filter(e => e.from === selectedNode || e.to === selectedNode)
                     .map(edge => (
                       <li

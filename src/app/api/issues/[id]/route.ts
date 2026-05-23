@@ -13,6 +13,7 @@ import {
   notFoundResponse,
   internalErrorResponse,
   parseBody,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { UpdateIssueSchema } from '@/core/issue';
 import { auditLog } from '@/core/audit';
@@ -88,6 +89,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         title: data.title ?? undefined,
         description: data.description ?? undefined,
         status: data.status ?? undefined,
+        currentSituation: data.currentSituation ?? undefined,
+        frequency: data.frequency ?? undefined,
+        impact: data.impact ?? undefined,
+        expectedState: data.expectedState ?? undefined,
+        hypothesisCause: data.hypothesisCause ?? undefined,
+        successMetric: data.successMetric ?? undefined,
+        checkDueDate: data.checkDueDate ? new Date(data.checkDueDate) : undefined,
+        metricBefore: data.metricBefore ?? undefined,
+        metricAfter: data.metricAfter ?? undefined,
+        checkDate: data.checkDate ? new Date(data.checkDate) : undefined,
+        checkResult: data.checkResult ?? undefined,
+        learning: data.learning ?? undefined,
+        nextAction: data.nextAction ?? undefined,
       },
     });
 
@@ -96,6 +110,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       action: 'ISSUE_UPDATE',
       entityType: 'Issue',
       entityId: issue.id,
+      actor: getAuditActor(request),
       payload: { before, after: data },
     });
 
@@ -132,6 +147,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       action: 'ISSUE_DELETE',
       entityType: 'Issue',
       entityId: existing.id,
+      actor: getAuditActor(request),
       payload: { humanId: existing.humanId },
     });
 

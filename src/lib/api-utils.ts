@@ -117,3 +117,13 @@ export function parsePaginationParams(
 
   return { limit, offset };
 }
+
+/**
+ * Middleware が付与した actor ヘッダーから監査用 actor を取得する
+ */
+export function getAuditActor(request: Request): string | undefined {
+  const headers = (request as { headers?: Headers | { get?: (name: string) => string | null } })
+    .headers;
+  const actor = headers?.get?.('x-actor-id')?.trim();
+  return actor || undefined;
+}

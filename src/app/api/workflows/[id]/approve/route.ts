@@ -86,7 +86,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           traceId: execution.traceId,
           status: execution.status as 'paused-human-review',
           currentNodeId: execution.currentNodeId,
-          stateData: execution.stateData as Record<string, unknown>,
+          stateData: (typeof execution.stateData === 'string'
+            ? JSON.parse(execution.stateData)
+            : execution.stateData) as Record<string, unknown>,
           initiatorId: execution.initiatorId,
         };
 
@@ -108,11 +110,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         where: { id },
         data: {
           status: 'failed',
-          stateData: {
-            ...(execution.stateData as Record<string, unknown>),
+          stateData: JSON.stringify({
+            ...(typeof execution.stateData === 'string'
+              ? JSON.parse(execution.stateData)
+              : execution.stateData),
             rejectionReason: data.reason,
             rejectedBy: data.decidedBy,
-          },
+          }),
         },
       });
     }

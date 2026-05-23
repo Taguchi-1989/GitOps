@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -23,13 +23,26 @@ interface Snapshot {
 }
 
 export function useFlowEditor(initialFlow: Flow) {
-  const { nodes: initNodes, edges: initEdges } = flowToReactFlow(initialFlow);
+  const { nodes: initNodes, edges: initEdges } = useMemo(
+    () => flowToReactFlow(initialFlow),
+    // Only recompute when the flow identity changes, not on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initialFlow.id, initialFlow.updatedAt]
+  );
 
   const [nodes, setNodes] = useState<FlowNode[]>(initNodes);
   const [edges, setEdges] = useState<FlowEdge[]>(initEdges);
   const [isDirty, setIsDirty] = useState(false);
   const [undoStack, setUndoStack] = useState<Snapshot[]>([]);
   const [redoStack, setRedoStack] = useState<Snapshot[]>([]);
+
+  useEffect(() => {
+    setNodes(initNodes);
+    setEdges(initEdges);
+    setIsDirty(false);
+    setUndoStack([]);
+    setRedoStack([]);
+  }, [initNodes, initEdges]);
 
   // Refs to always access current values inside callbacks (avoids stale closures)
   const nodesRef = useRef(nodes);
