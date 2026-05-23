@@ -61,6 +61,24 @@ model Issue {
   // Git Operations
   branchName String? // 作業用ブランチ (例: cr/ISS-001-fix-typo)
 
+  // PDCA: Plan フェーズ（改善カード入力）
+  currentSituation String?   // 現状の困りごと
+  frequency        String?   // 発生頻度 (daily/weekly/monthly/irregular)
+  impact           String?   // 影響
+  expectedState    String?   // 期待する状態
+  hypothesisCause  String?   // 原因の仮説
+  successMetric    String?   // 効果を測る指標
+  checkDueDate     DateTime? // 効果確認の予定日
+
+  // PDCA: Check フェーズ（効果確認）
+  metricBefore   String?   // 改善前の数値・状態
+  metricAfter    String?   // 改善後の数値・状態
+  checkDate      DateTime? // 確認日
+  checkResult    String?   // effective | ineffective | pending
+  learning       String?   // 学び
+  nextAction     String?   // 次のアクション
+  standardizedAt DateTime? // 標準化完了日時
+
   // Relationships
   proposals Proposal[]
   evidences Evidence[]
@@ -74,6 +92,8 @@ model Issue {
   @@index([targetFlowId])
   @@index([canonicalId])
   @@index([deletedAt])
+  @@index([checkDueDate])
+  @@index([standardizedAt])
 }
 
 // --------------------------------------------------------

@@ -18,46 +18,46 @@ const statusConfig: Record<
   { label: string; color: string; bg: string; emoji: string }
 > = {
   new: {
-    label: '起票',
+    label: 'Plan中',
     color: 'text-red-700 dark:text-red-400',
     bg: 'bg-red-100 dark:bg-red-900/30',
-    emoji: '🔴',
+    emoji: '📋',
   },
   triage: {
-    label: 'トリアージ',
+    label: 'Plan中（確認待ち）',
     color: 'text-orange-700 dark:text-orange-400',
     bg: 'bg-orange-100 dark:bg-orange-900/30',
-    emoji: '🟠',
+    emoji: '📋',
   },
   'in-progress': {
-    label: '作業中',
+    label: 'Do中',
     color: 'text-blue-700 dark:text-blue-400',
     bg: 'bg-blue-100 dark:bg-blue-900/30',
-    emoji: '🔵',
+    emoji: '▶️',
   },
   proposed: {
-    label: '提案済',
+    label: '改善案あり',
     color: 'text-yellow-700 dark:text-yellow-400',
     bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-    emoji: '🟡',
+    emoji: '✨',
   },
   merged: {
-    label: '完了',
-    color: 'text-green-700 dark:text-green-400',
-    bg: 'bg-green-100 dark:bg-green-900/30',
-    emoji: '🟢',
+    label: 'Check待ち',
+    color: 'text-teal-700 dark:text-teal-400',
+    bg: 'bg-teal-100 dark:bg-teal-900/30',
+    emoji: '🔍',
   },
   rejected: {
-    label: '却下',
+    label: '見送り',
     color: 'text-gray-700 dark:text-gray-300',
     bg: 'bg-gray-100 dark:bg-gray-700',
-    emoji: '⚫',
+    emoji: '⏸️',
   },
   'merged-duplicate': {
-    label: '重複',
+    label: '統合済み',
     color: 'text-purple-700 dark:text-purple-400',
     bg: 'bg-purple-100 dark:bg-purple-900/30',
-    emoji: '🟣',
+    emoji: '🔗',
   },
 };
 

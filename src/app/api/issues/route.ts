@@ -107,6 +107,13 @@ export async function POST(request: NextRequest) {
               targetFlowId: data.targetFlowId,
               targetNodeId: data.targetNodeId,
               status: 'new',
+              currentSituation: data.currentSituation,
+              frequency: data.frequency,
+              impact: data.impact,
+              expectedState: data.expectedState,
+              hypothesisCause: data.hypothesisCause,
+              successMetric: data.successMetric,
+              checkDueDate: data.checkDueDate ? new Date(data.checkDueDate) : undefined,
             },
           });
         });

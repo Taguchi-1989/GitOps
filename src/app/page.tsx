@@ -23,52 +23,88 @@ import {
   Play,
   Eye,
   Plus,
+  Search,
+  Star,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 async function getDashboardStats() {
-  const [issueStats, recentIssues, flows] = await Promise.all([
-    prisma.issue.groupBy({
-      by: ['status'],
-      _count: { id: true },
-    }),
-    prisma.issue.findMany({
-      orderBy: { updatedAt: 'desc' },
-      take: 5,
-      select: {
-        id: true,
-        humanId: true,
-        title: true,
-        status: true,
-        updatedAt: true,
-      },
-    }),
-    listFlows(),
-  ]);
+  const now = new Date();
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const [issueStats, recentIssues, flows, standardizedCount, checkDueSoon, staleIssues] =
+    await Promise.all([
+      prisma.issue.groupBy({
+        by: ['status'],
+        where: { deletedAt: null },
+        _count: { id: true },
+      }),
+      prisma.issue.findMany({
+        where: { deletedAt: null, updatedAt: { gte: startOfWeek } },
+        orderBy: { updatedAt: 'desc' },
+        take: 8,
+        select: {
+          id: true,
+          humanId: true,
+          title: true,
+          status: true,
+          updatedAt: true,
+          standardizedAt: true,
+        },
+      }),
+      listFlows(),
+      prisma.issue.count({
+        where: { deletedAt: null, standardizedAt: { not: null } },
+      }),
+      prisma.issue.findMany({
+        where: {
+          deletedAt: null,
+          status: 'merged',
+          standardizedAt: null,
+          checkDueDate: { lte: sevenDaysFromNow, not: null },
+        },
+        orderBy: { checkDueDate: 'asc' },
+        take: 5,
+        select: { id: true, humanId: true, title: true, checkDueDate: true },
+      }),
+      prisma.issue.findMany({
+        where: {
+          deletedAt: null,
+          status: { in: ['in-progress', 'proposed'] },
+          updatedAt: { lte: fourteenDaysAgo },
+        },
+        orderBy: { updatedAt: 'asc' },
+        take: 5,
+        select: { id: true, humanId: true, title: true, status: true, updatedAt: true },
+      }),
+    ]);
 
   const stats = {
     total: 0,
-    open: 0,
-    inProgress: 0,
-    proposed: 0,
-    merged: 0,
+    plan: 0,
+    do: 0,
+    check: 0,
+    standardized: standardizedCount,
   };
 
   issueStats.forEach(s => {
     stats.total += s._count.id;
     if (s.status === 'new' || s.status === 'triage') {
-      stats.open += s._count.id;
-    } else if (s.status === 'in-progress') {
-      stats.inProgress += s._count.id;
-    } else if (s.status === 'proposed') {
-      stats.proposed += s._count.id;
+      stats.plan += s._count.id;
+    } else if (s.status === 'in-progress' || s.status === 'proposed') {
+      stats.do += s._count.id;
     } else if (s.status === 'merged') {
-      stats.merged += s._count.id;
+      stats.check += s._count.id;
     }
   });
 
-  return { stats, recentIssues, flows };
+  return { stats, recentIssues, flows, checkDueSoon, staleIssues };
 }
 
 function StatCard({
@@ -130,13 +166,13 @@ const statusColors: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  new: '起票',
-  triage: 'トリアージ',
-  'in-progress': '作業中',
-  proposed: '提案済',
-  merged: '完了',
-  rejected: '却下',
-  'merged-duplicate': '重複',
+  new: 'Plan中',
+  triage: 'Plan中',
+  'in-progress': 'Do中',
+  proposed: '改善案あり',
+  merged: 'Check待ち',
+  rejected: '見送り',
+  'merged-duplicate': '統合済み',
 };
 
 /**
@@ -327,13 +363,13 @@ function WorkflowOverview() {
 }
 
 export default async function DashboardPage() {
-  const { stats, recentIssues, flows } = await getDashboardStats();
+  const { stats, recentIssues, flows, checkDueSoon, staleIssues } = await getDashboardStats();
 
   const hasFlows = flows.length > 0;
   const hasIssues = stats.total > 0;
-  const hasInProgress = stats.inProgress > 0 || stats.proposed > 0 || stats.merged > 0;
-  const hasProposed = stats.proposed > 0 || stats.merged > 0;
-  const hasMerged = stats.merged > 0;
+  const hasInProgress = stats.do > 0 || stats.check > 0;
+  const hasProposed = stats.check > 0;
+  const hasMerged = stats.standardized > 0;
   const isNewUser = !hasFlows && !hasIssues;
 
   return (
@@ -361,44 +397,125 @@ export default async function DashboardPage() {
           title: i.title,
           status: i.status,
         }))}
-        stats={{ open: stats.open, inProgress: stats.inProgress, proposed: stats.proposed }}
+        stats={{
+          open: stats.plan,
+          inProgress: Math.floor(stats.do / 2),
+          proposed: Math.ceil(stats.do / 2),
+        }}
       />
 
       {/* ワークフロー概要図 - 新規ユーザーの場合に表示 */}
       {isNewUser && <WorkflowOverview />}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="未対応の課題"
-          value={stats.open}
-          icon={AlertCircle}
-          color="bg-red-500"
-          href="/issues?status=open"
-        />
-        <StatCard
-          title="作業中"
-          value={stats.inProgress}
-          icon={Clock}
-          color="bg-blue-500"
-          href="/issues?status=in-progress"
-        />
-        <StatCard
-          title="改善案あり"
-          value={stats.proposed}
-          icon={GitBranch}
-          color="bg-yellow-500"
-          href="/issues?status=proposed"
-        />
-        <StatCard title="完了" value={stats.merged} icon={CheckCircle} color="bg-green-500" />
+      {/* PDCA Stats Grid */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          PDCAボード
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            title="📋 Plan中"
+            value={stats.plan}
+            icon={AlertCircle}
+            color="bg-red-500"
+            href="/issues?status=new"
+          />
+          <StatCard
+            title="▶️ Do中"
+            value={stats.do}
+            icon={Play}
+            color="bg-blue-500"
+            href="/issues?status=in-progress"
+          />
+          <StatCard
+            title="🔍 Check待ち"
+            value={stats.check}
+            icon={Search}
+            color="bg-teal-500"
+            href="/issues?status=merged"
+          />
+          <StatCard
+            title="⭐ 標準化済み"
+            value={stats.standardized}
+            icon={Star}
+            color="bg-purple-500"
+          />
+        </div>
       </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Issues */}
+        {/* Today's Focus: check due soon + stale */}
+        {(checkDueSoon.length > 0 || staleIssues.length > 0) && (
+          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {checkDueSoon.length > 0 && (
+              <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-200 dark:border-teal-800 overflow-hidden">
+                <div className="px-5 py-3 border-b border-teal-200 dark:border-teal-700 flex items-center gap-2">
+                  <Search className="w-4 h-4 text-teal-600" />
+                  <h3 className="text-sm font-semibold text-teal-800 dark:text-teal-200">
+                    効果確認の期限が近い
+                  </h3>
+                </div>
+                <div className="divide-y divide-teal-100 dark:divide-teal-800">
+                  {checkDueSoon.map(issue => (
+                    <Link
+                      key={issue.id}
+                      href={`/issues/${issue.id}`}
+                      className="block px-5 py-3 hover:bg-teal-100/50 dark:hover:bg-teal-900/30 transition-colors"
+                    >
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {issue.title}
+                      </p>
+                      <p className="text-xs text-teal-700 dark:text-teal-400 mt-0.5">
+                        確認予定: {issue.checkDueDate ? formatDate(issue.checkDueDate) : ''}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+            {staleIssues.length > 0 && (
+              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800 overflow-hidden">
+                <div className="px-5 py-3 border-b border-orange-200 dark:border-orange-700 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-orange-600" />
+                  <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-200">
+                    放置されている改善（14日超）
+                  </h3>
+                </div>
+                <div className="divide-y divide-orange-100 dark:divide-orange-800">
+                  {staleIssues.map(issue => (
+                    <Link
+                      key={issue.id}
+                      href={`/issues/${issue.id}`}
+                      className="block px-5 py-3 hover:bg-orange-100/50 dark:hover:bg-orange-900/30 transition-colors"
+                    >
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {issue.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span
+                          className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${statusColors[issue.status]}`}
+                        >
+                          {statusLabels[issue.status]}
+                        </span>
+                        <span className="text-xs text-orange-600 dark:text-orange-400">
+                          最終更新: {formatDate(issue.updatedAt)}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Today's Issues - 今週の改善カード */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">最近の課題</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              今週の改善カード
+            </h2>
             <Link
               href="/issues"
               className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
@@ -410,12 +527,12 @@ export default async function DashboardPage() {
             {recentIssues.length === 0 ? (
               <div className="px-6 py-8 text-center">
                 <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                <p className="text-gray-500 dark:text-gray-400">まだ課題がありません</p>
+                <p className="text-gray-500 dark:text-gray-400">今週の改善カードはありません</p>
                 <Link
                   href="/issues/new"
                   className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-block"
                 >
-                  最初の課題を報告する
+                  改善カードを作る
                 </Link>
               </div>
             ) : (
@@ -431,9 +548,11 @@ export default async function DashboardPage() {
                         {issue.humanId}
                       </span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[issue.status]}`}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${issue.standardizedAt ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : statusColors[issue.status]}`}
                       >
-                        {statusLabels[issue.status] || issue.status}
+                        {issue.standardizedAt
+                          ? '標準化済み'
+                          : statusLabels[issue.status] || issue.status}
                       </span>
                     </div>
                     <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -502,14 +621,16 @@ export default async function DashboardPage() {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold">フローを改善しませんか？</h2>
-            <p className="mt-1 text-blue-100">課題を報告して、改善の追跡を始めましょう</p>
+            <h2 className="text-xl font-semibold">現場の困りごとを改善カードにしましょう</h2>
+            <p className="mt-1 text-blue-100">
+              5分で書けるテンプレートで、PDCAサイクルをスタートできます
+            </p>
           </div>
           <Link
             href="/issues/new"
             className="px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
           >
-            課題を報告する
+            改善カードを作る
           </Link>
         </div>
       </div>
