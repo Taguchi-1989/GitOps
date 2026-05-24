@@ -13,3 +13,6 @@ export {
   type LLMClientConfig,
   type GenerateProposalParams,
 } from './client';
+
+export { AnthropicLLMClient } from './anthropic-client';
+export { MockLLMClient } from './mock-client';

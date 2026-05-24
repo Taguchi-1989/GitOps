@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "node scripts/next-build.js",
     "start": "next start",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
@@ -23,12 +23,16 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@auth/prisma-adapter": "^2.11.2",
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@types/bcryptjs": "^3.0.0",
     "@xyflow/react": "^12.10.2",
+    "ajv": "^8.20.0",
     "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.10.0",
     "dagre": "^0.8.5",
     "lucide-react": "^0.468.0",
     "mermaid": "^11.14.0",

@@ -11,6 +11,8 @@ import { checkForbiddenPaths } from '../patch/apply';
 import { buildFullPrompt } from './prompts';
 import { getTraceId } from '@/lib/trace-context';
 import { extractJson } from '@/lib/extract-json';
+import { AnthropicLLMClient } from './anthropic-client';
+import { MockLLMClient } from './mock-client';
 
 export class LLMError extends Error {
   code: 'API_ERROR' | 'PARSE_ERROR' | 'VALIDATION_ERROR';
@@ -217,25 +219,44 @@ const PROVIDER_DEFAULTS: Record<
  * 後方互換:
  *   OPENAI_API_KEY / OPENAI_MODEL も引き続き使用可能
  */
-export function createLLMClient(config?: Partial<LLMClientConfig>): LLMClient {
+export function createLLMClient(
+  config?: Partial<LLMClientConfig>
+): LLMClient | AnthropicLLMClient | MockLLMClient {
   const provider = process.env.LLM_PROVIDER || 'openai';
-  const defaults = PROVIDER_DEFAULTS[provider];
 
-  const apiKey = config?.apiKey || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new LLMError('API_ERROR', 'LLM_API_KEY (or OPENAI_API_KEY) is not set');
+  // dev-mock: API キー不要のローカル開発スタブ
+  if (provider === 'dev-mock') {
+    return new MockLLMClient();
   }
 
-  const baseURL = config?.baseURL || process.env.LLM_BASE_URL || defaults?.baseURL;
+  const apiKey =
+    config?.apiKey ||
+    process.env.LLM_API_KEY ||
+    process.env.ANTHROPIC_API_KEY ||
+    process.env.OPENAI_API_KEY;
 
+  if (!apiKey) {
+    throw new LLMError(
+      'API_ERROR',
+      'LLM_API_KEY (or ANTHROPIC_API_KEY / OPENAI_API_KEY) is not set'
+    );
+  }
+
+  // Anthropic SDK を直接使うパス
+  if (provider === 'anthropic') {
+    const model = config?.model || process.env.LLM_MODEL || 'claude-haiku-4-5-20251001';
+    return new AnthropicLLMClient(apiKey, model, config?.maxTokens);
+  }
+
+  // OpenAI 互換パス（openai / gemini / groq / ollama / custom）
+  const defaults = PROVIDER_DEFAULTS[provider];
+  const baseURL = config?.baseURL || process.env.LLM_BASE_URL || defaults?.baseURL;
   const model =
     config?.model ||
     process.env.LLM_MODEL ||
     process.env.OPENAI_MODEL ||
     defaults?.model ||
     'gpt-4o';
-
   const supportsJsonMode =
     config?.supportsJsonMode ??
     (process.env.LLM_JSON_MODE !== undefined
@@ -253,9 +274,9 @@ export function createLLMClient(config?: Partial<LLMClientConfig>): LLMClient {
 }
 
 // シングルトン（遅延初期化）
-let defaultClient: LLMClient | null = null;
+let defaultClient: LLMClient | AnthropicLLMClient | MockLLMClient | null = null;
 
-export function getLLMClient(): LLMClient {
+export function getLLMClient(): LLMClient | AnthropicLLMClient | MockLLMClient {
   if (!defaultClient) {
     defaultClient = createLLMClient();
   }

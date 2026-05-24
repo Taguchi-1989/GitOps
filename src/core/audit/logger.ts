@@ -86,7 +86,13 @@ class AuditLogger {
    * Issue関連のログを記録するヘルパー
    */
   async logIssueAction(
-    action: 'ISSUE_CREATE' | 'ISSUE_UPDATE' | 'ISSUE_START' | 'ISSUE_CLOSE' | 'ISSUE_DELETE',
+    action:
+      | 'ISSUE_CREATE'
+      | 'ISSUE_UPDATE'
+      | 'ISSUE_START'
+      | 'ISSUE_CLOSE'
+      | 'ISSUE_DELETE'
+      | 'ISSUE_STANDARDIZE',
     issueId: string,
     payload?: Record<string, unknown>,
     actor?: string

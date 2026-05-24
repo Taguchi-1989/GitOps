@@ -16,6 +16,7 @@ export const AuditActionSchema = z.enum([
   'ISSUE_START',
   'ISSUE_CLOSE',
   'ISSUE_DELETE',
+  'ISSUE_STANDARDIZE',
 
   // Proposal lifecycle
   'PROPOSAL_GENERATE',
