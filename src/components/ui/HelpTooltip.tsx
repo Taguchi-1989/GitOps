@@ -18,7 +18,7 @@ interface HelpTooltipProps {
 export function HelpTooltip({ content, className = '', size = 'sm' }: HelpTooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -42,17 +42,24 @@ export function HelpTooltip({ content, className = '', size = 'sm' }: HelpToolti
 
   return (
     <span className={`relative inline-flex ${className}`}>
-      <button
+      <span
         ref={triggerRef}
-        onClick={() => setIsVisible(!isVisible)}
+        onClick={e => {
+          e.stopPropagation();
+          setIsVisible(!isVisible);
+        }}
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
-        className="text-gray-400 hover:text-gray-600 transition-colors"
-        type="button"
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') setIsVisible(!isVisible);
+        }}
+        className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+        role="button"
+        tabIndex={0}
         aria-label="ヘルプ"
       >
         <HelpCircle className={iconSize} />
-      </button>
+      </span>
       {isVisible && (
         <div
           ref={tooltipRef}

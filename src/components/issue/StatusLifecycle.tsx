@@ -173,7 +173,7 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
           const isFuture = index > currentOrder;
 
           return (
-            <React.Fragment key={step.status}>
+            <React.Fragment key={`step-${index}`}>
               {/* ステップ */}
               <div className="flex-1 flex flex-col items-center gap-1.5">
                 <div

@@ -224,7 +224,7 @@ export function createLLMClient(config?: Partial<LLMClientConfig>): LLMClient {
   const apiKey = config?.apiKey || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    throw new Error('LLM_API_KEY (or OPENAI_API_KEY) is not set');
+    throw new LLMError('API_ERROR', 'LLM_API_KEY (or OPENAI_API_KEY) is not set');
   }
 
   const baseURL = config?.baseURL || process.env.LLM_BASE_URL || defaults?.baseURL;

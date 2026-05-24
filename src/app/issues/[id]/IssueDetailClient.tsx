@@ -158,7 +158,10 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
     merge: {
       title: '変更を確定しますか？',
       description: 'この操作により改善内容が正式に反映されます。',
-      whatHappens: ['改善内容が正式なフローに反映されます', 'この課題は「完了」になります'],
+      whatHappens: [
+        '改善内容が正式なフローに反映されます',
+        'この課題は「Check待ち」フェーズに移行します',
+      ],
       confirmLabel: '変更を確定する',
       confirmColor: 'green' as const,
       onConfirm: handleMergeClose,

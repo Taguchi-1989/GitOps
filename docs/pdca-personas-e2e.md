@@ -10,21 +10,29 @@ The product goal is not "users can operate Git." The product goal is:
 
 ---
 
-## Product Vocabulary
+## Product Vocabulary (verified 2026-05-24)
 
-Use field-facing language in UI, onboarding, and tests.
+実際のUIテキストを以下に記録する。テストのアサーション候補はここから引用すること。
 
-| Technical term | Field-facing term | UI current status |
+| Action / concept | Actual UI label (simple mode) | Actual UI label (tech mode) |
 | --- | --- | --- |
-| Issue | 改善カード / 課題 | Mixed — form still shows "Issueを作成" |
-| Start work | 改善を始める | Correct in Getting Started checklist |
-| Proposal | 改善案 | Correct in toast messages |
-| Apply patch | 反映する | Correct in confirm dialog |
-| Merge and close | 変更を確定する | Correct in confirm dialog |
-| Git branch | 作業スペース / 作業エリア | Not exposed in simple mode |
-| JSON Patch | 変更内容（技術詳細） | Hidden in simple mode |
-
-Known vocabulary gap: `/issues/new` page title reads "新しいIssueを作成" and submit button reads "Issueを作成". These should be updated to "改善カードを作成" or "課題を報告".
+| Create improvement card | h1: "改善カードを作る"、送信: "改善カードを作成" | 同左 |
+| Status: new/triage | "📋 Plan中" | 同左 |
+| Status: in-progress | "▶️ Do中" | 同左 |
+| Status: proposed | "✨ 改善案あり" | 同左 |
+| Status: merged | "🔍 Check待ち" | 同左 |
+| Status: rejected | 見送り済 | このIssueは却下されました |
+| Start work button | "作業を開始（Do フェーズへ）" | 同左（subtitle: "ブランチを作成"） |
+| AI generate button | "AIに改善案を考えてもらう" | 同左（subtitle: "LLMが変更を提案"） |
+| Apply proposal button | "反映する" | "適用する"（subtitle: "ブランチにコミット"） |
+| Merge/complete button | "フローに反映して Check へ" | "フローに反映 → Check フェーズへ"（subtitle: "ブランチをメインに統合"） |
+| Success toast: create | "改善カード ISS-XXX を作成しました" | 同左 |
+| Success toast: start | "改善の作業を開始しました" | 同左 |
+| Success toast: AI generate | "AIが改善案を作成しました" | 同左 |
+| Success toast: apply | "改善案を反映しました" | 同左 |
+| Success toast: merge | "変更を確定しました" | 同左 |
+| Merge dialog bullet 2 | "この課題は「Check待ち」フェーズに移行します" | 同左 |
+| JSON Patch detail | 非表示（折りたたみ） | "変更内容（技術詳細）を表示" |
 
 ---
 
@@ -45,15 +53,15 @@ Known vocabulary gap: `/issues/new` page title reads "新しいIssueを作成" a
 
 ## Status Definitions
 
-| Status value | UI label | Meaning |
-| --- | --- | --- |
-| `new` | 起票 | Submitted, not yet triaged |
-| `triage` | トリアージ | Under review |
-| `in-progress` | 作業中 | Improvement branch created |
-| `proposed` | 提案済 | AI proposal generated and applied |
-| `merged` | 完了 | Confirmed and standardized |
-| `rejected` | 却下 | Deferred or declined |
-| `merged-duplicate` | 重複 | Resolved as duplicate |
+| Status value | UI badge label | Phase | Meaning |
+| --- | --- | --- | --- |
+| `new` | "📋 Plan中" | Plan | Submitted, not yet triaged |
+| `triage` | "📋 Plan中" | Plan | Under review (same badge as new) |
+| `in-progress` | "▶️ Do中" | Do | Improvement branch created |
+| `proposed` | "✨ 改善案あり" | Do | AI proposal generated |
+| `merged` | "🔍 Check待ち" | Check | Proposal applied and flow updated |
+| `rejected` | "見送り済" | — | Deferred or declined |
+| `merged-duplicate` | "重複として統合済" | — | Resolved as duplicate |
 
 ---
 
@@ -292,9 +300,10 @@ flowchart LR
 
 **アサーション候補:**
 ```
+- button text contains "作業を開始（Do フェーズへ）"
 - toast("改善の作業を開始しました") が表示される
-- badge("作業中") が存在する
-- text("Git") または text("branch") が存在しない（シンプルモード時）
+- badge("▶️ Do中") が存在する
+- text("JSON Patch") が存在しない（シンプルモード時）
 ```
 
 ---
@@ -324,9 +333,11 @@ flowchart LR
 
 **アサーション候補:**
 ```
+- button text contains "AIに改善案を考えてもらう"
 - toast("AIが改善案を作成しました") が表示される
+- badge("✨ 改善案あり") が存在する
 - proposal card count >= 1
-- text("変更内容（技術詳細）") が存在する（折りたたみ状態）
+- text("変更内容（技術詳細）を表示") が存在する（折りたたみ状態、技術モードのみ）
 - raw JSON `[{"op":` が直接表示されていない（シンプルモード）
 ```
 
@@ -387,11 +398,12 @@ flowchart LR
 
 **アサーション候補:**
 ```
+- page button text contains "フローに反映して Check へ"（シンプルモード）
 - dialog title === "変更を確定しますか？"
-- dialog contains "改善内容が正式なフローに反映されます"
+- dialog contains "この課題は「Check待ち」フェーズに移行します"
+- dialog confirm button text === "変更を確定する"
 - toast("変更を確定しました") が表示される
-- badge("完了") が存在する
-- /issues?status=merged に該当カードが表示される
+- badge("🔍 Check待ち") が存在する
 ```
 
 ---
@@ -611,12 +623,19 @@ FlowOpsが非エンジニアのPDCA利用に準備できたと判断できる条
 - [ ] ダッシュボードが「対応待ち・提案レビュー中・効果確認中・標準化済」を強調表示する
 - [ ] フローが「完了」だけでなく効果確認と次サイクル学習をサポートする
 
-### 既知のUI改善項目（優先度順）
+### 解決済みUI改善項目（2026-05-24確認）
 
-| 優先度 | 箇所 | 現在の表示 | 推奨表示 |
-| --- | --- | --- | --- |
-| 高 | `NewIssueForm.tsx:104` | 新しいIssueを作成 | 改善カードを作成 |
-| 高 | `NewIssueForm.tsx:247` | Issueを作成 | 課題を報告する |
-| 高 | `NewIssueForm.tsx:99` | Issue一覧に戻る | 課題一覧に戻る |
-| 中 | `NewIssueForm.tsx:107` | フローの改善点や課題を記録します | 現場の問題を記録します |
-| 低 | `page.tsx:418` | 最初の課題を報告する | すでに適切 |
+| 状態 | 箇所 | 内容 |
+| --- | --- | --- |
+| ✅ 解決済 | `NewIssueForm.tsx` | h1: "改善カードを作る"、送信: "改善カードを作成" に変更済み |
+| ✅ 解決済 | `IssueDetailClient.tsx` | ダイアログの「完了になります」→「Check待ちフェーズに移行します」に修正 |
+| ✅ 解決済 | `StatusLifecycle.tsx` | Reactキー重複（merged x2）→ index ベースキーに修正 |
+| ✅ 解決済 | `client.ts` | LLMエラーが汎用エラーになる問題 → `LLMError` をスロー |
+| ✅ 解決済 | `HelpTooltip.tsx` | `button > button` の無効ネスト → `span[role=button]` に変更 |
+
+### 残課題
+
+| 優先度 | 内容 |
+| --- | --- |
+| 低 | `IssueDetail.tsx:365` Gitブランチ名が表示される（シンプルモードで非表示にするか検討） |
+| 低 | ウェルカムモーダルに「YAML」という技術用語が含まれる |
