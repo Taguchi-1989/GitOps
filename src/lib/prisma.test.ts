@@ -16,9 +16,16 @@ vi.mock('@prisma/adapter-pg', () => ({
   }),
 }));
 
+vi.mock('@prisma/adapter-better-sqlite3', () => ({
+  PrismaBetterSqlite3: vi.fn().mockImplementation(function () {
+    return {};
+  }),
+}));
+
 describe('prisma', () => {
   beforeEach(() => {
     vi.resetModules();
+    delete process.env.DATABASE_URL;
     // Clean up globalThis between tests
     const g = globalThis as unknown as { prisma: unknown };
     delete g.prisma;
@@ -43,6 +50,15 @@ describe('prisma', () => {
 
     expect(PrismaPg).toHaveBeenCalledWith({
       connectionString: 'postgresql://test:test@localhost:5432/test',
+    });
+  });
+
+  it('should create a SQLite adapter by default', async () => {
+    const { PrismaBetterSqlite3 } = await import('@prisma/adapter-better-sqlite3');
+    await import('@/lib/prisma');
+
+    expect(PrismaBetterSqlite3).toHaveBeenCalledWith({
+      url: 'file:./prisma/dev.db',
     });
   });
 

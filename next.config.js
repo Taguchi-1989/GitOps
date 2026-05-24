@@ -3,6 +3,8 @@ const nextPackage = require('next/package.json');
 const nextMajor = Number.parseInt(nextPackage.version.split('.')[0], 10);
 
 const sharedConfig = {
+  allowedDevOrigins: ['127.0.0.1'],
+
   images: {
     unoptimized: process.env.NODE_ENV === 'development',
   },

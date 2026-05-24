@@ -133,7 +133,7 @@ export function NewIssueForm({ flows, flowsMap, defaultFlowId, defaultNodeId }: 
     <div className="space-y-4">
       <Link
         href="/issues"
-        className="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+        className="inline-flex min-h-11 items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
       >
         <ArrowLeft className="w-4 h-4" />
         改善カード一覧に戻る
@@ -150,7 +150,7 @@ export function NewIssueForm({ flows, flowsMap, defaultFlowId, defaultNodeId }: 
         {/* 左カラム: フォーム */}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* テンプレートヒント */}
-          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg p-4 flex items-start justify-between gap-3">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg p-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div className="text-sm text-blue-800 dark:text-blue-200">
               <p className="font-medium">5分で書ける改善カード</p>
               <p className="text-blue-700 dark:text-blue-400 mt-0.5">
@@ -160,7 +160,7 @@ export function NewIssueForm({ flows, flowsMap, defaultFlowId, defaultNodeId }: 
             <button
               type="button"
               onClick={applyTemplate}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-white dark:bg-blue-900/50 border border-blue-300 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-800 transition-colors"
+              className="flex min-h-11 w-full flex-shrink-0 items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-white dark:bg-blue-900/50 border border-blue-300 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-800 transition-colors sm:w-auto"
             >
               <FileText className="w-3.5 h-3.5" />
               テンプレートを使う
@@ -213,9 +213,9 @@ export function NewIssueForm({ flows, flowsMap, defaultFlowId, defaultNodeId }: 
             <button
               type="button"
               onClick={() => setShowPlanFields(!showPlanFields)}
-              className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+              className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
             >
-              <span className="flex items-center gap-2">
+              <span className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                 📋 Planフェーズの詳細情報（任意）
                 <span className="text-xs font-normal text-gray-500">AIの提案精度が上がります</span>
               </span>
@@ -396,17 +396,17 @@ export function NewIssueForm({ flows, flowsMap, defaultFlowId, defaultNodeId }: 
           )}
 
           {/* Submit */}
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
             <Link
               href="/issues"
-              className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="inline-flex min-h-11 items-center justify-center px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               キャンセル
             </Link>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              className="min-h-11 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
               改善カードを作成

@@ -9,6 +9,10 @@ import { AuditLogger } from './logger';
 import type { IAuditLogRepository, AuditLogRecord } from './logger';
 import type { AuditLogEntry, AuditQueryOptions } from './types';
 
+vi.mock('@/lib/audit-repository', () => {
+  throw new Error('audit repository unavailable in unit tests');
+});
+
 // Mock repository implementing IAuditLogRepository
 const createMockRepository = (): IAuditLogRepository => ({
   create: vi.fn(),

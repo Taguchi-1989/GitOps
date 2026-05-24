@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'flowops-simple-mode';
 
@@ -28,20 +28,16 @@ export function useSimpleMode(): SimpleModeContextValue {
 }
 
 export function SimpleModeProvider({ children }: { children: React.ReactNode }) {
-  const [isSimpleMode, setIsSimpleMode] = useState(false);
-
-  // localStorage から初期値を読み込み
-  useEffect(() => {
+  const [isSimpleMode, setIsSimpleMode] = useState(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored !== null) {
-        setIsSimpleMode(stored === 'true');
-      }
+      return stored === 'true';
     } catch {
-      // SSR or localStorage unavailable
+      return false;
     }
-  }, []);
+  });
 
+  // localStorage から初期値を読み込み
   const toggleSimpleMode = useCallback(() => {
     setIsSimpleMode(prev => {
       const next = !prev;

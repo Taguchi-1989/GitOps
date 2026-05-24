@@ -40,12 +40,12 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { isDark, toggleTheme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 md:flex">
       {/* Welcome Guide (初回表示) */}
       <WelcomeGuide />
 
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 w-64 bg-gray-900 text-white">
+      <aside className="bg-gray-900 text-white md:fixed md:inset-y-0 md:left-0 md:w-64 md:overflow-y-auto">
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-800">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -97,12 +97,12 @@ export function MainLayout({ children }: MainLayoutProps) {
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800 space-y-2">
+        <div className="border-t border-gray-800 p-4 space-y-2 md:absolute md:bottom-0 md:left-0 md:right-0">
           {/* ダークモード トグル */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-800"
+            className="flex min-h-11 items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-800"
           >
             {isDark ? (
               <Sun className="w-4 h-4 text-yellow-400" />
@@ -126,7 +126,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <button
             type="button"
             onClick={toggleSimpleMode}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-800"
+            className="flex min-h-11 items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-800"
           >
             {isSimpleMode ? (
               <Eye className="w-4 h-4 text-blue-400" />
@@ -155,7 +155,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 min-h-screen">{children}</main>
+      <main className="min-h-screen w-full md:ml-64">{children}</main>
     </div>
   );
 }

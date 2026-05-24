@@ -147,7 +147,9 @@ export function IssueDetail({
 
   useEffect(() => {
     if (activeTab === 'history') {
-      fetchAuditLogs();
+      queueMicrotask(() => {
+        void fetchAuditLogs();
+      });
     }
   }, [activeTab, fetchAuditLogs]);
 

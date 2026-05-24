@@ -37,18 +37,23 @@ export function useFlowEditor(initialFlow: Flow) {
   const [redoStack, setRedoStack] = useState<Snapshot[]>([]);
 
   useEffect(() => {
-    setNodes(initNodes);
-    setEdges(initEdges);
-    setIsDirty(false);
-    setUndoStack([]);
-    setRedoStack([]);
+    queueMicrotask(() => {
+      setNodes(initNodes);
+      setEdges(initEdges);
+      setIsDirty(false);
+      setUndoStack([]);
+      setRedoStack([]);
+    });
   }, [initNodes, initEdges]);
 
   // Refs to always access current values inside callbacks (avoids stale closures)
   const nodesRef = useRef(nodes);
-  nodesRef.current = nodes;
   const edgesRef = useRef(edges);
-  edgesRef.current = edges;
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+    edgesRef.current = edges;
+  }, [nodes, edges]);
 
   const pushUndo = useCallback((snap: Snapshot) => {
     setUndoStack(prev => {

@@ -29,6 +29,7 @@ vi.mock('./prompts', () => ({
 // Imports (after mocks)
 // -------------------------------------------------------
 import { LLMError, createLLMClient, getLLMClient, resetLLMClient, LLMClient } from './client';
+import { AnthropicLLMClient } from './anthropic-client';
 import { getTraceId } from '@/lib/trace-context';
 
 // -------------------------------------------------------
@@ -121,8 +122,11 @@ describe('createLLMClient', () => {
 
   it('should throw when no API key is available', () => {
     delete process.env.OPENAI_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
     delete process.env.LLM_API_KEY;
-    expect(() => createLLMClient()).toThrow('LLM_API_KEY (or OPENAI_API_KEY) is not set');
+    expect(() => createLLMClient()).toThrow(
+      'LLM_API_KEY (or ANTHROPIC_API_KEY / OPENAI_API_KEY) is not set'
+    );
   });
 
   it('should prefer LLM_API_KEY over OPENAI_API_KEY', () => {
@@ -135,7 +139,7 @@ describe('createLLMClient', () => {
   it('should use anthropic provider defaults when LLM_PROVIDER=anthropic', () => {
     process.env.LLM_PROVIDER = 'anthropic';
     const client = createLLMClient();
-    expect(client).toBeInstanceOf(LLMClient);
+    expect(client).toBeInstanceOf(AnthropicLLMClient);
   });
 
   it('should use gemini provider defaults when LLM_PROVIDER=gemini', () => {

@@ -43,7 +43,7 @@ export function AIChatPanel({ currentFlow, onApplyFlow, className = '' }: AIChat
   // Show diff preview when new result arrives
   useEffect(() => {
     if (lastResult?.flow) {
-      setShowDiff(true);
+      queueMicrotask(() => setShowDiff(true));
     }
   }, [lastResult]);
 

@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   X,
   ArrowRight,
@@ -94,15 +94,14 @@ const steps = [
 ];
 
 export function WelcomeGuide() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-
-  useEffect(() => {
-    const dismissed = localStorage.getItem(STORAGE_KEY);
-    if (!dismissed) {
-      setIsOpen(true);
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      return !localStorage.getItem(STORAGE_KEY);
+    } catch {
+      return false;
     }
-  }, []);
+  });
+  const [currentStep, setCurrentStep] = useState(0);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -229,7 +228,7 @@ export function WelcomeGuideButton() {
     <>
       <button
         onClick={handleOpen}
-        className="flex items-center gap-2 px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors w-full text-sm"
+        className="flex min-h-11 items-center gap-2 px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors w-full text-sm"
         title="使い方ガイドを表示"
       >
         <HelpCircle className="w-4 h-4" />

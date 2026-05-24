@@ -66,7 +66,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Issue</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">課題や改善点の管理</p>
@@ -76,7 +76,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
             type="button"
             onClick={onCreateClick}
             className="
-              flex items-center gap-2 px-4 py-2
+              flex min-h-11 items-center justify-center gap-2 px-4 py-2
               bg-blue-600 text-white rounded-lg
               hover:bg-blue-700 transition-colors
               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
@@ -90,14 +90,14 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex gap-4" aria-label="Tabs">
+        <nav className="flex flex-wrap gap-2 sm:gap-4" aria-label="Tabs">
           {Object.entries(tabConfig).map(([key, config]) => (
             <button
               type="button"
               key={key}
               onClick={() => setActiveTab(key as TabValue)}
               className={`
-                px-3 py-2 text-sm font-medium border-b-2 -mb-px
+                min-h-11 px-3 py-2 text-sm font-medium border-b-2 -mb-px
                 transition-colors
                 ${
                   activeTab === key
