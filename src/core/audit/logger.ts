@@ -30,6 +30,7 @@ export interface IAuditLogRepository {
 class AuditLogger {
   private repository: IAuditLogRepository | null = null;
   private defaultActor = 'you';
+  private autoInitPromise: Promise<void> | null = null;
 
   /**
    * リポジトリを設定（Prismaクライアント注入用）
@@ -46,9 +47,32 @@ class AuditLogger {
   }
 
   /**
+   * リポジトリが未設定の場合に自動初期化（フォールバック）
+   * - instrumentation.ts が未発火 / モジュール分離で repository が空のとき
+   *   route handler から呼ばれた際に lazy にロードする保険
+   */
+  private async ensureRepository(): Promise<void> {
+    if (this.repository) return;
+    if (!this.autoInitPromise) {
+      this.autoInitPromise = (async () => {
+        try {
+          const mod = await import('@/lib/audit-repository');
+          if (!this.repository) {
+            this.repository = mod.auditRepository;
+          }
+        } catch {
+          // ignore: テスト・ビルド時など Prisma が無い環境
+        }
+      })();
+    }
+    await this.autoInitPromise;
+  }
+
+  /**
    * 監査ログを記録（Trace IDは自動注入）
    */
   async record(entry: AuditLogEntry): Promise<AuditLogRecord | null> {
+    await this.ensureRepository();
     if (!this.repository) {
       return null;
     }
@@ -64,6 +88,7 @@ class AuditLogger {
    * 監査ログを照会
    */
   async query(options: AuditQueryOptions = {}): Promise<AuditLogRecord[]> {
+    await this.ensureRepository();
     if (!this.repository) {
       return [];
     }
@@ -75,6 +100,7 @@ class AuditLogger {
    * 監査ログの件数を取得
    */
   async count(options: AuditQueryOptions = {}): Promise<number> {
+    await this.ensureRepository();
     if (!this.repository) {
       return 0;
     }
@@ -195,8 +221,12 @@ class AuditLogger {
   }
 }
 
-// シングルトンインスタンス
-export const auditLog = new AuditLogger();
+// シングルトンインスタンス（HMR/モジュール分離対策で globalThis に固定）
+const globalForAudit = globalThis as unknown as { __flowops_audit_log?: AuditLogger };
+export const auditLog: AuditLogger = globalForAudit.__flowops_audit_log ?? new AuditLogger();
+if (process.env.NODE_ENV !== 'production') {
+  globalForAudit.__flowops_audit_log = auditLog;
+}
 
 // クラスもエクスポート（テスト用）
 export { AuditLogger };

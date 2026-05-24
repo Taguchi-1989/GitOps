@@ -17,7 +17,7 @@ import { API_ERROR_CODES } from '@/core/types/api';
 import { auditLog } from '@/core/audit';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -26,8 +26,10 @@ interface RouteParams {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
+
     const issue = await prisma.issue.findUnique({
-      where: { id: params.id, deletedAt: null },
+      where: { id, deletedAt: null },
     });
 
     if (!issue) {
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const updatedIssue = await prisma.issue.update({
-      where: { id: params.id },
+      where: { id },
       data: { standardizedAt: new Date() },
     });
 

@@ -55,12 +55,12 @@ const nextConfig =
   nextMajor >= 16
     ? {
         ...sharedConfig,
-        serverExternalPackages: ['pino', 'pino-pretty'],
+        serverExternalPackages: ['pino', 'pino-pretty', 'better-sqlite3', '@prisma/adapter-better-sqlite3'],
       }
     : {
         ...sharedConfig,
         experimental: {
-          serverComponentsExternalPackages: ['pino', 'pino-pretty'],
+          serverComponentsExternalPackages: ['pino', 'pino-pretty', 'better-sqlite3', '@prisma/adapter-better-sqlite3'],
         },
       };
 
