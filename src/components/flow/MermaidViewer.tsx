@@ -18,16 +18,47 @@ interface MermaidViewerProps {
   className?: string;
 }
 
-// Mermaid初期化
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'default',
-  securityLevel: 'strict',
-  flowchart: {
-    htmlLabels: false,
-    curve: 'basis',
-  },
-});
+/**
+ * Mermaid 初期化 (ライト/ダークどちらでも線が視認できるようテーマ変数を明示)
+ *
+ * デフォルトテーマでは edge stroke が #333 のため、ダーク背景に溶ける。
+ * themeVariables で lineColor / edgeLabelBackground / arrowheadColor を
+ * 両モードで十分なコントラストになる値に固定する。
+ */
+const getMermaidTheme = () => {
+  if (typeof document === 'undefined') return 'default' as const;
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'default';
+};
+
+const initMermaid = (mode: 'default' | 'dark') => {
+  const isDark = mode === 'dark';
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: mode,
+    securityLevel: 'strict',
+    flowchart: {
+      htmlLabels: false,
+      curve: 'basis',
+    },
+    themeVariables: {
+      // 線・矢印 — 背景に対し十分なコントラストを確保
+      lineColor: isDark ? '#e5e7eb' : '#374151',
+      // エッジラベル背景 — ノード/線と重なっても文字が読めるよう不透明指定
+      edgeLabelBackground: isDark ? '#1f2937' : '#ffffff',
+      // ノードのテキスト色 — 背景に対して明確に
+      textColor: isDark ? '#f3f4f6' : '#111827',
+      // ノード塗り/枠 — デフォルトの薄色だと暗背景で潰れるため上書き
+      primaryColor: isDark ? '#374151' : '#eff6ff',
+      primaryTextColor: isDark ? '#f9fafb' : '#1e3a8a',
+      primaryBorderColor: isDark ? '#9ca3af' : '#3b82f6',
+      // セカンダリ系 (diamond/parallelogram など)
+      secondaryColor: isDark ? '#4b5563' : '#f3f4f6',
+      tertiaryColor: isDark ? '#1f2937' : '#f9fafb',
+    },
+  });
+};
+
+initMermaid(getMermaidTheme());
 
 export function MermaidViewer({
   content,
@@ -40,10 +71,26 @@ export function MermaidViewer({
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [isRendering, setIsRendering] = useState(false);
+  const [themeMode, setThemeMode] = useState<'default' | 'dark'>(() => getMermaidTheme());
+
+  // html.dark の付け外しを監視し、Mermaid を再初期化させる
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    const sync = () => {
+      const next = root.classList.contains('dark') ? 'dark' : 'default';
+      setThemeMode(prev => (prev === next ? prev : next));
+    };
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Mermaidレンダリング（レースコンディション対策付き）
   useEffect(() => {
     let cancelled = false;
+    // テーマモードに合わせて再初期化してから描画
+    initMermaid(themeMode);
 
     const renderDiagram = async () => {
       if (!content) return;
@@ -69,7 +116,7 @@ export function MermaidViewer({
     return () => {
       cancelled = true;
     };
-  }, [content]);
+  }, [content, themeMode]);
 
   /**
    * MermaidのDOM要素からノードIDを抽出
@@ -217,7 +264,7 @@ export function MermaidViewer({
         {!isRendering && !error && svgContent && (
           <div
             ref={containerRef}
-            className="p-4 flex items-center justify-center"
+            className="mermaid p-4 flex items-center justify-center"
             style={{
               transform: `scale(${zoom})`,
               transformOrigin: 'top left',

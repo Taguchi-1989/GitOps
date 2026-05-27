@@ -117,27 +117,212 @@ body {
 
 /* ======================================
    Mermaid Customizations
+   - エッジ(線)/矢印が背景に溶けて見えなくなる問題対策。
+     Mermaid がインラインで stroke を設定するため !important で上書きする。
    ====================================== */
 
 .mermaid {
   @apply flex items-center justify-center;
 }
 
+/* ノード形状 */
 .mermaid .node rect,
 .mermaid .node circle,
-.mermaid .node polygon {
+.mermaid .node polygon,
+.mermaid .node ellipse,
+.mermaid .node path {
   cursor: pointer;
   transition: filter 0.2s ease;
+  stroke-width: 1.5px;
 }
 
 .mermaid .node:hover rect,
 .mermaid .node:hover circle,
-.mermaid .node:hover polygon {
+.mermaid .node:hover polygon,
+.mermaid .node:hover ellipse,
+.mermaid .node:hover path {
   filter: brightness(1.1);
 }
 
+/* エッジ(線): ライトモード — ダークグレーで背景にしっかり残す */
+.mermaid .edgePath .path,
+.mermaid .flowchart-link,
+.mermaid path.flowchart-link,
+.mermaid .edgePaths path {
+  stroke: #374151 !important;
+  stroke-width: 2px !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+/* 矢印(マーカー) ライトモード */
+.mermaid marker path,
+.mermaid #arrowhead path,
+.mermaid .marker,
+.mermaid .arrowMarkerPath {
+  fill: #374151 !important;
+  stroke: #374151 !important;
+}
+
+/* エッジラベル(線上のテキスト)のチップ — 線と重なっても読めるよう不透明背景 */
 .mermaid .edgeLabel {
-  @apply bg-white dark:bg-gray-800 px-2 py-0.5 rounded text-xs;
+  @apply px-2 py-0.5 rounded text-xs;
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+.mermaid .edgeLabel rect,
+.mermaid .edgeLabel foreignObject > div {
+  background-color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+/* エッジラベル内テキスト */
+.mermaid .edgeLabel span,
+.mermaid .edgeLabel p {
+  background-color: transparent !important;
+  color: #111827 !important;
+}
+
+/* ======================================
+   Dark mode 用上書き
+   ====================================== */
+.dark .mermaid .edgePath .path,
+.dark .mermaid .flowchart-link,
+.dark .mermaid path.flowchart-link,
+.dark .mermaid .edgePaths path {
+  stroke: #e5e7eb !important;
+}
+
+.dark .mermaid marker path,
+.dark .mermaid #arrowhead path,
+.dark .mermaid .marker,
+.dark .mermaid .arrowMarkerPath {
+  fill: #e5e7eb !important;
+  stroke: #e5e7eb !important;
+}
+
+.dark .mermaid .edgeLabel {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .mermaid .edgeLabel rect,
+.dark .mermaid .edgeLabel foreignObject > div {
+  background-color: #1f2937 !important;
+  fill: #1f2937 !important;
+}
+
+.dark .mermaid .edgeLabel span,
+.dark .mermaid .edgeLabel p {
+  background-color: transparent !important;
+  color: #f3f4f6 !important;
+}
+
+/* ノード内テキストの可読性 (ダークモード) */
+.dark .mermaid .nodeLabel,
+.dark .mermaid .label,
+.dark .mermaid .node text {
+  color: #f9fafb !important;
+  fill: #f9fafb !important;
+}
+
+/* ======================================
+   React Flow (@xyflow/react) Customizations
+   - リッチエディタ版もデフォルトの淡いグレー stroke (#b1b1b7) が
+     ダーク背景に溶けるため両モードで明示的に上書きする。
+   ====================================== */
+
+/* エッジ(線) ライトモード */
+.react-flow__edge-path,
+.react-flow__connection-path {
+  stroke: #374151 !important;
+  stroke-width: 1.75px !important;
+}
+
+/* 選択中エッジ */
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path,
+.react-flow__edge:focus-visible .react-flow__edge-path {
+  stroke: #3b82f6 !important;
+  stroke-width: 2.5px !important;
+}
+
+/* 矢印マーカー(arrowclosed / arrow) */
+.react-flow__arrowhead polyline,
+.react-flow__arrowhead polygon,
+.react-flow__edge .react-flow__edge-textbg {
+  fill: #374151 !important;
+  stroke: #374151 !important;
+}
+
+/* エッジラベル背景・テキスト */
+.react-flow__edge-textbg {
+  fill: #ffffff !important;
+}
+.react-flow__edge-text {
+  fill: #111827 !important;
+}
+
+/* Controls ボタン (ライト) */
+.react-flow__controls-button {
+  background-color: #ffffff !important;
+  border-color: #e5e7eb !important;
+  color: #374151 !important;
+}
+.react-flow__controls-button:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* MiniMap 枠線 */
+.react-flow__minimap {
+  border: 1px solid #e5e7eb;
+}
+
+/* ---- Dark mode 上書き ---- */
+.dark .react-flow__edge-path,
+.dark .react-flow__connection-path {
+  stroke: #e5e7eb !important;
+}
+
+.dark .react-flow__edge.selected .react-flow__edge-path,
+.dark .react-flow__edge:focus .react-flow__edge-path,
+.dark .react-flow__edge:focus-visible .react-flow__edge-path {
+  stroke: #60a5fa !important;
+}
+
+.dark .react-flow__arrowhead polyline,
+.dark .react-flow__arrowhead polygon {
+  fill: #e5e7eb !important;
+  stroke: #e5e7eb !important;
+}
+
+.dark .react-flow__edge-textbg {
+  fill: #1f2937 !important;
+}
+.dark .react-flow__edge-text {
+  fill: #f3f4f6 !important;
+}
+
+.dark .react-flow__controls-button {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+.dark .react-flow__controls-button:hover {
+  background-color: #374151 !important;
+}
+.dark .react-flow__controls-button svg {
+  fill: currentColor !important;
+}
+
+.dark .react-flow__minimap {
+  border: 1px solid #374151;
+}
+
+/* ハンドル(ノードの接続点) ダーク時の縁色を上げて見やすく */
+.dark .react-flow__handle {
+  border-color: #9ca3af !important;
 }
 
 /* ======================================
