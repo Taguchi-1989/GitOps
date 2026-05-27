@@ -228,6 +228,104 @@ body {
 }
 
 /* ======================================
+   React Flow (@xyflow/react) Customizations
+   - リッチエディタ版もデフォルトの淡いグレー stroke (#b1b1b7) が
+     ダーク背景に溶けるため両モードで明示的に上書きする。
+   ====================================== */
+
+/* エッジ(線) ライトモード */
+.react-flow__edge-path,
+.react-flow__connection-path {
+  stroke: #374151 !important;
+  stroke-width: 1.75px !important;
+}
+
+/* 選択中エッジ */
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path,
+.react-flow__edge:focus-visible .react-flow__edge-path {
+  stroke: #3b82f6 !important;
+  stroke-width: 2.5px !important;
+}
+
+/* 矢印マーカー(arrowclosed / arrow) */
+.react-flow__arrowhead polyline,
+.react-flow__arrowhead polygon,
+.react-flow__edge .react-flow__edge-textbg {
+  fill: #374151 !important;
+  stroke: #374151 !important;
+}
+
+/* エッジラベル背景・テキスト */
+.react-flow__edge-textbg {
+  fill: #ffffff !important;
+}
+.react-flow__edge-text {
+  fill: #111827 !important;
+}
+
+/* Controls ボタン (ライト) */
+.react-flow__controls-button {
+  background-color: #ffffff !important;
+  border-color: #e5e7eb !important;
+  color: #374151 !important;
+}
+.react-flow__controls-button:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* MiniMap 枠線 */
+.react-flow__minimap {
+  border: 1px solid #e5e7eb;
+}
+
+/* ---- Dark mode 上書き ---- */
+.dark .react-flow__edge-path,
+.dark .react-flow__connection-path {
+  stroke: #e5e7eb !important;
+}
+
+.dark .react-flow__edge.selected .react-flow__edge-path,
+.dark .react-flow__edge:focus .react-flow__edge-path,
+.dark .react-flow__edge:focus-visible .react-flow__edge-path {
+  stroke: #60a5fa !important;
+}
+
+.dark .react-flow__arrowhead polyline,
+.dark .react-flow__arrowhead polygon {
+  fill: #e5e7eb !important;
+  stroke: #e5e7eb !important;
+}
+
+.dark .react-flow__edge-textbg {
+  fill: #1f2937 !important;
+}
+.dark .react-flow__edge-text {
+  fill: #f3f4f6 !important;
+}
+
+.dark .react-flow__controls-button {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+.dark .react-flow__controls-button:hover {
+  background-color: #374151 !important;
+}
+.dark .react-flow__controls-button svg {
+  fill: currentColor !important;
+}
+
+.dark .react-flow__minimap {
+  border: 1px solid #374151;
+}
+
+/* ハンドル(ノードの接続点) ダーク時の縁色を上げて見やすく */
+.dark .react-flow__handle {
+  border-color: #9ca3af !important;
+}
+
+/* ======================================
    Scrollbar Styles
    ====================================== */
 

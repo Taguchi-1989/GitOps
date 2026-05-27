@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -105,6 +105,19 @@ export function FlowCanvas({
     [onEdgeClick]
   );
 
+  // Dark モード検出: Background ドットや MiniMap のマスク色を背景に合わせて切替える
+  const [isDark, setIsDark] = useState<boolean>(() =>
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  );
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    const sync = () => setIsDark(root.classList.contains('dark'));
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
   // Keyboard shortcuts for editable mode (Delete, Ctrl+Z, Ctrl+Shift+Z)
   useEffect(() => {
     if (!editable) return;
@@ -154,11 +167,20 @@ export function FlowCanvas({
             const data = node.data as FlowNodeData;
             return NODE_STYLE_MAP[data?.nodeType]?.hexColor ?? '#6b7280';
           }}
+          maskColor={isDark ? 'rgba(17, 24, 39, 0.7)' : 'rgba(240, 240, 240, 0.7)'}
+          style={{
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
+          }}
           zoomable
           pannable
         />
         <Controls />
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e5e7eb" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={16}
+          size={1}
+          color={isDark ? '#4b5563' : '#d1d5db'}
+        />
       </ReactFlow>
     </div>
   );
