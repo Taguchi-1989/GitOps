@@ -106,8 +106,8 @@ export function FlowCanvas({
   );
 
   // Dark モード検出: Background ドットや MiniMap のマスク色を背景に合わせて切替える
-  const [isDark, setIsDark] = useState<boolean>(() =>
-    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  const [isDark, setIsDark] = useState<boolean>(
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
   );
   useEffect(() => {
     if (typeof document === 'undefined') return;

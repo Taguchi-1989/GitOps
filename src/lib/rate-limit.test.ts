@@ -376,6 +376,38 @@ describe('Rate Limiter', () => {
     });
   });
 
+  describe('Periodic cleanup (cleanupIfNeeded)', () => {
+    it('purges stale keys once the cleanup interval has elapsed', () => {
+      const config = { windowMs: 1_000, maxRequests: 5 };
+      // 実時間のインポート時刻より十分先に進めて cleanup を確実に発火させる
+      const base = 10_000_000_000_000; // 西暦2286年付近
+      vi.setSystemTime(base);
+      checkRateLimit('stale-key', config); // base 時点のタイムスタンプを記録
+
+      // クリーンアップ間隔(5分)とエントリ保持期間(10分)を超えて進める
+      vi.setSystemTime(base + 700_000);
+      // 別キーへのアクセスで cleanupIfNeeded が走り、stale-key が掃除される
+      checkRateLimit('other-key', config);
+
+      // stale-key は削除済みなので、新規キー同様に満タンの remaining が返る
+      const result = checkRateLimit('stale-key', { windowMs: 60_000, maxRequests: 5 });
+      expect(result.allowed).toBe(true);
+      expect(result.remaining).toBe(4);
+    });
+
+    it('skips cleanup when called again within the interval', () => {
+      const config = { windowMs: 60_000, maxRequests: 5 };
+      const base = 11_000_000_000_000;
+      vi.setSystemTime(base);
+      checkRateLimit('k1', config); // この呼び出しで lastCleanup = base
+
+      // 間隔(5分)未満しか進めない → 早期 return 分岐
+      vi.setSystemTime(base + 1_000);
+      const result = checkRateLimit('k1', config);
+      expect(result.remaining).toBe(3); // 既存タイムスタンプは保持されている
+    });
+  });
+
   describe('Edge cases', () => {
     it('should handle zero window correctly', () => {
       const config = { windowMs: 0, maxRequests: 5 };

@@ -13,7 +13,7 @@ import { GET, PATCH, DELETE } from './route';
 // Mocks
 // --------------------------------------------------------
 
-// next/server のモチE��
+// next/server のモック
 vi.mock('next/server', () => ({
   NextResponse: {
     json: vi.fn((body, init) => ({
@@ -23,7 +23,7 @@ vi.mock('next/server', () => ({
   },
 }));
 
-// logger のモチE��
+// logger のモック
 vi.mock('@/lib/logger', () => ({
   logger: {
     error: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
-// prisma のモチE��
+// prisma のモック
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     issue: {
@@ -57,7 +57,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// auditLog のモチE��
+// auditLog のモック
 vi.mock('@/core/audit', () => ({
   auditLog: {
     record: vi.fn(),
@@ -67,7 +67,7 @@ vi.mock('@/core/audit', () => ({
   },
 }));
 
-// issue types のモチE��は実際のスキーマを使用
+// issue types のモックは実際のスキーマを使用
 vi.mock('@/core/issue', async () => {
   const actual = await vi.importActual('@/core/issue/types');
   return actual;
@@ -76,7 +76,7 @@ vi.mock('@/core/issue', async () => {
 import { prisma } from '@/lib/prisma';
 import { auditLog } from '@/core/audit';
 
-/** モチE��レスポンスからbodyを取得する�Eルパ�E */
+/** モックレスポンスからbodyを取得するヘルパー */
 function getBody(result: any): any {
   return result.body;
 }

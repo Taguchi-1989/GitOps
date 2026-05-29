@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { SYSTEM_PROMPT, CONSTRAINTS_PROMPT, generateUserPrompt, buildFullPrompt } from './prompts';
+import {
+  SYSTEM_PROMPT,
+  CONSTRAINTS_PROMPT,
+  generateUserPrompt,
+  buildFullPrompt,
+  buildInterviewPrompt,
+  buildMetricSuggestionPrompt,
+} from './prompts';
 
 describe('prompts', () => {
   // -------------------------------------------------------
@@ -94,6 +101,96 @@ describe('prompts', () => {
     it('should not include roles section when roles array is empty', () => {
       const result = generateUserPrompt({ ...baseParams, roles: [] });
       expect(result).not.toContain('使用可能なRole');
+    });
+
+    it('should not include the PDCA background section when no plan context is given', () => {
+      const result = generateUserPrompt(baseParams);
+      expect(result).not.toContain('PDCA Plan');
+    });
+
+    it('should include only the PDCA fields that are provided', () => {
+      const result = generateUserPrompt({
+        ...baseParams,
+        expectedState: '在庫がリアルタイムで分かる',
+        successMetric: '欠品率',
+      });
+      expect(result).toContain('改善の背景（PDCA Plan フェーズの情報）');
+      expect(result).toContain('期待する状態: 在庫がリアルタイムで分かる');
+      expect(result).toContain('効果を測る指標: 欠品率');
+      // hypothesisCause は未指定なので含まれない
+      expect(result).not.toContain('原因の仮説:');
+    });
+
+    it('should include the hypothesis cause when provided', () => {
+      const result = generateUserPrompt({
+        ...baseParams,
+        hypothesisCause: '手作業の転記ミス',
+      });
+      expect(result).toContain('原因の仮説: 手作業の転記ミス');
+    });
+  });
+
+  // -------------------------------------------------------
+  // buildInterviewPrompt
+  // -------------------------------------------------------
+  describe('buildInterviewPrompt', () => {
+    const baseParams = {
+      issueTitle: '出荷が遅れる',
+      issueDescription: '梱包工程で時間がかかる',
+    };
+
+    it('should return system and user prompts', () => {
+      const result = buildInterviewPrompt(baseParams);
+      expect(result.system).toContain('現場改善の専門家');
+      expect(result.system).toContain('questions');
+      expect(result.user).toContain('出荷が遅れる');
+      expect(result.user).toContain('梱包工程で時間がかかる');
+    });
+
+    it('should include the current situation section when provided', () => {
+      const result = buildInterviewPrompt({
+        ...baseParams,
+        currentSituation: '1日に3件は遅延している',
+      });
+      expect(result.user).toContain('## 現状の困りごと');
+      expect(result.user).toContain('1日に3件は遅延している');
+    });
+
+    it('should omit the current situation section when not provided', () => {
+      const result = buildInterviewPrompt(baseParams);
+      expect(result.user).not.toContain('## 現状の困りごと');
+    });
+  });
+
+  // -------------------------------------------------------
+  // buildMetricSuggestionPrompt
+  // -------------------------------------------------------
+  describe('buildMetricSuggestionPrompt', () => {
+    const baseParams = {
+      issueTitle: '問い合わせ対応が遅い',
+      issueDescription: '一次回答に時間がかかる',
+    };
+
+    it('should return system and user prompts', () => {
+      const result = buildMetricSuggestionPrompt(baseParams);
+      expect(result.system).toContain('効果測定の専門家');
+      expect(result.system).toContain('metrics');
+      expect(result.user).toContain('問い合わせ対応が遅い');
+      expect(result.user).toContain('一次回答に時間がかかる');
+    });
+
+    it('should include the expected state section when provided', () => {
+      const result = buildMetricSuggestionPrompt({
+        ...baseParams,
+        expectedState: '一次回答を1時間以内にする',
+      });
+      expect(result.user).toContain('## 期待する状態');
+      expect(result.user).toContain('一次回答を1時間以内にする');
+    });
+
+    it('should omit the expected state section when not provided', () => {
+      const result = buildMetricSuggestionPrompt(baseParams);
+      expect(result.user).not.toContain('## 期待する状態');
     });
   });
 

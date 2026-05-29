@@ -1,11 +1,12 @@
 /**
  * FlowOps - Generate Proposal API Route Tests
  *
- * POST /api/issues/[id]/proposals/generate - LLMで提案を生�E
+ * POST /api/issues/[id]/proposals/generate - LLMで提案を生成
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './route';
+import { createMockIssue } from '@/test/helpers';
 
 // --------------------------------------------------------
 // Mocks
@@ -121,20 +122,14 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
   });
 
   it('should return 400 if status is not in-progress', async () => {
-    vi.mocked(prisma.issue.findUnique).mockResolvedValueOnce({
-      id: 'issue-1',
-      humanId: 'ISS-001',
-      title: 'Test Issue',
-      description: 'Test description',
-      status: 'new',
-      targetFlowId: 'flow-1',
-      targetNodeId: null,
-      branchName: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValueOnce(
+      createMockIssue({
+        title: 'Test Issue',
+        description: 'Test description',
+        status: 'new',
+        targetFlowId: 'flow-1',
+      })
+    );
 
     const request = new Request('http://localhost:3000/api/issues/issue-1/proposals/generate', {
       method: 'POST',
@@ -150,20 +145,15 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
   });
 
   it('should return 400 if no targetFlowId', async () => {
-    vi.mocked(prisma.issue.findUnique).mockResolvedValueOnce({
-      id: 'issue-1',
-      humanId: 'ISS-001',
-      title: 'Test Issue',
-      description: 'Test description',
-      status: 'in-progress',
-      targetFlowId: null,
-      targetNodeId: null,
-      branchName: 'issue/ISS-001-test',
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValueOnce(
+      createMockIssue({
+        title: 'Test Issue',
+        description: 'Test description',
+        status: 'in-progress',
+        targetFlowId: null,
+        branchName: 'issue/ISS-001-test',
+      })
+    );
 
     const request = new Request('http://localhost:3000/api/issues/issue-1/proposals/generate', {
       method: 'POST',
@@ -179,20 +169,15 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
   });
 
   it('should return 404 if flow YAML not found', async () => {
-    vi.mocked(prisma.issue.findUnique).mockResolvedValueOnce({
-      id: 'issue-1',
-      humanId: 'ISS-001',
-      title: 'Test Issue',
-      description: 'Test description',
-      status: 'in-progress',
-      targetFlowId: 'missing-flow',
-      targetNodeId: null,
-      branchName: 'issue/ISS-001-test',
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValueOnce(
+      createMockIssue({
+        title: 'Test Issue',
+        description: 'Test description',
+        status: 'in-progress',
+        targetFlowId: 'missing-flow',
+        branchName: 'issue/ISS-001-test',
+      })
+    );
 
     vi.mocked(getFlowYaml).mockResolvedValueOnce(null);
 

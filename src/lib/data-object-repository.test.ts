@@ -34,6 +34,21 @@ const sampleDataObject: DataObject = {
   owner: 'ProcessTech',
 };
 
+const sampleAbstractionMetadata = {
+  abstractionPolicyType: 'masking' as const,
+  originalDataRef: 'obj-original',
+  reverseReferable: false,
+  reIdentificationRisk: 'low' as const,
+  exportAllowed: false,
+};
+
+const sampleOutputArtifactMetadata = {
+  sourceObjectIds: ['obj-src'],
+  generatedAt: '2026-03-09T10:00:00+09:00',
+  generatedBy: 'system',
+  regenerable: false,
+};
+
 const samplePrismaRecord = {
   id: 'cuid-001',
   objectId: 'obj-001',
@@ -154,6 +169,111 @@ describe('PrismaDataObjectRepository', () => {
     });
   });
 
+  describe('create()', () => {
+    it('serializes JSON fields and passes all optional fields when fully populated', async () => {
+      const fullObject: DataObject = {
+        ...sampleDataObject,
+        parentId: 'parent-1',
+        sourceHash: 'hash-1',
+        version: 'v2',
+        accessPolicyRef: 'policy-1',
+        contentRef: 'content-1',
+        semanticTags: ['tag-a', 'tag-b'],
+        provenanceRef: 'prov-1',
+        validationRef: 'val-1',
+        validationStatus: 'machine-verified',
+        fragmentType: 'paragraph',
+        semanticObjectType: 'procedure',
+        abstractionMetadata: sampleAbstractionMetadata,
+        outputArtifactMetadata: sampleOutputArtifactMetadata,
+        meta: { note: 'hello' },
+      };
+      vi.mocked(prisma.dataObject.create).mockResolvedValueOnce(samplePrismaRecord as never);
+
+      await dataObjectRepository.create(fullObject);
+
+      const arg = vi.mocked(prisma.dataObject.create).mock.calls[0][0] as {
+        data: Record<string, unknown>;
+      };
+      expect(arg.data.parentId).toBe('parent-1');
+      expect(arg.data.semanticTags).toBe(JSON.stringify(['tag-a', 'tag-b']));
+      expect(arg.data.abstractionMetadata).toBe(JSON.stringify(sampleAbstractionMetadata));
+      expect(arg.data.outputArtifactMetadata).toBe(JSON.stringify(sampleOutputArtifactMetadata));
+      expect(arg.data.meta).toBe(JSON.stringify({ note: 'hello' }));
+    });
+  });
+
+  describe('toRecord() JSON parsing', () => {
+    it('parses stringified JSON fields and arrays from the DB record', async () => {
+      const record = {
+        ...samplePrismaRecord,
+        parentId: 'parent-9',
+        sourceHash: 'h',
+        version: 'v1',
+        accessPolicyRef: 'ap',
+        contentRef: 'cr',
+        semanticTags: JSON.stringify(['x', 'y']),
+        provenanceRef: 'pr',
+        validationRef: 'vr',
+        validationStatus: 'validated',
+        fragmentType: 'ft',
+        semanticObjectType: 'sot',
+        abstractionMetadata: JSON.stringify({ a: 1 }),
+        outputArtifactMetadata: JSON.stringify({ b: 2 }),
+        meta: JSON.stringify({ c: 3 }),
+      };
+      vi.mocked(prisma.dataObject.findUnique).mockResolvedValueOnce(record as never);
+
+      const result = await dataObjectRepository.findByObjectId('obj-001');
+
+      expect(result!.semanticTags).toEqual(['x', 'y']);
+      expect(result!.abstractionMetadata).toEqual({ a: 1 });
+      expect(result!.outputArtifactMetadata).toEqual({ b: 2 });
+      expect(result!.meta).toEqual({ c: 3 });
+      expect(result!.parentId).toBe('parent-9');
+    });
+
+    it('returns null for malformed JSON strings instead of throwing', async () => {
+      const record = {
+        ...samplePrismaRecord,
+        semanticTags: 'not-json',
+        meta: '{broken',
+      };
+      vi.mocked(prisma.dataObject.findUnique).mockResolvedValueOnce(record as never);
+
+      const result = await dataObjectRepository.findByObjectId('obj-001');
+
+      expect(result!.semanticTags).toBeNull();
+      expect(result!.meta).toBeNull();
+    });
+
+    it('passes through already-parsed object/array JSON fields', async () => {
+      const record = {
+        ...samplePrismaRecord,
+        semanticTags: ['already', 'array'],
+        meta: { already: 'object' },
+      };
+      vi.mocked(prisma.dataObject.findUnique).mockResolvedValueOnce(record as never);
+
+      const result = await dataObjectRepository.findByObjectId('obj-001');
+
+      expect(result!.semanticTags).toEqual(['already', 'array']);
+      expect(result!.meta).toEqual({ already: 'object' });
+    });
+  });
+
+  describe('count()', () => {
+    it('includes parentId and validationStatus filters', async () => {
+      vi.mocked(prisma.dataObject.count).mockResolvedValueOnce(2 as never);
+
+      await dataObjectRepository.count({ parentId: 'p1', validationStatus: 'validated' });
+
+      expect(prisma.dataObject.count).toHaveBeenCalledWith({
+        where: { parentId: 'p1', validationStatus: 'validated' },
+      });
+    });
+  });
+
   describe('update()', () => {
     it('should update specified fields only', async () => {
       const updated = { ...samplePrismaRecord, sensitivityLevel: 'L3' };
@@ -168,6 +288,69 @@ describe('PrismaDataObjectRepository', () => {
         where: { objectId: 'obj-001' },
         data: { sensitivityLevel: 'L3' },
       });
+    });
+
+    it('maps every provided field into the update payload', async () => {
+      vi.mocked(prisma.dataObject.update).mockResolvedValueOnce(samplePrismaRecord as never);
+
+      await dataObjectRepository.update('obj-001', {
+        parentId: 'p2',
+        objectType: 'fragment',
+        sensitivityLevel: 'L4',
+        sourceHash: 'sh',
+        owner: 'o',
+        version: 'v3',
+        accessPolicyRef: 'ap',
+        contentRef: 'cr',
+        exportPolicy: 'internal-only',
+        semanticTags: ['t1'],
+        provenanceRef: 'pr',
+        validationRef: 'vr',
+        validationStatus: 'machine-verified',
+        fragmentType: 'paragraph',
+        semanticObjectType: 'procedure',
+        abstractionMetadata: sampleAbstractionMetadata,
+        outputArtifactMetadata: sampleOutputArtifactMetadata,
+        meta: { c: 3 },
+      });
+
+      const arg = vi.mocked(prisma.dataObject.update).mock.calls[0][0] as {
+        data: Record<string, unknown>;
+      };
+      expect(arg.data).toMatchObject({
+        parentId: 'p2',
+        objectType: 'fragment',
+        sensitivityLevel: 'L4',
+        exportPolicy: 'internal-only',
+        validationStatus: 'machine-verified',
+        semanticObjectType: 'procedure',
+      });
+      expect(arg.data.abstractionMetadata).toEqual(sampleAbstractionMetadata);
+      expect(arg.data.outputArtifactMetadata).toEqual(sampleOutputArtifactMetadata);
+    });
+
+    it('nullifies falsy optional fields on update', async () => {
+      vi.mocked(prisma.dataObject.update).mockResolvedValueOnce(samplePrismaRecord as never);
+
+      await dataObjectRepository.update('obj-001', {
+        parentId: '',
+        sourceHash: '',
+        owner: '',
+        semanticTags: null as never,
+        abstractionMetadata: null as never,
+        outputArtifactMetadata: null as never,
+        meta: null as never,
+      });
+
+      const arg = vi.mocked(prisma.dataObject.update).mock.calls[0][0] as {
+        data: Record<string, unknown>;
+      };
+      expect(arg.data.parentId).toBeNull();
+      expect(arg.data.sourceHash).toBeNull();
+      expect(arg.data.owner).toBeNull();
+      expect(arg.data.abstractionMetadata).toBeNull();
+      expect(arg.data.outputArtifactMetadata).toBeNull();
+      expect(arg.data.meta).toBeNull();
     });
   });
 
@@ -248,6 +431,46 @@ describe('PrismaDataObjectRepository', () => {
         where: { sourceObjectId: 'obj-001' },
         orderBy: { createdAt: 'desc' },
       });
+    });
+
+    it('should find references with direction=target', async () => {
+      vi.mocked(prisma.crossReference.findMany).mockResolvedValueOnce([] as never);
+
+      await dataObjectRepository.findCrossReferences('obj-001', 'target');
+
+      expect(prisma.crossReference.findMany).toHaveBeenCalledWith({
+        where: { targetObjectId: 'obj-001' },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    it('should default to direction=both when not specified', async () => {
+      vi.mocked(prisma.crossReference.findMany).mockResolvedValueOnce([] as never);
+
+      await dataObjectRepository.findCrossReferences('obj-001');
+
+      expect(prisma.crossReference.findMany).toHaveBeenCalledWith({
+        where: { OR: [{ sourceObjectId: 'obj-001' }, { targetObjectId: 'obj-001' }] },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    it('maps cross reference records including the description field', async () => {
+      const prismaRef = {
+        id: 'cuid-x',
+        refId: 'xref-9',
+        sourceObjectId: 'obj-001',
+        targetObjectId: 'obj-002',
+        referenceType: 'derives',
+        description: 'derived from',
+        createdAt: now,
+      };
+      vi.mocked(prisma.crossReference.findMany).mockResolvedValueOnce([prismaRef] as never);
+
+      const result = await dataObjectRepository.findCrossReferences('obj-001', 'source');
+
+      expect(result[0].description).toBe('derived from');
+      expect(result[0].refId).toBe('xref-9');
     });
   });
 
