@@ -5,6 +5,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import type { Issue } from '@prisma/client';
 
 /**
  * テスト用のNextRequestを生成
@@ -32,7 +33,7 @@ export function getResponseBody(result: { body: unknown }): unknown {
 /**
  * テスト用のIssueデータ生成
  */
-export function createMockIssue(overrides: Record<string, unknown> = {}) {
+export function createMockIssue(overrides: Partial<Issue> = {}): Issue {
   return {
     id: 'issue-1',
     humanId: 'ISS-001',
@@ -41,11 +42,27 @@ export function createMockIssue(overrides: Record<string, unknown> = {}) {
     status: 'new',
     targetFlowId: 'order-process',
     targetNodeId: null,
-    branchName: null,
     canonicalId: null,
-    deletedAt: null,
+    branchName: null,
+    // PDCA: Plan フェーズ
+    currentSituation: null,
+    frequency: null,
+    impact: null,
+    expectedState: null,
+    hypothesisCause: null,
+    successMetric: null,
+    checkDueDate: null,
+    // PDCA: Check フェーズ
+    metricBefore: null,
+    metricAfter: null,
+    checkDate: null,
+    checkResult: null,
+    learning: null,
+    nextAction: null,
+    standardizedAt: null,
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
+    deletedAt: null,
     ...overrides,
   };
 }

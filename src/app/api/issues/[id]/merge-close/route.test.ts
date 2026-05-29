@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './route';
+import { createMockIssue } from '@/test/helpers';
 
 // Helper to extract response body
 function getBody(result: any): any {
@@ -110,20 +111,15 @@ describe('POST /api/issues/[id]/merge-close', () => {
   });
 
   it('returns 400 if status is not proposed', async () => {
-    vi.mocked(prisma.issue.findUnique).mockResolvedValue({
-      id: 'issue-1',
-      humanId: 'ISS-001',
-      title: 'Test Issue',
-      description: 'Test description',
-      status: 'in-progress',
-      branchName: 'issue/ISS-001-test',
-      targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValue(
+      createMockIssue({
+        title: 'Test Issue',
+        description: 'Test description',
+        status: 'in-progress',
+        branchName: 'issue/ISS-001-test',
+        targetFlowId: null,
+      })
+    );
 
     const request = new Request('http://localhost:3000/api/issues/issue-1/merge-close', {
       method: 'POST',
@@ -140,20 +136,15 @@ describe('POST /api/issues/[id]/merge-close', () => {
   });
 
   it('returns 400 if no branch name', async () => {
-    vi.mocked(prisma.issue.findUnique).mockResolvedValue({
-      id: 'issue-1',
-      humanId: 'ISS-001',
-      title: 'Test Issue',
-      description: 'Test description',
-      status: 'proposed',
-      branchName: null,
-      targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValue(
+      createMockIssue({
+        title: 'Test Issue',
+        description: 'Test description',
+        status: 'proposed',
+        branchName: null,
+        targetFlowId: null,
+      })
+    );
 
     const request = new Request('http://localhost:3000/api/issues/issue-1/merge-close', {
       method: 'POST',
@@ -169,20 +160,15 @@ describe('POST /api/issues/[id]/merge-close', () => {
   });
 
   it('returns 400 if no applied proposal found', async () => {
-    vi.mocked(prisma.issue.findUnique).mockResolvedValue({
-      id: 'issue-1',
-      humanId: 'ISS-001',
-      title: 'Test Issue',
-      description: 'Test description',
-      status: 'proposed',
-      branchName: 'issue/ISS-001-test',
-      targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValue(
+      createMockIssue({
+        title: 'Test Issue',
+        description: 'Test description',
+        status: 'proposed',
+        branchName: 'issue/ISS-001-test',
+        targetFlowId: null,
+      })
+    );
 
     vi.mocked(prisma.proposal.findFirst).mockResolvedValue(null);
 
@@ -208,20 +194,13 @@ describe('POST /api/issues/[id]/merge-close', () => {
   });
 
   it('successfully merges and closes issue', async () => {
-    const issue = {
-      id: 'issue-1',
-      humanId: 'ISS-001',
+    const issue = createMockIssue({
       title: 'Test Issue',
       description: 'Test description',
       status: 'proposed',
       branchName: 'issue/ISS-001-test',
       targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
     const appliedProposal = {
       id: 'proposal-1',
@@ -303,20 +282,13 @@ describe('POST /api/issues/[id]/merge-close', () => {
   });
 
   it('returns 500 on git error during merge', async () => {
-    const issue = {
-      id: 'issue-1',
-      humanId: 'ISS-001',
+    const issue = createMockIssue({
       title: 'Test Issue',
       description: 'Test description',
       status: 'proposed',
       branchName: 'issue/ISS-001-test',
       targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
     const appliedProposal = {
       id: 'proposal-1',
@@ -358,7 +330,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
   });
 
   it('verifies proposal query includes both issueId and isApplied conditions', async () => {
-    const issue = {
+    const issue = createMockIssue({
       id: 'issue-xyz',
       humanId: 'ISS-100',
       title: 'Complex Issue',
@@ -366,12 +338,7 @@ describe('POST /api/issues/[id]/merge-close', () => {
       status: 'proposed',
       branchName: 'issue/ISS-100-complex',
       targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
     vi.mocked(prisma.issue.findUnique).mockResolvedValue(issue);
     vi.mocked(prisma.proposal.findFirst).mockResolvedValue(null);

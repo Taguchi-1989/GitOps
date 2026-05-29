@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './route';
+import { createMockIssue } from '@/test/helpers';
 
 // Helper to extract response body
 function getBody(result: any): any {
@@ -111,20 +112,9 @@ describe('POST /api/issues/[id]/start', () => {
   });
 
   it('returns 400 if status is not new or triage (in-progress case)', async () => {
-    vi.mocked(prisma.issue.findUnique).mockResolvedValue({
-      id: 'issue-1',
-      humanId: 'ISS-001',
-      title: 'Test Issue',
-      description: 'Test description',
-      status: 'in-progress',
-      branchName: null,
-      targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValue(
+      createMockIssue({ title: 'Test Issue', description: 'Test description', status: 'in-progress', targetFlowId: null })
+    );
 
     const request = new Request('http://localhost:3000/api/issues/issue-1/start', {
       method: 'POST',
@@ -140,20 +130,15 @@ describe('POST /api/issues/[id]/start', () => {
   });
 
   it('returns 400 if branchName already exists', async () => {
-    vi.mocked(prisma.issue.findUnique).mockResolvedValue({
-      id: 'issue-1',
-      humanId: 'ISS-001',
-      title: 'Test Issue',
-      description: 'Test description',
-      status: 'new',
-      branchName: 'issue/ISS-001-existing',
-      targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValue(
+      createMockIssue({
+        title: 'Test Issue',
+        description: 'Test description',
+        status: 'new',
+        branchName: 'issue/ISS-001-existing',
+        targetFlowId: null,
+      })
+    );
 
     const request = new Request('http://localhost:3000/api/issues/issue-1/start', {
       method: 'POST',
@@ -169,20 +154,12 @@ describe('POST /api/issues/[id]/start', () => {
   });
 
   it('successfully starts issue from new status', async () => {
-    const issue = {
-      id: 'issue-1',
-      humanId: 'ISS-001',
+    const issue = createMockIssue({
       title: 'Test Issue',
       description: 'Test description',
       status: 'new',
-      branchName: null,
       targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
     const updatedIssue = {
       ...issue,
@@ -239,20 +216,14 @@ describe('POST /api/issues/[id]/start', () => {
   });
 
   it('successfully starts issue from triage status', async () => {
-    const issue = {
+    const issue = createMockIssue({
       id: 'issue-2',
       humanId: 'ISS-002',
       title: 'Triaged Issue',
       description: 'Test description',
       status: 'triage',
-      branchName: null,
       targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
     const updatedIssue = {
       ...issue,
@@ -308,20 +279,12 @@ describe('POST /api/issues/[id]/start', () => {
   });
 
   it('returns 500 on git error', async () => {
-    const issue = {
-      id: 'issue-1',
-      humanId: 'ISS-001',
+    const issue = createMockIssue({
       title: 'Test Issue',
       description: 'Test description',
       status: 'new',
-      branchName: null,
       targetFlowId: null,
-      targetNodeId: null,
-      canonicalId: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
     vi.mocked(prisma.issue.findUnique).mockResolvedValue(issue);
     vi.mocked(titleToSlug).mockReturnValue('test');
