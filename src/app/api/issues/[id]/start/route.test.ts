@@ -113,7 +113,12 @@ describe('POST /api/issues/[id]/start', () => {
 
   it('returns 400 if status is not new or triage (in-progress case)', async () => {
     vi.mocked(prisma.issue.findUnique).mockResolvedValue(
-      createMockIssue({ title: 'Test Issue', description: 'Test description', status: 'in-progress', targetFlowId: null })
+      createMockIssue({
+        title: 'Test Issue',
+        description: 'Test description',
+        status: 'in-progress',
+        targetFlowId: null,
+      })
     );
 
     const request = new Request('http://localhost:3000/api/issues/issue-1/start', {
