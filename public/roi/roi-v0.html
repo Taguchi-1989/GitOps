@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ROI / IRR 投資判断モデル v0 (1.0.0)</title>
+<style>
+  :root{ --bg:#f8fafc; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --pos:#16a34a; --neg:#dc2626; --accent:#4f46e5; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+    line-height:1.6; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:24px 20px 80px; }
+  header h1{ font-size:20px; margin:0 0 4px; }
+  .tags{ color:var(--muted); font-size:12px; }
+  .badge{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px;
+    background:#eef2ff; color:#4338ca; margin-left:6px; }
+  .note{ display:flex; gap:8px; align-items:flex-start; background:#eff6ff; border:1px solid #bfdbfe;
+    color:#1e40af; padding:10px 14px; border-radius:10px; font-size:13px; margin:14px 0 22px; }
+  .layout{ display:grid; grid-template-columns: 360px 1fr; gap:22px; align-items:start; }
+  @media(max-width:880px){ .layout{ grid-template-columns:1fr; } }
+  .panel{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .panel h2{ font-size:14px; margin:0 0 12px; }
+  .group-title{ font-size:12px; color:var(--muted); margin:14px 0 8px; font-weight:600; }
+  .ctrl{ margin-bottom:12px; }
+  .ctrl-top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .ctrl label{ font-size:13px; }
+  .ctrl .val{ font-variant-numeric:tabular-nums; font-weight:600; font-size:13px; }
+  .ctrl input[type=range]{ width:100%; accent-color:var(--accent); margin-top:4px; }
+  .ctrl .num{ width:100%; margin-top:4px; padding:4px 8px; border:1px solid var(--line);
+    border-radius:8px; font-size:13px; font-variant-numeric:tabular-nums; }
+  .kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  @media(max-width:560px){ .kpis{ grid-template-columns:repeat(2,1fr);} }
+  .kpi{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+  .kpi .k{ font-size:11px; color:var(--muted); }
+  .kpi .v{ font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .kpi .v.pos{ color:var(--pos); } .kpi .v.neg{ color:var(--neg); }
+  .signal{ margin-top:12px; padding:10px 12px; border-radius:10px; font-size:13px; font-weight:600; }
+  .signal.go{ background:#dcfce7; color:#166534; } .signal.mid{ background:#fef9c3; color:#854d0e; }
+  .signal.stop{ background:#fee2e2; color:#991b1b; }
+  table{ border-collapse:collapse; width:100%; font-size:12px; font-variant-numeric:tabular-nums; }
+  th,td{ border-bottom:1px solid var(--line); padding:6px 8px; text-align:right; white-space:nowrap; }
+  th:first-child,td:first-child{ text-align:left; }
+  thead th{ color:var(--muted); font-weight:600; background:#f8fafc; }
+  td.pos{ color:var(--pos); } td.neg{ color:var(--neg); }
+  .chart{ overflow-x:auto; }
+  .section{ margin-top:22px; }
+  .formula{ padding:10px 0; border-bottom:1px dashed var(--line); }
+  .formula-label{ font-size:13px; font-weight:600; margin-bottom:2px; }
+  .formula-math{ font-size:18px; overflow-x:auto; }
+  .formula-desc{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .wf{ overflow-x:auto; padding:6px 0; }
+  ul.assumptions{ margin:0; padding-left:18px; font-size:13px; }
+  ul.assumptions li{ margin-bottom:6px; }
+  .a-src{ color:var(--muted); font-size:12px; margin-left:4px; }
+  footer{ color:var(--muted); font-size:12px; margin-top:30px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ROI / IRR 投資判断モデル v0 <span class="badge">v1.0.0</span><span class="badge">draft</span></h1>
+    <div class="tags">決定論的試算（LLM不使用）。バーを動かすと即時に再計算します。</div>
+  </header>
+
+  <div class="note">
+    <strong>注意:</strong> これは前提に基づく機械的な試算です。最終的な投資判断（Go / Hold / Stop）は必ず担当者が行ってください。
+  </div>
+
+  <div class="layout">
+    <div class="panel" id="controls">
+      <h2>入力（バーを動かす）</h2>
+    </div>
+
+    <div>
+      <div class="kpis" id="kpis"></div>
+      <div class="signal" id="signal"></div>
+
+      <div class="panel section">
+        <h2>累積キャッシュフロー</h2>
+        <div class="chart" id="chart"></div>
+      </div>
+
+      <div class="panel section">
+        <h2>価値の内訳（改善 − 現状, 年額）</h2>
+        <div id="breakdown"></div>
+      </div>
+
+      <div class="panel section">
+        <h2>年次明細</h2>
+        <div style="overflow-x:auto"><table id="yearTable"></table></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel section">
+    <h2>計算式</h2>
+    <div class="formula"><div class="formula-label">年間便益</div><div class="formula-math"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>B</mi><mo>=</mo><mi>L</mi><mtext> </mtext><mi>w</mi><mo>+</mo><mo stretchy="false">(</mo><msub><mi>p</mi><mn>1</mn></msub><mo>−</mo><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mtext> </mtext><mi>Q</mi><mo>+</mo><mi>A</mi><mo>−</mo><mi>X</mi></mrow><annotation encoding="application/x-tex">B = L\,w + (p_1 - p_0)\,Q + A - X</annotation></semantics></math></span></div><div class="formula-desc">人件費削減 + 売上増 + 付加価値 − 負の差分（現状ベースと改善ベースの差分）</div></div>
+<div class="formula"><div class="formula-label">定額法償却</div><div class="formula-math"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>D</mi><mi>t</mi></msub><mo>=</mo><mstyle scriptlevel="0" displaystyle="true"><mfrac><mrow><mi>C</mi><mo>−</mo><mi>S</mi></mrow><mi>N</mi></mfrac></mstyle><mspace width="1em"/><mo stretchy="false">(</mo><mn>1</mn><mo>≤</mo><mi>t</mi><mo>≤</mo><mi>N</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">D_t = \dfrac{C - S}{N}\quad(1 \le t \le N)</annotation></semantics></math></span></div><div class="formula-desc">残存価額 S = C × 残存価額率</div></div>
+<div class="formula"><div class="formula-label">税（償却の税効果）</div><div class="formula-math"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>T</mi><mi>t</mi></msub><mo>=</mo><mi>max</mi><mo>⁡</mo><mtext> ⁣</mtext><mrow><mo fence="true">(</mo><mn>0</mn><mo separator="true">,</mo><mtext>  </mtext><mi>B</mi><mo>−</mo><mi>M</mi><mo>−</mo><msub><mi>D</mi><mi>t</mi></msub><mo fence="true">)</mo></mrow><mo>⋅</mo><mi>τ</mi></mrow><annotation encoding="application/x-tex">T_t = \max\!\left(0,\; B - M - D_t\right)\cdot \tau</annotation></semantics></math></span></div></div>
+<div class="formula"><div class="formula-label">年次キャッシュフロー</div><div class="formula-math"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>C</mi><msub><mi>F</mi><mn>0</mn></msub><mo>=</mo><mo>−</mo><mi>C</mi><mo separator="true">,</mo><mspace width="2em"/><mi>C</mi><msub><mi>F</mi><mi>t</mi></msub><mo>=</mo><mi>B</mi><mo>−</mo><mi>M</mi><mo>−</mo><msub><mi>T</mi><mi>t</mi></msub><mtext>  </mtext><mtext>  </mtext><mo stretchy="false">(</mo><mo>+</mo><mtext> </mtext><mi>S</mi><mtext> at </mtext><mi>t</mi><mo>=</mo><mi>H</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">CF_0 = -C,\qquad CF_t = B - M - T_t \;\;(+\,S \text{ at } t=H)</annotation></semantics></math></span></div></div>
+<div class="formula"><div class="formula-label">正味現在価値</div><div class="formula-math"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>N</mi><mi>P</mi><mi>V</mi><mo>=</mo><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow><mi>H</mi></munderover><mstyle scriptlevel="0" displaystyle="true"><mfrac><mrow><mi>C</mi><msub><mi>F</mi><mi>t</mi></msub></mrow><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mi>r</mi><msup><mo stretchy="false">)</mo><mi>t</mi></msup></mrow></mfrac></mstyle></mrow><annotation encoding="application/x-tex">NPV = \sum_{t=0}^{H} \dfrac{CF_t}{(1+r)^t}</annotation></semantics></math></span></div></div>
+<div class="formula"><div class="formula-label">内部収益率</div><div class="formula-math"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow><mi>H</mi></munderover><mstyle scriptlevel="0" displaystyle="true"><mfrac><mrow><mi>C</mi><msub><mi>F</mi><mi>t</mi></msub></mrow><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mrow><mi mathvariant="normal">I</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">R</mi></mrow><msup><mo stretchy="false">)</mo><mi>t</mi></msup></mrow></mfrac></mstyle><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sum_{t=0}^{H} \dfrac{CF_t}{(1+\mathrm{IRR})^t} = 0</annotation></semantics></math></span></div></div>
+<div class="formula"><div class="formula-label">期間ROI</div><div class="formula-math"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mrow><mi mathvariant="normal">R</mi><mi mathvariant="normal">O</mi><mi mathvariant="normal">I</mi></mrow><mo>=</mo><mstyle scriptlevel="0" displaystyle="true"><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mi>H</mi></munderover><mi>C</mi><msub><mi>F</mi><mi>t</mi></msub><mo>−</mo><mi>C</mi></mrow><mi>C</mi></mfrac></mstyle></mrow><annotation encoding="application/x-tex">\mathrm{ROI} = \dfrac{\sum_{t=1}^{H} CF_t - C}{C}</annotation></semantics></math></span></div></div>
+<div class="formula"><div class="formula-label">回収年数</div><div class="formula-math"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mrow><mi mathvariant="normal">P</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">k</mi></mrow><mo>=</mo><mi>min</mi><mo>⁡</mo><mo fence="true" stretchy="true" minsize="1.8em" maxsize="1.8em">{</mo><mtext> </mtext><mi>t</mi><mo>:</mo><mstyle scriptlevel="0" displaystyle="false"><msubsup><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>0</mn></mrow><mi>t</mi></msubsup><mi>C</mi><msub><mi>F</mi><mi>k</mi></msub><mo>≥</mo><mn>0</mn><mo fence="true" stretchy="true" minsize="1.8em" maxsize="1.8em">}</mo></mstyle></mrow><annotation encoding="application/x-tex">\mathrm{Payback} = \min\Bigl\{\,t : \textstyle\sum_{k=0}^{t} CF_k \ge 0 \Bigr\}</annotation></semantics></math></span></div></div>
+  </div>
+
+  <div class="panel section"><h2>ROI 試算ワークフロー（概念）</h2><div class="wf"><svg viewBox="0 0 1040 88" width="1040" height="88" role="img" aria-label="ROI workflow"><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/></marker></defs><rect x="12" y="12" width="168" height="64" rx="10" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/><text x="96" y="40.5" text-anchor="middle" font-size="12" fill="#1e293b">入力（現状/改善・投資</text><text x="96" y="55.5" text-anchor="middle" font-size="12" fill="#1e293b">額・前提）</text><line x1="180" y1="44" x2="218" y2="44" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/><rect x="224" y="12" width="168" height="64" rx="10" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/><text x="308" y="48" text-anchor="middle" font-size="12" fill="#1e293b">年間便益 B を算出</text><line x1="392" y1="44" x2="430" y2="44" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/><rect x="436" y="12" width="168" height="64" rx="10" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/><text x="520" y="40.5" text-anchor="middle" font-size="12" fill="#1e293b">償却・メンテ・税を反映</text><text x="520" y="55.5" text-anchor="middle" font-size="12" fill="#1e293b">し年次キャッシュフロー</text><line x1="604" y1="44" x2="642" y2="44" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/><rect x="648" y="12" width="168" height="64" rx="10" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/><text x="732" y="33" text-anchor="middle" font-size="12" fill="#1e293b">NPV / IRR /</text><text x="732" y="48" text-anchor="middle" font-size="12" fill="#1e293b"> 回収年数 / ROI</text><text x="732" y="63" text-anchor="middle" font-size="12" fill="#1e293b"> を計算</text><line x1="816" y1="44" x2="854" y2="44" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/><rect x="860" y="12" width="168" height="64" rx="10" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/><text x="944" y="33" text-anchor="middle" font-size="12" fill="#1e293b">人が投資判断（Go /</text><text x="944" y="48" text-anchor="middle" font-size="12" fill="#1e293b"> Hold / Sto</text><text x="944" y="63" text-anchor="middle" font-size="12" fill="#1e293b">p）</text></svg></div></div>
+
+  <div class="panel section">
+    <h2>前提（Assumptions）</h2>
+    <ul class="assumptions">
+<li><span class="a-stmt">設備の償却は定額法とし、残存価額は投資額×残存価額率（既定0）とする</span><span class="a-src">（出典: 社内会計基準 v0（暫定）/ 税法上の簡便法）</span></li>
+<li><span class="a-stmt">年間メンテナンス費は投資額の既定5%とする</span><span class="a-src">（出典: 設備保全実績（暫定値））</span></li>
+<li><span class="a-stmt">割引率（NPV/IRR比較の基準）は既定5%とする</span><span class="a-src">（出典: 社内ハードルレート（暫定））</span></li>
+<li><span class="a-stmt">法人実効税率は既定30%とする</span><span class="a-src">（出典: 日本の法人実効税率の概算）</span></li>
+<li><span class="a-stmt">人件費は既定500万円/人年（社会保険料等込みの概算）とする</span><span class="a-src">（出典: 人事データ（暫定））</span></li>
+<li><span class="a-stmt">年間便益 = 人件費削減 + 売上増(改善単価−現状単価)×数量 + 付加価値 − 負の差分。 現状ベースと改善ベースの差分で評価し、悪化項目（人員減・品質低下等）は負の差分に計上する
+</span><span class="a-src">（出典: docs/decisionops-evolution.md）</span></li>
+<li><span class="a-stmt">試算は決定論的に行い、LLMは最終判断をしない（Go/Hold/Stopは人が決める）</span><span class="a-src">（出典: docs/agent-first-deterministic-pipeline.md）</span></li>
+    </ul>
+  </div>
+
+  <footer>
+    Generated from spec/decision-models/roi-v0.yaml — 計算ロジック正本: src/core/decision/roi.ts。
+    再生成: <code>npm run roi:build</code>
+  </footer>
+</div>
+
+<script type="application/json" id="roi-model">{"title":"ROI / IRR 投資判断モデル v0","version":"1.0.0","defaults":{"investment":10000000,"salvageRate":0,"depreciationYears":5,"maintenanceRate":0.05,"discountRate":0.05,"taxRate":0.3,"horizonYears":7,"laborReduction":1,"wagePerPersonYear":5000000,"baselineUnitPrice":1000,"improvedUnitPrice":1000,"annualVolume":100000,"addedValuePerYear":0,"negativeImpactPerYear":0},"sliders":[{"key":"investment","label":"投資額","min":0,"max":50000000,"step":500000,"unit":"円","group":"投資・前提"},{"key":"depreciationYears","label":"償却年数(定額法)","min":1,"max":15,"step":1,"unit":"年","group":"投資・前提"},{"key":"salvageRate","label":"残存価額率","min":0,"max":0.5,"step":0.01,"group":"投資・前提","percent":true},{"key":"maintenanceRate","label":"年間メンテ費率","min":0,"max":0.2,"step":0.01,"group":"投資・前提","percent":true},{"key":"discountRate","label":"割引率","min":0,"max":0.2,"step":0.005,"group":"投資・前提","percent":true},{"key":"taxRate","label":"法人税率","min":0,"max":0.55,"step":0.01,"group":"投資・前提","percent":true},{"key":"horizonYears","label":"評価期間","min":1,"max":15,"step":1,"unit":"年","group":"投資・前提"},{"key":"laborReduction","label":"削減人数","min":-5,"max":10,"step":0.5,"unit":"人","group":"価値ドライバ"},{"key":"wagePerPersonYear","label":"人件費","min":0,"max":12000000,"step":100000,"unit":"円/人年","group":"価値ドライバ"},{"key":"baselineUnitPrice","label":"現状単価","min":0,"max":5000,"step":10,"unit":"円","group":"価値ドライバ"},{"key":"improvedUnitPrice","label":"改善単価","min":0,"max":5000,"step":10,"unit":"円","group":"価値ドライバ"},{"key":"annualVolume","label":"年間数量","min":0,"max":1000000,"step":1000,"unit":"個/年","group":"価値ドライバ"},{"key":"addedValuePerYear","label":"付加価値","min":0,"max":20000000,"step":100000,"unit":"円/年","group":"価値ドライバ"},{"key":"negativeImpactPerYear","label":"負の差分(悪化/人員減)","min":0,"max":20000000,"step":100000,"unit":"円/年","group":"価値ドライバ"}]}</script>
+<script>
+
+(function(){
+  var MODEL = JSON.parse(document.getElementById('roi-model').textContent);
+  var defaults = MODEL.defaults, sliders = MODEL.sliders;
+
+  function straightLineDepreciation(investment, salvageRate, years, t){
+    if(years<=0) return 0;
+    if(t<1||t>years) return 0;
+    return (investment - investment*salvageRate)/years;
+  }
+  function npv(rate, cfs){ var a=0; for(var t=0;t<cfs.length;t++){ a+=cfs[t]/Math.pow(1+rate,t);} return a; }
+  function irr(cfs){
+    function f(r){ return npv(r,cfs); }
+    var lo=-0.9999, hi=10, flo=f(lo), fhi=f(hi);
+    if(!isFinite(flo)||!isFinite(fhi)) return null;
+    if(flo===0) return lo; if(fhi===0) return hi;
+    if(flo*fhi>0) return null;
+    for(var i=0;i<200;i++){ var mid=(lo+hi)/2, fm=f(mid);
+      if(Math.abs(fm)<1e-7||(hi-lo)/2<1e-9) return mid;
+      if(flo*fm<0){ hi=mid; fhi=fm; } else { lo=mid; flo=fm; } }
+    return (lo+hi)/2;
+  }
+  function paybackYears(cum){
+    for(var t=1;t<cum.length;t++){ if(cum[t]>=0){ var p=cum[t-1], c=cum[t];
+      if(c===p) return t; var fr=-p/(c-p); return (t-1)+Math.min(Math.max(fr,0),1); } }
+    return null;
+  }
+  function computeRoi(I){
+    var salvage=I.investment*I.salvageRate, maintenance=I.investment*I.maintenanceRate;
+    var laborSaving=I.laborReduction*I.wagePerPersonYear;
+    var revenueGain=(I.improvedUnitPrice-I.baselineUnitPrice)*I.annualVolume;
+    var annualBenefit=laborSaving+revenueGain+I.addedValuePerYear-I.negativeImpactPerYear;
+    var rows=[], cfs=[], cumulative=-I.investment;
+    cfs.push(-I.investment);
+    rows.push({year:0,benefit:0,maintenance:0,depreciation:0,taxableIncome:0,tax:0,netCashflow:-I.investment,cumulativeCashflow:cumulative,discountedCashflow:-I.investment});
+    var profit1=0;
+    for(var t=1;t<=I.horizonYears;t++){
+      var dep=straightLineDepreciation(I.investment,I.salvageRate,I.depreciationYears,t);
+      var taxable=annualBenefit-maintenance-dep;
+      var tax=Math.max(0,taxable)*I.taxRate;
+      var netCf=annualBenefit-maintenance-tax;
+      if(t===I.horizonYears) netCf+=salvage;
+      cumulative+=netCf; cfs.push(netCf);
+      rows.push({year:t,benefit:annualBenefit,maintenance:maintenance,depreciation:dep,taxableIncome:taxable,tax:tax,netCashflow:netCf,cumulativeCashflow:cumulative,discountedCashflow:netCf/Math.pow(1+I.discountRate,t)});
+      if(t===1) profit1=annualBenefit-maintenance-dep-tax;
+    }
+    var cum=rows.map(function(r){return r.cumulativeCashflow;});
+    var totalNet=0; for(var k=1;k<rows.length;k++) totalNet+=rows[k].netCashflow;
+    return { annualBenefit:annualBenefit, maintenance:maintenance,
+      annualDepreciation:straightLineDepreciation(I.investment,I.salvageRate,I.depreciationYears,1),
+      annualAccountingProfit:profit1, rows:rows,
+      roiAnnual: I.investment>0?profit1/I.investment:0,
+      roiTotal: I.investment>0?(totalNet-I.investment)/I.investment:0,
+      npv:npv(I.discountRate,cfs), irr:irr(cfs), paybackYears:paybackYears(cum) };
+  }
+
+  function yen(n){ if(n===null||!isFinite(n)) return '—'; var s=n<0?'-':''; return s+'¥'+Math.round(Math.abs(n)).toLocaleString('ja-JP'); }
+  function pct(n){ if(n===null||!isFinite(n)) return '—'; return (n*100).toFixed(1)+'%'; }
+  function yrs(n){ if(n===null||!isFinite(n)) return '期間内未達'; return n.toFixed(2)+' 年'; }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  var inputs = {};
+
+  function readInputs(){
+    var I = {};
+    for(var key in defaults){ I[key] = defaults[key]; }
+    for(var i=0;i<sliders.length;i++){ var k=sliders[i].key; if(inputs[k]!==undefined){ var v=parseFloat(inputs[k].value); if(!isNaN(v)) I[k]=v; } }
+    return I;
+  }
+
+  function buildControls(){
+    var host = document.getElementById('controls');
+    var groups = {}; var order = [];
+    for(var i=0;i<sliders.length;i++){ var g=sliders[i].group||'入力'; if(!groups[g]){ groups[g]=[]; order.push(g);} groups[g].push(sliders[i]); }
+    for(var gi=0; gi<order.length; gi++){
+      var g=order[gi];
+      var gt=document.createElement('div'); gt.className='group-title'; gt.textContent=g; host.appendChild(gt);
+      var arr=groups[g];
+      for(var j=0;j<arr.length;j++){ (function(s){
+        var wrap=document.createElement('div'); wrap.className='ctrl';
+        var top=document.createElement('div'); top.className='ctrl-top';
+        var lab=document.createElement('label'); lab.textContent=s.label; top.appendChild(lab);
+        var val=document.createElement('span'); val.className='val'; top.appendChild(val);
+        wrap.appendChild(top);
+        var range=document.createElement('input'); range.type='range';
+        range.min=s.min; range.max=s.max; range.step=s.step; range.value=defaults[s.key];
+        var num=document.createElement('input'); num.type='number'; num.className='num';
+        num.min=s.min; num.max=s.max; num.step=s.step; num.value=defaults[s.key];
+        function showVal(){ var v=parseFloat(range.value);
+          val.textContent = s.percent ? (v*100).toFixed(1)+'%' : (Math.round(v).toLocaleString('ja-JP') + (s.unit?(' '+s.unit):'')); }
+        range.addEventListener('input', function(){ num.value=range.value; showVal(); render(); });
+        num.addEventListener('input', function(){ range.value=num.value; showVal(); render(); });
+        inputs[s.key]=range; showVal();
+        wrap.appendChild(range); wrap.appendChild(num); host.appendChild(wrap);
+      })(arr[j]); }
+    }
+  }
+
+  function kpiCard(k, v, cls){ return '<div class="kpi"><div class="k">'+esc(k)+'</div><div class="v '+(cls||'')+'">'+v+'</div></div>'; }
+
+  function renderChart(rows){
+    var W=Math.max(420, rows.length*70), H=240, pad=34;
+    var vals=rows.map(function(r){return r.cumulativeCashflow;});
+    var maxV=Math.max.apply(null, vals.concat([0])), minV=Math.min.apply(null, vals.concat([0]));
+    if(maxV===minV){ maxV+=1; minV-=1; }
+    var x0=pad, x1=W-12, y0=H-pad, y1=12;
+    function sx(i){ return x0 + (x1-x0)*(rows.length<=1?0:(i/(rows.length-1))); }
+    function sy(v){ return y1 + (y0-y1)*(1-(v-minV)/(maxV-minV)); }
+    var zeroY=sy(0);
+    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">';
+    svg+='<line x1="'+x0+'" y1="'+zeroY+'" x2="'+x1+'" y2="'+zeroY+'" stroke="#94a3b8" stroke-dasharray="4 3"/>';
+    // bars
+    for(var i=0;i<rows.length;i++){ var v=rows[i].cumulativeCashflow; var bx=sx(i)-10; var by=Math.min(sy(v),zeroY); var bh=Math.abs(sy(v)-zeroY);
+      svg+='<rect x="'+bx+'" y="'+by+'" width="20" height="'+bh+'" rx="3" fill="'+(v>=0?'#86efac':'#fca5a5')+'"/>'; }
+    // cumulative line
+    var pts=''; for(var i2=0;i2<rows.length;i2++){ pts+=(i2?' ':'')+sx(i2)+','+sy(rows[i2].cumulativeCashflow); }
+    svg+='<polyline points="'+pts+'" fill="none" stroke="#4f46e5" stroke-width="2"/>';
+    for(var i3=0;i3<rows.length;i3++){ svg+='<circle cx="'+sx(i3)+'" cy="'+sy(rows[i3].cumulativeCashflow)+'" r="3" fill="#4f46e5"/>';
+      svg+='<text x="'+sx(i3)+'" y="'+(y0+14)+'" text-anchor="middle" font-size="10" fill="#64748b">'+rows[i3].year+'年</text>'; }
+    svg+='</svg>';
+    return svg;
+  }
+
+  function render(){
+    var I=readInputs();
+    var R=computeRoi(I);
+    var kp=document.getElementById('kpis');
+    kp.innerHTML =
+      kpiCard('年間利益(会計)', yen(R.annualAccountingProfit), R.annualAccountingProfit>=0?'pos':'neg')+
+      kpiCard('ROI(期間)', pct(R.roiTotal), R.roiTotal>=0?'pos':'neg')+
+      kpiCard('IRR', pct(R.irr), (R.irr!==null&&R.irr>=I.discountRate)?'pos':'neg')+
+      kpiCard('NPV', yen(R.npv), R.npv>=0?'pos':'neg')+
+      kpiCard('回収年数', yrs(R.paybackYears), '')+
+      kpiCard('年間便益', yen(R.annualBenefit), R.annualBenefit>=0?'pos':'neg');
+
+    var sig=document.getElementById('signal');
+    var withinHorizon = R.paybackYears!==null && R.paybackYears<=I.horizonYears;
+    if(R.npv>0 && withinHorizon){ sig.className='signal go'; sig.textContent='参考シグナル: 投資妙味あり（Go寄り） — ただし最終判断は人が行う'; }
+    else if(R.npv>0){ sig.className='signal mid'; sig.textContent='参考シグナル: NPVは正だが回収が評価期間内に未達（要検討）'; }
+    else { sig.className='signal stop'; sig.textContent='参考シグナル: 現条件では妙味薄い（Hold/Stop寄り）'; }
+
+    document.getElementById('chart').innerHTML = renderChart(R.rows);
+
+    // breakdown
+    var laborSaving=I.laborReduction*I.wagePerPersonYear;
+    var revenueGain=(I.improvedUnitPrice-I.baselineUnitPrice)*I.annualVolume;
+    var items=[
+      ['人件費削減 (削減人数 × 人件費)', laborSaving],
+      ['売上増 ((改善単価 − 現状単価) × 数量)', revenueGain],
+      ['付加価値', I.addedValuePerYear],
+      ['負の差分 (悪化・人員減)', -I.negativeImpactPerYear],
+      ['メンテ費', -R.maintenance]
+    ];
+    var bd='<table><thead><tr><th>項目</th><th>年額</th></tr></thead><tbody>';
+    for(var bi=0;bi<items.length;bi++){ var nm=items[bi][0], amt=items[bi][1];
+      bd+='<tr><td>'+esc(nm)+'</td><td class="'+(amt>=0?'pos':'neg')+'">'+yen(amt)+'</td></tr>'; }
+    bd+='<tr><td><strong>= 年間便益(税引前, メンテ後)</strong></td><td class="'+((R.annualBenefit-R.maintenance)>=0?'pos':'neg')+'"><strong>'+yen(R.annualBenefit-R.maintenance)+'</strong></td></tr>';
+    bd+='</tbody></table>';
+    document.getElementById('breakdown').innerHTML=bd;
+
+    // year table
+    var yt='<thead><tr><th>年</th><th>便益</th><th>メンテ</th><th>償却</th><th>税</th><th>純CF</th><th>累積CF</th></tr></thead><tbody>';
+    for(var yi=0;yi<R.rows.length;yi++){ var r=R.rows[yi];
+      yt+='<tr><td>'+r.year+'</td><td>'+yen(r.benefit)+'</td><td>'+yen(r.maintenance)+'</td><td>'+yen(r.depreciation)+'</td><td>'+yen(r.tax)+'</td><td class="'+(r.netCashflow>=0?'pos':'neg')+'">'+yen(r.netCashflow)+'</td><td class="'+(r.cumulativeCashflow>=0?'pos':'neg')+'">'+yen(r.cumulativeCashflow)+'</td></tr>'; }
+    yt+='</tbody>';
+    document.getElementById('yearTable').innerHTML=yt;
+  }
+
+  buildControls();
+  render();
+})();
+
+</script>
+</body>
+</html>

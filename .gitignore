@@ -15,6 +15,12 @@ build/
 # Database
 prisma/*.db
 prisma/*.db-journal
+*.db
+*.db-journal
+
+# Playwright / generated verification artifacts
+.playwright-mcp/
+roi-calculator*.png
 
 # IDE
 .idea/

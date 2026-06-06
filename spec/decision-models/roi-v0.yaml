@@ -1,0 +1,103 @@
+# ROI / IRR 投資判断モデル v0（決定論）
+#
+# 自動化等の投資判断を、スライダーで即再計算できる試算モデルとして定義する正本。
+# このYAMLから単体HTML（public/roi/roi-v0.html）を生成する（npm run roi:build）。
+# 計算ロジックの正本は src/core/decision/roi.ts。前提は spec/assumptions/roi-baseline-assumptions.yaml。
+#
+# 重要: 決定論（LLM不使用）。最終的な投資判断は人が行う。
+
+id: roi-v0
+version: "1.0.0"
+title: ROI / IRR 投資判断モデル v0
+description: >
+  人件費削減・単価改善・付加価値・負の差分から年間便益を求め、定額法償却・メンテ・
+  税・割引を反映して ROI / IRR / NPV / 回収年数 を算出する決定論モデル。
+
+# スライダー初期値（src/core/decision/roi-schema.ts: RoiInputs に対応）
+defaults:
+  investment: 10000000 # 投資額 1,000万円
+  salvageRate: 0 # 残存価額率
+  depreciationYears: 5 # 償却年数（定額法）
+  maintenanceRate: 0.05 # 年間メンテ費率（投資額比）
+  discountRate: 0.05 # 割引率
+  taxRate: 0.3 # 法人実効税率
+  horizonYears: 7 # 評価期間
+  laborReduction: 1 # 削減人数（人）
+  wagePerPersonYear: 5000000 # 人件費（円/人年）
+  baselineUnitPrice: 1000 # 現状単価
+  improvedUnitPrice: 1000 # 改善単価（動かすと売上増）
+  annualVolume: 100000 # 年間数量
+  addedValuePerYear: 0 # 付加価値（円/年）
+  negativeImpactPerYear: 0 # 負の差分（円/年, 悪化・人員減損失）
+
+sliders:
+  # 財務・前提
+  - { key: investment, label: 投資額, min: 0, max: 50000000, step: 500000, unit: 円, group: 投資・前提 }
+  - { key: depreciationYears, label: 償却年数(定額法), min: 1, max: 15, step: 1, unit: 年, group: 投資・前提 }
+  - { key: salvageRate, label: 残存価額率, min: 0, max: 0.5, step: 0.01, group: 投資・前提, percent: true }
+  - { key: maintenanceRate, label: 年間メンテ費率, min: 0, max: 0.2, step: 0.01, group: 投資・前提, percent: true }
+  - { key: discountRate, label: 割引率, min: 0, max: 0.2, step: 0.005, group: 投資・前提, percent: true }
+  - { key: taxRate, label: 法人税率, min: 0, max: 0.55, step: 0.01, group: 投資・前提, percent: true }
+  - { key: horizonYears, label: 評価期間, min: 1, max: 15, step: 1, unit: 年, group: 投資・前提 }
+  # 価値ドライバ（現状 → 改善）
+  - { key: laborReduction, label: 削減人数, min: -5, max: 10, step: 0.5, unit: 人, group: 価値ドライバ }
+  - { key: wagePerPersonYear, label: 人件費, min: 0, max: 12000000, step: 100000, unit: 円/人年, group: 価値ドライバ }
+  - { key: baselineUnitPrice, label: 現状単価, min: 0, max: 5000, step: 10, unit: 円, group: 価値ドライバ }
+  - { key: improvedUnitPrice, label: 改善単価, min: 0, max: 5000, step: 10, unit: 円, group: 価値ドライバ }
+  - { key: annualVolume, label: 年間数量, min: 0, max: 1000000, step: 1000, unit: 個/年, group: 価値ドライバ }
+  - { key: addedValuePerYear, label: 付加価値, min: 0, max: 20000000, step: 100000, unit: 円/年, group: 価値ドライバ }
+  - { key: negativeImpactPerYear, label: 負の差分(悪化/人員減), min: 0, max: 20000000, step: 100000, unit: 円/年, group: 価値ドライバ }
+
+# 計算式（LaTeX）。記号: C=投資額, S=残存価額, N=償却年数, H=評価期間, M=メンテ費,
+#   τ=税率, r=割引率, L=削減人数, w=人件費, p0=現状単価, p1=改善単価, Q=数量, A=付加価値, X=負の差分
+formulas:
+  - key: benefit
+    label: 年間便益
+    latex: 'B = L\,w + (p_1 - p_0)\,Q + A - X'
+    description: 人件費削減 + 売上増 + 付加価値 − 負の差分（現状ベースと改善ベースの差分）
+  - key: depreciation
+    label: 定額法償却
+    latex: 'D_t = \dfrac{C - S}{N}\quad(1 \le t \le N)'
+    description: 残存価額 S = C × 残存価額率
+  - key: tax
+    label: 税（償却の税効果）
+    latex: 'T_t = \max\!\left(0,\; B - M - D_t\right)\cdot \tau'
+  - key: cashflow
+    label: 年次キャッシュフロー
+    latex: 'CF_0 = -C,\qquad CF_t = B - M - T_t \;\;(+\,S \text{ at } t=H)'
+  - key: npv
+    label: 正味現在価値
+    latex: 'NPV = \sum_{t=0}^{H} \dfrac{CF_t}{(1+r)^t}'
+  - key: irr
+    label: 内部収益率
+    latex: '\sum_{t=0}^{H} \dfrac{CF_t}{(1+\mathrm{IRR})^t} = 0'
+  - key: roi
+    label: 期間ROI
+    latex: '\mathrm{ROI} = \dfrac{\sum_{t=1}^{H} CF_t - C}{C}'
+  - key: payback
+    label: 回収年数
+    latex: '\mathrm{Payback} = \min\Bigl\{\,t : \textstyle\sum_{k=0}^{t} CF_k \ge 0 \Bigr\}'
+
+workflow:
+  title: ROI 試算ワークフロー（概念）
+  steps:
+    - 入力（現状/改善・投資額・前提）
+    - 年間便益 B を算出
+    - 償却・メンテ・税を反映し年次キャッシュフロー
+    - NPV / IRR / 回収年数 / ROI を計算
+    - 人が投資判断（Go / Hold / Stop）
+
+assumptionRefs:
+  - roi-baseline-assumptions
+
+lifecycle:
+  stage: draft
+
+metadata:
+  author: roi-team
+  description: ROI/IRR 投資判断の決定論モデル v0（たたき台）
+  tags:
+    - roi
+    - irr
+    - npv
+    - decisionops

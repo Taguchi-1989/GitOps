@@ -1,0 +1,61 @@
+# ROI 試算の前提（ベースライン）
+#
+# 投資判断の決定論的試算が依拠する数値前提の正本。
+# しきい値・既定率の「根拠（出典・理由）」をここに集約し、モデルは id 参照する。
+# 数値そのものは spec/decision-models/roi-v0.yaml の defaults を正とし、
+# ここでは「なぜその既定か」を記録する（見直し時はバージョンを上げる）。
+
+id: roi-baseline-assumptions
+version: "1.0.0"
+title: ROI 試算の前提（ベースライン）
+description: ROI/IRR 試算モデルが依拠する償却・メンテ・割引率・税・人件費等の前提
+
+assumptions:
+  - id: straight-line-depreciation
+    statement: 設備の償却は定額法とし、残存価額は投資額×残存価額率（既定0）とする
+    source: 社内会計基準 v0（暫定）/ 税法上の簡便法
+    rationale: 試算の透明性・再現性を優先（加速償却は将来オプション）
+
+  - id: maintenance-rate
+    statement: 年間メンテナンス費は投資額の既定5%とする
+    source: 設備保全実績（暫定値）
+    rationale: 案件初期は実額が不明なため capex 比で概算し、確定後に実額へ差し替える
+
+  - id: discount-rate
+    statement: 割引率（NPV/IRR比較の基準）は既定5%とする
+    source: 社内ハードルレート（暫定）
+    rationale: 資本コストの概算。事業部・案件で可変層として上書き可
+
+  - id: corporate-tax-rate
+    statement: 法人実効税率は既定30%とする
+    source: 日本の法人実効税率の概算
+    rationale: 償却の税効果（タックスシールド）を試算へ反映するため
+
+  - id: labor-cost
+    statement: 人件費は既定500万円/人年（社会保険料等込みの概算）とする
+    source: 人事データ（暫定）
+    rationale: 削減人数×人件費で人件費削減効果を見積もる
+
+  - id: benefit-model
+    statement: >
+      年間便益 = 人件費削減 + 売上増(改善単価−現状単価)×数量 + 付加価値 − 負の差分。
+      現状ベースと改善ベースの差分で評価し、悪化項目（人員減・品質低下等）は負の差分に計上する
+    source: docs/decisionops-evolution.md
+    rationale: 改善の正味効果を正負両面で捉えるため
+
+  - id: deterministic-decision
+    statement: 試算は決定論的に行い、LLMは最終判断をしない（Go/Hold/Stopは人が決める）
+    source: docs/agent-first-deterministic-pipeline.md
+    rationale: 監査可能性・再現性の確保
+
+lifecycle:
+  stage: draft
+
+metadata:
+  author: roi-team
+  description: ROI/IRR 試算の前提集合（ベースライン・暫定値）
+  tags:
+    - roi
+    - irr
+    - assumptions
+    - decisionops
