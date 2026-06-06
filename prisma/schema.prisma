@@ -176,6 +176,7 @@ model WorkflowExecution {
 
   taskExecutions   TaskExecution[]
   approvalRequests ApprovalRequest[]
+  gateEvaluations  GateEvaluation[]
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -212,6 +213,36 @@ model TaskExecution {
 
   createdAt   DateTime  @default(now())
   completedAt DateTime?
+
+  @@index([workflowId])
+  @@index([traceId])
+  @@index([taskId])
+}
+
+// --------------------------------------------------------
+// Gate Evaluation（Acceptance Gate の決定論的判定結果）
+//
+// DecisionOps: あるタスク出力に対するゲート評価の証跡。
+// 表示・操作用は DB（このモデル）、不変監査は AuditLog(GATE_EVALUATE) に二重記録する。
+// JSON 列は SQLite/PostgreSQL 差異を避けるため文字列で保持（既存慣例）。
+// --------------------------------------------------------
+model GateEvaluation {
+  id         String            @id @default(cuid())
+  workflowId String
+  workflow   WorkflowExecution @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  nodeId     String
+  taskId     String
+
+  gateId      String
+  gateVersion String @default("0.0.0")
+  outcome     String // go, revise, hold, stop, watch
+
+  resultsJson     String @default("[]") // ValidationResult[] as JSON文字列
+  assumptionsJson String @default("[]") // 評価時に参照した前提スナップショット as JSON文字列
+
+  traceId String
+
+  createdAt DateTime @default(now())
 
   @@index([workflowId])
   @@index([traceId])

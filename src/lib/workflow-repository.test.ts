@@ -22,6 +22,9 @@ vi.mock('./prisma', () => ({
       findUnique: vi.fn(),
       findMany: vi.fn(),
     },
+    gateEvaluation: {
+      create: vi.fn(),
+    },
   },
 }));
 
@@ -188,6 +191,30 @@ describe('workflowRepository', () => {
           context: '{"gate":"go"}',
         },
       });
+    });
+  });
+
+  describe('createGateEvaluation', () => {
+    it('should stringify results/assumptions and return id', async () => {
+      vi.mocked(prisma.gateEvaluation.create).mockResolvedValue({ id: 'ge-1' } as never);
+
+      const id = await workflowRepository.createGateEvaluation({
+        workflowId: 'wfe-1',
+        nodeId: 'ai_hazard_identification',
+        taskId: 'hazard-identification',
+        gateId: 'safety-review-gate',
+        gateVersion: '1.0.0',
+        outcome: 'revise',
+        results: [{ ruleId: 'iso', passed: false }],
+        assumptions: [{ id: 'min-coverage' }],
+        traceId: 'trace-1',
+      });
+
+      expect(id).toBe('ge-1');
+      const call = vi.mocked(prisma.gateEvaluation.create).mock.calls[0][0];
+      expect(call.data.outcome).toBe('revise');
+      expect(call.data.resultsJson).toBe('[{"ruleId":"iso","passed":false}]');
+      expect(call.data.assumptionsJson).toBe('[{"id":"min-coverage"}]');
     });
   });
 });

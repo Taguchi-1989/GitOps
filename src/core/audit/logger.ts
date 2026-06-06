@@ -205,6 +205,7 @@ class AuditLogger {
       | 'WORKFLOW_FAIL'
       | 'WORKFLOW_CANCEL'
       | 'TASK_EXECUTE'
+      | 'GATE_EVALUATE'
       | 'HUMAN_APPROVE'
       | 'HUMAN_REJECT',
     entityId: string,

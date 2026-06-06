@@ -148,8 +148,36 @@ class PrismaWorkflowRepository implements IWorkflowRepository {
     return record.id;
   }
 
-  // NOTE: createGateEvaluation は フェーズ1-6 で IWorkflowRepository とともに追加する
-  // （Prisma GateEvaluation モデル = フェーズ1-5 に依存するため）。
+  /**
+   * Acceptance Gate の評価結果を記録（決定論的判定の監査証跡）。
+   * results / assumptions は JSON文字列で保持。
+   */
+  async createGateEvaluation(data: {
+    workflowId: string;
+    nodeId: string;
+    taskId: string;
+    gateId: string;
+    gateVersion: string;
+    outcome: string;
+    results: unknown[];
+    assumptions: unknown[];
+    traceId: string;
+  }): Promise<string> {
+    const record = await prisma.gateEvaluation.create({
+      data: {
+        workflowId: data.workflowId,
+        nodeId: data.nodeId,
+        taskId: data.taskId,
+        gateId: data.gateId,
+        gateVersion: data.gateVersion,
+        outcome: data.outcome,
+        resultsJson: JSON.stringify(data.results ?? []),
+        assumptionsJson: JSON.stringify(data.assumptions ?? []),
+        traceId: data.traceId,
+      },
+    });
+    return record.id;
+  }
 }
 
 // --------------------------------------------------------
