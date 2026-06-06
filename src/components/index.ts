@@ -12,3 +12,6 @@ export * from './flow';
 
 // Issue Components
 export * from './issue';
+
+// Approval Components
+export * from './approval';

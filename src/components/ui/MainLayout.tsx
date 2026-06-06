@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Home,
   ClipboardList,
+  ClipboardCheck,
   Eye,
   EyeOff,
   Sun,
@@ -32,6 +33,7 @@ const navigation = [
   { name: 'ダッシュボード', href: '/', icon: Home, description: 'プロジェクト概要' },
   { name: 'フロー', href: '/flows', icon: FileText, description: '業務フロー一覧' },
   { name: '課題', href: '/issues', icon: AlertCircle, description: '課題・改善の管理' },
+  { name: '承認待ち', href: '/approvals', icon: ClipboardCheck, description: '判断が必要な一覧' },
 ];
 
 export function MainLayout({ children }: MainLayoutProps) {
