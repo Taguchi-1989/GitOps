@@ -10,6 +10,10 @@ import { CompiledWorkflow, CompiledNode } from './compiler';
 import { TaskExecutor } from './task-executor';
 import { TaskInvocation } from './schemas/micro-task';
 import { WorkflowStatus } from './schemas/execution';
+import { gateRegistry } from './gate-registry';
+import { ruleRegistry } from './rule-registry';
+import { resolveAssumptions } from './assumption-loader';
+import { evaluateGate, GateEvaluation } from './gate-evaluator';
 import { auditLog } from '../audit/logger';
 import { logger } from '@/lib/logger';
 
@@ -60,6 +64,18 @@ export interface IWorkflowRepository {
     nodeId: string;
     description: string;
     context: Record<string, unknown>;
+  }): Promise<string>;
+  // Acceptance Gate の評価結果（任意。未実装のリポジトリでも動作するよう optional）
+  createGateEvaluation?(data: {
+    workflowId: string;
+    nodeId: string;
+    taskId: string;
+    gateId: string;
+    gateVersion: string;
+    outcome: string;
+    results: unknown[];
+    assumptions: unknown[];
+    traceId: string;
   }): Promise<string>;
 }
 
@@ -346,6 +362,26 @@ export class WorkflowEngine {
       llmModel: result.metadata.llmModelUsed,
     });
 
+    // Acceptance Gate（決定論的判定。LLM不使用）。
+    // このタスクに紐づくゲートがあれば評価し、結果を stateData / 監査 / DB に残す。
+    const gate = await this.evaluateGateForNode(node, result.output, state);
+
+    const nodeOutput: Record<string, unknown> = { [`${node.id}_output`]: result.output };
+    if (gate) {
+      nodeOutput[`${node.id}_gate`] = { ...gate.evaluation, assumptions: gate.assumptions };
+    }
+
+    // outcome=stop は人手前で機械的に停止する（ワークフローを failed に）。
+    // この判定は ApprovalRequest を作らず、AuditLog(GATE_EVALUATE) と GateEvaluation(DB)
+    // に証跡を残す。復帰は再アセスメント（Issue→修正→再実行）で行う設計。
+    if (gate && gate.evaluation.outcome === 'stop') {
+      return {
+        nextNodeId: null,
+        output: nodeOutput,
+        status: 'failed',
+      };
+    }
+
     if (result.status === 'needs-human-review') {
       // 承認待ちに遷移
       let approvalRequestId: string | undefined;
@@ -358,12 +394,13 @@ export class WorkflowEngine {
             taskId: node.task.id,
             input: state.stateData,
             output: result.output,
+            gate: gate ? { ...gate.evaluation, assumptions: gate.assumptions } : undefined,
           },
         });
       }
       return {
         nextNodeId: node.id, // 承認後にここから再開
-        output: { [`${node.id}_output`]: result.output },
+        output: nodeOutput,
         status: 'paused-human-review',
         approvalRequestId,
       };
@@ -380,9 +417,57 @@ export class WorkflowEngine {
     const nextEdge = node.outgoingEdges[0];
     return {
       nextNodeId: nextEdge?.to || null,
-      output: { [`${node.id}_output`]: result.output },
+      output: nodeOutput,
       status: nextEdge ? 'continue' : 'completed',
     };
+  }
+
+  /**
+   * ノードに紐づく Acceptance Gate を決定論的に評価する。
+   * ゲートが無ければ null。評価結果は監査(GATE_EVALUATE)とDB(任意)へ残す。
+   * 重要: ここでは LLM を使わない。最終的な承認/差し戻しは人が Decision Card で決める。
+   */
+  private async evaluateGateForNode(
+    node: CompiledNode,
+    taskOutput: Record<string, unknown>,
+    state: WorkflowState
+  ): Promise<{ evaluation: GateEvaluation; assumptions: unknown[] } | null> {
+    if (!node.task) return null;
+
+    const gate = await gateRegistry.getGateForTask(node.task.id);
+    if (!gate) return null;
+
+    const rules = await ruleRegistry.getRulesByIds(gate.ruleRefs);
+    const assumptions = await resolveAssumptions(gate.assumptionRefs ?? []);
+    const evaluation = evaluateGate(gate, rules, taskOutput, new Date().toISOString());
+
+    // 不変監査（AuditLog は append-only）
+    await auditLog.logWorkflowAction('GATE_EVALUATE', state.executionId, state.traceId, {
+      nodeId: node.id,
+      taskId: node.task.id,
+      gateId: gate.id,
+      gateVersion: gate.version,
+      outcome: evaluation.outcome,
+      worstSeverity: evaluation.summary.worstSeverity,
+      failedRuleIds: evaluation.summary.failedRuleIds,
+    });
+
+    // 表示・操作用（DB。未実装リポジトリでは skip）
+    if (this.repository?.createGateEvaluation) {
+      await this.repository.createGateEvaluation({
+        workflowId: state.executionId,
+        nodeId: node.id,
+        taskId: node.task.id,
+        gateId: gate.id,
+        gateVersion: gate.version,
+        outcome: evaluation.outcome,
+        results: evaluation.results,
+        assumptions,
+        traceId: state.traceId,
+      });
+    }
+
+    return { evaluation, assumptions };
   }
 
   private async processHumanReviewNode(
@@ -469,7 +554,14 @@ export class WorkflowEngine {
   }
 }
 
-// シングルトン
-export const workflowEngine = new WorkflowEngine();
+// シングルトン（HMR/モジュール分離対策で globalThis に固定。
+// bootstrap.ts で注入した repository/taskExecutor が route handler 側の
+// import と確実に同一インスタンスを指すようにする）
+const globalForEngine = globalThis as unknown as { __flowops_workflow_engine?: WorkflowEngine };
+export const workflowEngine: WorkflowEngine =
+  globalForEngine.__flowops_workflow_engine ?? new WorkflowEngine();
+if (process.env.NODE_ENV !== 'production') {
+  globalForEngine.__flowops_workflow_engine = workflowEngine;
+}
 
 export { WorkflowEngine as WorkflowEngineClass };

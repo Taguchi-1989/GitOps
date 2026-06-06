@@ -18,6 +18,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         approvalRequests: {
           orderBy: { createdAt: 'asc' },
         },
+        gateEvaluations: {
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
 

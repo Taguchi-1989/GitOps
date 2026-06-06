@@ -8,12 +8,29 @@ import type { IWorkflowRepository } from './engine';
 import type { CompiledWorkflow, CompiledNode } from './compiler';
 import type { TaskExecutor } from './task-executor';
 import { auditLog } from '../audit/logger';
+import { gateRegistry } from './gate-registry';
+import { evaluateGate } from './gate-evaluator';
 
 // Mock audit logger
 vi.mock('../audit/logger', () => ({
   auditLog: {
     logWorkflowAction: vi.fn(),
   },
+}));
+
+// Mock the Acceptance Gate dependencies so engine tests control gate behavior
+// deterministically (the gate-evaluator itself is unit-tested separately).
+vi.mock('./gate-registry', () => ({
+  gateRegistry: { getGateForTask: vi.fn().mockResolvedValue(null) },
+}));
+vi.mock('./rule-registry', () => ({
+  ruleRegistry: { getRulesByIds: vi.fn().mockResolvedValue([]) },
+}));
+vi.mock('./assumption-loader', () => ({
+  resolveAssumptions: vi.fn().mockResolvedValue([]),
+}));
+vi.mock('./gate-evaluator', () => ({
+  evaluateGate: vi.fn(),
 }));
 
 function createMockRepository(): IWorkflowRepository {
@@ -23,6 +40,7 @@ function createMockRepository(): IWorkflowRepository {
     getExecution: vi.fn(),
     createTaskExecution: vi.fn().mockResolvedValue('te-1'),
     createApprovalRequest: vi.fn().mockResolvedValue('ar-1'),
+    createGateEvaluation: vi.fn().mockResolvedValue('ge-1'),
   };
 }
 
@@ -422,6 +440,136 @@ describe('WorkflowEngine', () => {
       const state = await engineNoRepo.startExecution(workflow, 'trace-16', 'user-1');
 
       expect(state.status).toBe('completed');
+    });
+  });
+
+  describe('acceptance gate hook', () => {
+    const gatedTaskDef = {
+      id: 'hazard-identification',
+      version: '1.0.0',
+      type: 'llm-inference' as const,
+      llmConfig: { systemPrompt: 'x', userPromptTemplate: '{{t}}' },
+      inputSchema: { type: 'object' as const },
+      outputSchema: { type: 'object' as const },
+      requiresHumanApproval: false,
+      maxRetries: 0,
+      timeoutMs: 1000,
+      metadata: { author: 'safety', description: 'x' },
+    };
+
+    function gatedWorkflow(): CompiledWorkflow {
+      return createCompiledWorkflow(
+        new Map<string, CompiledNode>([
+          ['start', makeNode('start', 'start', [{ id: 'e1', to: 'haz' }])],
+          [
+            'haz',
+            makeNode('haz', 'llm-task', [{ id: 'e2', to: 'end' }], {
+              task: gatedTaskDef,
+              gitCommitHash: 'g1',
+            }),
+          ],
+          ['end', makeNode('end', 'end')],
+        ])
+      );
+    }
+
+    function setTaskSuccess(): void {
+      const mockExecutor = {
+        execute: vi.fn().mockResolvedValue({
+          traceId: 't',
+          executionId: 'wfe',
+          taskId: 'hazard-identification',
+          status: 'success',
+          output: { hazards: [{ category: 'mechanical' }] },
+          metadata: { durationMs: 1 },
+        }),
+      } as unknown as TaskExecutor;
+      engine.setTaskExecutor(mockExecutor);
+    }
+
+     
+    const fakeGate: any = {
+      id: 'safety-review-gate',
+      version: '1.0.0',
+      appliesTo: { taskId: 'hazard-identification' },
+      ruleRefs: ['iso-12100-coverage-check'],
+      policy: {},
+    };
+
+    it('evaluates the gate, records it, and merges the result into stateData', async () => {
+      vi.mocked(gateRegistry.getGateForTask).mockResolvedValue(fakeGate);
+      vi.mocked(evaluateGate).mockReturnValue({
+        gateId: 'safety-review-gate',
+        gateVersion: '1.0.0',
+        outcome: 'revise',
+        results: [
+          {
+            ruleId: 'iso-12100-coverage-check',
+            ruleType: 'completeness',
+            passed: false,
+            severity: 'warning',
+            details: { matched: [], missing: ['electrical'], message: 'm' },
+          },
+        ],
+        summary: {
+          go: false,
+          worstSeverity: 'warning',
+          failedRuleIds: ['iso-12100-coverage-check'],
+          passedCount: 0,
+          totalCount: 1,
+        },
+        evaluatedAt: 't',
+      });
+      setTaskSuccess();
+
+      const state = await engine.startExecution(gatedWorkflow(), 'trace-g1', 'user-1');
+
+      expect(state.status).toBe('completed'); // revise does not stop the workflow
+      expect(state.stateData.haz_gate).toMatchObject({ outcome: 'revise' });
+      expect(repo.createGateEvaluation).toHaveBeenCalledWith(
+        expect.objectContaining({ gateId: 'safety-review-gate', outcome: 'revise' })
+      );
+      expect(auditLog.logWorkflowAction).toHaveBeenCalledWith(
+        'GATE_EVALUATE',
+        expect.any(String),
+        'trace-g1',
+        expect.objectContaining({ gateId: 'safety-review-gate', outcome: 'revise' })
+      );
+    });
+
+    it('stops the workflow (failed) when gate outcome is stop', async () => {
+      vi.mocked(gateRegistry.getGateForTask).mockResolvedValue(fakeGate);
+      vi.mocked(evaluateGate).mockReturnValue({
+        gateId: 'safety-review-gate',
+        gateVersion: '1.0.0',
+        outcome: 'stop',
+        results: [],
+        summary: {
+          go: false,
+          worstSeverity: 'critical',
+          failedRuleIds: ['c'],
+          passedCount: 0,
+          totalCount: 1,
+        },
+        evaluatedAt: 't',
+      });
+      setTaskSuccess();
+
+      const state = await engine.startExecution(gatedWorkflow(), 'trace-g2', 'user-1');
+
+      expect(state.status).toBe('failed');
+      expect(state.stateData.haz_gate).toMatchObject({ outcome: 'stop' });
+    });
+
+    it('does not evaluate a gate for tasks that have none', async () => {
+      vi.mocked(gateRegistry.getGateForTask).mockResolvedValue(null);
+      setTaskSuccess();
+
+      const state = await engine.startExecution(gatedWorkflow(), 'trace-g3', 'user-1');
+
+      expect(state.status).toBe('completed');
+      expect(state.stateData).not.toHaveProperty('haz_gate');
+      expect(repo.createGateEvaluation).not.toHaveBeenCalled();
     });
   });
 });

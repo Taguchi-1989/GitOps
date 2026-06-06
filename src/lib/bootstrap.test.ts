@@ -22,6 +22,18 @@ vi.mock('@/lib/env', () => ({
   validateEnv: vi.fn(),
 }));
 
+const fakeTaskExecutor = { execute: vi.fn() };
+vi.mock('@/core/orchestrator', () => ({
+  workflowEngine: { setRepository: vi.fn(), setTaskExecutor: vi.fn() },
+  humanLoopManager: { setRepository: vi.fn() },
+  createTaskExecutor: vi.fn(() => fakeTaskExecutor),
+}));
+
+vi.mock('@/lib/workflow-repository', () => ({
+  workflowRepository: { kind: 'workflow' },
+  approvalRepository: { kind: 'approval' },
+}));
+
 describe('bootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,6 +52,24 @@ describe('bootstrap', () => {
     const { auditLog } = await import('@/core/audit');
     const { auditRepository } = await import('@/lib/audit-repository');
     expect(auditLog.setRepository).toHaveBeenCalledWith(auditRepository);
+  });
+
+  it('should wire the workflow engine repository and task executor on module load', async () => {
+    vi.resetModules();
+    await import('@/lib/bootstrap');
+    const { workflowEngine, createTaskExecutor } = await import('@/core/orchestrator');
+    const { workflowRepository } = await import('@/lib/workflow-repository');
+    expect(workflowEngine.setRepository).toHaveBeenCalledWith(workflowRepository);
+    expect(createTaskExecutor).toHaveBeenCalled();
+    expect(workflowEngine.setTaskExecutor).toHaveBeenCalledWith(fakeTaskExecutor);
+  });
+
+  it('should wire the human loop manager repository on module load', async () => {
+    vi.resetModules();
+    await import('@/lib/bootstrap');
+    const { humanLoopManager } = await import('@/core/orchestrator');
+    const { approvalRepository } = await import('@/lib/workflow-repository');
+    expect(humanLoopManager.setRepository).toHaveBeenCalledWith(approvalRepository);
   });
 
   it('should log initialization message when initializeApp is called', async () => {
