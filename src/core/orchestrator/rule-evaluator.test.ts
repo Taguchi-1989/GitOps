@@ -70,6 +70,11 @@ describe('resolvePath', () => {
   it('returns empty for null root', () => {
     expect(resolvePath(null, 'hazards[].category')).toEqual([]);
   });
+
+  it('refuses to traverse prototype-polluting keys', () => {
+    expect(resolvePath({ a: 1 }, '__proto__.polluted')).toEqual([]);
+    expect(resolvePath({ a: 1 }, 'constructor.name')).toEqual([]);
+  });
 });
 
 describe('evaluateRule (completeness)', () => {

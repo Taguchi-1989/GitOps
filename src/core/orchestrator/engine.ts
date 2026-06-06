@@ -371,7 +371,9 @@ export class WorkflowEngine {
       nodeOutput[`${node.id}_gate`] = { ...gate.evaluation, assumptions: gate.assumptions };
     }
 
-    // outcome=stop は人手前で機械的に停止する
+    // outcome=stop は人手前で機械的に停止する（ワークフローを failed に）。
+    // この判定は ApprovalRequest を作らず、AuditLog(GATE_EVALUATE) と GateEvaluation(DB)
+    // に証跡を残す。復帰は再アセスメント（Issue→修正→再実行）で行う設計。
     if (gate && gate.evaluation.outcome === 'stop') {
       return {
         nextNodeId: null,

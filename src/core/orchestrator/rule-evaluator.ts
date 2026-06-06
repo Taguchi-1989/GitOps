@@ -7,6 +7,9 @@
 
 import { RuleDefinition, RuleSeverity } from './schemas/validation-rule';
 
+/** プロトタイプ汚染を避けるためフィールドパスで辿らせないキー */
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 export interface ValidationResult {
   ruleId: string;
   ruleType: string;
@@ -38,6 +41,12 @@ export function resolvePath(root: unknown, fieldPath: string): string[] {
     const isArray = token.endsWith('[]');
     const key = isArray ? token.slice(0, -2) : token;
     const next: unknown[] = [];
+
+    // プロトタイプ汚染ガード（field は信頼されたspec由来だが多層防御）
+    if (DANGEROUS_KEYS.has(key)) {
+      contexts = [];
+      break;
+    }
 
     for (const ctx of contexts) {
       if (ctx == null || typeof ctx !== 'object') continue;

@@ -22,6 +22,29 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+/** 破損したJSON文字列でもサーバーコンポーネントを落とさないための安全パース */
+function safeParseObject(value: string | null | undefined): Record<string, unknown> {
+  if (!value) return {};
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function safeParseArray<T>(value: string | null | undefined): T[] {
+  if (!value) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 async function getApprovalData(id: string): Promise<DecisionCardData | null> {
   const approvalRequest = await prisma.approvalRequest.findUnique({
     where: { id },
@@ -38,7 +61,7 @@ async function getApprovalData(id: string): Promise<DecisionCardData | null> {
   if (!approvalRequest) return null;
 
   const workflow = approvalRequest.workflow;
-  const ctx = JSON.parse(approvalRequest.context || '{}') as Record<string, unknown>;
+  const ctx = safeParseObject(approvalRequest.context);
 
   // GateEvaluation を優先（DB が正）: 同じ nodeId の中で最新を選ぶ
   const gateEvaluations = workflow.gateEvaluations
@@ -50,8 +73,8 @@ async function getApprovalData(id: string): Promise<DecisionCardData | null> {
   let gate: GateData | null = null;
 
   if (latestGate) {
-    const results = JSON.parse(latestGate.resultsJson || '[]') as ValidationResult[];
-    const assumptions = JSON.parse(latestGate.assumptionsJson || '[]') as AssumptionItem[];
+    const results = safeParseArray<ValidationResult>(latestGate.resultsJson);
+    const assumptions = safeParseArray<AssumptionItem>(latestGate.assumptionsJson);
     gate = {
       outcome: latestGate.outcome as GateOutcome,
       results,
