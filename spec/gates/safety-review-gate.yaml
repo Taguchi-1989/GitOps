@@ -1,0 +1,44 @@
+# 安全レビュー受入ゲート（ISO 12100）
+#
+# hazard-identification タスクの出力に対して ISO 12100 網羅性ルールを評価し、
+# 次フェーズ（リスク見積もり）へ進めてよいかを決定論的に判定する。
+# 判定は純関数（gate-evaluator）が行い、LLM は最終判断をしない。
+# 最終的な承認/差し戻しは人が Decision Card で決める。
+
+id: safety-review-gate
+version: "1.0.0"
+title: 安全レビュー受入ゲート（ISO 12100）
+description: >
+  ハザード識別結果が ISO 12100 の危害源カテゴリを十分に網羅しているかを評価し、
+  Go / Revise / Hold / Stop / Watch を判定する。
+
+# このゲートは hazard-identification タスクの出力後に発火する
+appliesTo:
+  taskId: hazard-identification
+
+# 評価する validation-rule の id 群（spec/validation-rules/*.yaml）
+ruleRefs:
+  - iso-12100-coverage-check
+
+# 判定が依拠する前提集合（spec/assumptions/*.yaml）
+assumptionRefs:
+  - safety-review-assumptions
+
+# severity × passed → outcome の対応表（決定論）
+policy:
+  onCritical: stop # 致命的な不足: 機械的に停止（人手前で止める）
+  onError: hold # 重大な不足: 保留
+  onWarning: revise # 軽微な不足: 是正のうえ再評価
+  allPassed: go # 全ルール合格: 次フェーズへ
+  noRulesMatched: watch # 評価対象ルール無し: 判断保留（要観察）
+
+lifecycle:
+  stage: active
+
+metadata:
+  author: safety-team
+  description: ISO 12100 安全レビューの受入ゲート（決定論的判定）
+  tags:
+    - iso-12100
+    - safety
+    - acceptance-gate

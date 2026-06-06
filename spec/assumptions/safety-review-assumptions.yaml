@@ -1,0 +1,41 @@
+# 安全レビューの前提
+#
+# 安全レビュー受入ゲート（safety-review-gate）が依拠する前提の正本。
+# しきい値やカテゴリ網羅の「根拠（出典・理由）」をここに集約し、
+# gate / rule は id 参照のみを持つ。評価時にスナップショットを監査へ残す。
+
+id: safety-review-assumptions
+version: "1.0.0"
+title: 安全レビューの前提
+description: 安全レビュー受入ゲートが依拠する前提（しきい値・カテゴリ網羅の根拠）
+
+assumptions:
+  - id: iso-12100-categories
+    statement: >
+      ハザード識別はISO 12100の危害源10カテゴリ（機械的/電気的/熱的/騒音/振動/放射/
+      材料・物質/人間工学/滑り・つまずき・墜落/組合せ）を検討対象とする
+    source: ISO 12100:2010 附属書B（危険源・危険状態・危険事象の例）
+    rationale: 主要な危害源カテゴリの見落としを防ぐため
+
+  - id: minimum-coverage-80
+    statement: 受入の最低網羅率は80%（10カテゴリ中8カテゴリ以上の検討）とする
+    source: 安全チーム運用基準 v0（暫定）
+    rationale: >
+      全カテゴリ必須は現場負荷が高いため、主要カテゴリ網羅を優先しつつ
+      不足は Revise で是正する運用に合わせる
+
+  - id: deterministic-evaluation
+    statement: ゲート判定は決定論的に行い、LLMは最終判断をしない
+    source: docs/agent-first-deterministic-pipeline.md
+    rationale: 監査可能性・再現性の確保
+
+lifecycle:
+  stage: active
+
+metadata:
+  author: safety-team
+  description: 安全レビュー受入ゲートの前提集合
+  tags:
+    - iso-12100
+    - safety
+    - assumptions
