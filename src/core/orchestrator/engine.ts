@@ -469,7 +469,14 @@ export class WorkflowEngine {
   }
 }
 
-// シングルトン
-export const workflowEngine = new WorkflowEngine();
+// シングルトン（HMR/モジュール分離対策で globalThis に固定。
+// bootstrap.ts で注入した repository/taskExecutor が route handler 側の
+// import と確実に同一インスタンスを指すようにする）
+const globalForEngine = globalThis as unknown as { __flowops_workflow_engine?: WorkflowEngine };
+export const workflowEngine: WorkflowEngine =
+  globalForEngine.__flowops_workflow_engine ?? new WorkflowEngine();
+if (process.env.NODE_ENV !== 'production') {
+  globalForEngine.__flowops_workflow_engine = workflowEngine;
+}
 
 export { WorkflowEngine as WorkflowEngineClass };

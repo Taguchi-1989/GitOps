@@ -100,7 +100,12 @@ export class HumanLoopManager {
   }
 }
 
-// シングルトン
-export const humanLoopManager = new HumanLoopManager();
+// シングルトン（HMR/モジュール分離対策で globalThis に固定）
+const globalForHumanLoop = globalThis as unknown as { __flowops_human_loop?: HumanLoopManager };
+export const humanLoopManager: HumanLoopManager =
+  globalForHumanLoop.__flowops_human_loop ?? new HumanLoopManager();
+if (process.env.NODE_ENV !== 'production') {
+  globalForHumanLoop.__flowops_human_loop = humanLoopManager;
+}
 
 export { HumanLoopManager as HumanLoopManagerClass };
