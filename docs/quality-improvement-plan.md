@@ -1,5 +1,8 @@
 # FlowOps 品質改善計画
 
+> ⚠️ **本書は凍結済み（2026-02-20 時点の履歴）**。掲載 P0 の多くは実装済みです。
+> 現行の改善バックログと PDCA 運用は **[improvement-backlog-pdca.md](improvement-backlog-pdca.md)** に集約されています。新規の改善点はそちらに追記してください。
+
 > 分析日: 2026-02-20
 > 対象: FlowOps v0.1.0 (MVP)
 > ファイル数: 79 TypeScript + 設定ファイル群
