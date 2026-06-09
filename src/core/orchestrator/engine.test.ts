@@ -487,7 +487,6 @@ describe('WorkflowEngine', () => {
       engine.setTaskExecutor(mockExecutor);
     }
 
-     
     const fakeGate: any = {
       id: 'safety-review-gate',
       version: '1.0.0',
