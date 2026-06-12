@@ -7,6 +7,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ClipboardCheck, Clock, ArrowRight } from 'lucide-react';
+import { formatDateWithYear as formatDate } from '@/lib/format-date';
 
 interface ApprovalItem {
   id: string;
@@ -20,17 +21,6 @@ interface ApprovalItem {
 
 interface ApprovalsListClientProps {
   approvals: ApprovalItem[];
-}
-
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('ja-JP', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 export function ApprovalsListClient({ approvals }: ApprovalsListClientProps) {

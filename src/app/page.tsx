@@ -11,6 +11,8 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { listFlows } from '@/lib/flow-service';
 import { TaskQueue } from '@/components/ui/TaskQueue';
+import { formatDate } from '@/lib/format-date';
+import { getStatusBadgeClass, getStatusLabel } from '@/lib/issue-status-ui';
 import {
   FileText,
   AlertCircle,
@@ -85,24 +87,20 @@ async function getDashboardStats() {
       }),
     ]);
 
+  const statusCounts: Record<string, number> = {};
+  issueStats.forEach(s => {
+    statusCounts[s.status] = s._count.id;
+  });
+
   const stats = {
-    total: 0,
-    plan: 0,
-    do: 0,
-    check: 0,
+    total: issueStats.reduce((sum, s) => sum + s._count.id, 0),
+    plan: (statusCounts['new'] ?? 0) + (statusCounts['triage'] ?? 0),
+    inProgress: statusCounts['in-progress'] ?? 0,
+    proposed: statusCounts['proposed'] ?? 0,
+    do: (statusCounts['in-progress'] ?? 0) + (statusCounts['proposed'] ?? 0),
+    check: statusCounts['merged'] ?? 0,
     standardized: standardizedCount,
   };
-
-  issueStats.forEach(s => {
-    stats.total += s._count.id;
-    if (s.status === 'new' || s.status === 'triage') {
-      stats.plan += s._count.id;
-    } else if (s.status === 'in-progress' || s.status === 'proposed') {
-      stats.do += s._count.id;
-    } else if (s.status === 'merged') {
-      stats.check += s._count.id;
-    }
-  });
 
   return { stats, recentIssues, flows, checkDueSoon, staleIssues };
 }
@@ -145,35 +143,6 @@ function StatCard({
   }
   return content;
 }
-
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('ja-JP', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-const statusColors: Record<string, string> = {
-  new: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-  triage: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
-  'in-progress': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-  proposed: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
-  merged: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-  rejected: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
-  'merged-duplicate': 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-};
-
-const statusLabels: Record<string, string> = {
-  new: 'Plan中',
-  triage: 'Plan中',
-  'in-progress': 'Do中',
-  proposed: '改善案あり',
-  merged: 'Check待ち',
-  rejected: '見送り',
-  'merged-duplicate': '統合済み',
-};
 
 /**
  * はじめてガイド - チェックリストコンポーネント
@@ -270,7 +239,7 @@ function GettingStartedChecklist({
           const isNext = !step.done && (i === 0 || steps[i - 1].done);
           return (
             <div
-              key={i}
+              key={step.label}
               className={`px-6 py-4 flex items-center gap-4 transition-colors ${
                 isNext ? 'bg-blue-50/30 dark:bg-blue-900/20' : ''
               } ${step.done ? 'opacity-60' : ''}`}
@@ -339,7 +308,7 @@ function WorkflowOverview() {
         {steps.map((step, i) => {
           const Icon = step.icon;
           return (
-            <div key={i} className="flex items-center gap-1 flex-1">
+            <div key={step.label} className="flex items-center gap-1 flex-1">
               <div className="flex flex-col items-center gap-1.5 flex-1">
                 <div
                   className={`w-10 h-10 ${step.color} rounded-xl flex items-center justify-center`}
@@ -399,8 +368,8 @@ export default async function DashboardPage() {
         }))}
         stats={{
           open: stats.plan,
-          inProgress: Math.floor(stats.do / 2),
-          proposed: Math.ceil(stats.do / 2),
+          inProgress: stats.inProgress,
+          proposed: stats.proposed,
         }}
       />
 
@@ -494,9 +463,9 @@ export default async function DashboardPage() {
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span
-                          className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${statusColors[issue.status]}`}
+                          className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${getStatusBadgeClass(issue.status)}`}
                         >
-                          {statusLabels[issue.status]}
+                          {getStatusLabel(issue.status)}
                         </span>
                         <span className="text-xs text-orange-600 dark:text-orange-400">
                           最終更新: {formatDate(issue.updatedAt)}
@@ -548,11 +517,9 @@ export default async function DashboardPage() {
                         {issue.humanId}
                       </span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${issue.standardizedAt ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : statusColors[issue.status]}`}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${issue.standardizedAt ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : getStatusBadgeClass(issue.status)}`}
                       >
-                        {issue.standardizedAt
-                          ? '標準化済み'
-                          : statusLabels[issue.status] || issue.status}
+                        {issue.standardizedAt ? '標準化済み' : getStatusLabel(issue.status)}
                       </span>
                     </div>
                     <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -619,7 +586,7 @@ export default async function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold">現場の困りごとを改善カードにしましょう</h2>
             <p className="mt-1 text-blue-100">
