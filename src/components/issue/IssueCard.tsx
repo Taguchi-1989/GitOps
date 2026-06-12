@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { StatusBadge } from './StatusBadge';
 import { IssueStatus } from '@/core/issue';
 import { FileText, GitBranch, Clock } from 'lucide-react';
+import { formatDate } from '@/lib/format-date';
 
 export interface IssueCardData {
   id: string;
@@ -44,16 +45,6 @@ export interface IssueCardData {
 interface IssueCardProps {
   issue: IssueCardData;
   onClick?: () => void;
-}
-
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('ja-JP', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 export function IssueCard({ issue, onClick }: IssueCardProps) {

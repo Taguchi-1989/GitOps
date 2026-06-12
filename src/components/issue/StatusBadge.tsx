@@ -1,65 +1,18 @@
 /**
  * FlowOps - Status Badge Component
  *
- * Issueステータスを色分けして表示
+ * Issueステータスを色分けして表示（定義は @/lib/issue-status-ui に集約）
  */
 
 import React from 'react';
 import { IssueStatus } from '@/core/issue';
+import { getStatusUi } from '@/lib/issue-status-ui';
 
 interface StatusBadgeProps {
   status: IssueStatus;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
-
-const statusConfig: Record<
-  IssueStatus,
-  { label: string; color: string; bg: string; emoji: string }
-> = {
-  new: {
-    label: 'Plan中',
-    color: 'text-red-700 dark:text-red-400',
-    bg: 'bg-red-100 dark:bg-red-900/30',
-    emoji: '📋',
-  },
-  triage: {
-    label: 'Plan中（確認待ち）',
-    color: 'text-orange-700 dark:text-orange-400',
-    bg: 'bg-orange-100 dark:bg-orange-900/30',
-    emoji: '📋',
-  },
-  'in-progress': {
-    label: 'Do中',
-    color: 'text-blue-700 dark:text-blue-400',
-    bg: 'bg-blue-100 dark:bg-blue-900/30',
-    emoji: '▶️',
-  },
-  proposed: {
-    label: '改善案あり',
-    color: 'text-yellow-700 dark:text-yellow-400',
-    bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-    emoji: '✨',
-  },
-  merged: {
-    label: 'Check待ち',
-    color: 'text-teal-700 dark:text-teal-400',
-    bg: 'bg-teal-100 dark:bg-teal-900/30',
-    emoji: '🔍',
-  },
-  rejected: {
-    label: '見送り',
-    color: 'text-gray-700 dark:text-gray-300',
-    bg: 'bg-gray-100 dark:bg-gray-700',
-    emoji: '⏸️',
-  },
-  'merged-duplicate': {
-    label: '統合済み',
-    color: 'text-purple-700 dark:text-purple-400',
-    bg: 'bg-purple-100 dark:bg-purple-900/30',
-    emoji: '🔗',
-  },
-};
 
 const sizeClasses = {
   sm: 'px-2 py-0.5 text-xs',
@@ -68,7 +21,7 @@ const sizeClasses = {
 };
 
 export function StatusBadge({ status, size = 'md', className = '' }: StatusBadgeProps) {
-  const config = statusConfig[status];
+  const config = getStatusUi(status);
 
   return (
     <span
@@ -83,22 +36,12 @@ export function StatusBadge({ status, size = 'md', className = '' }: StatusBadge
   );
 }
 
-const dotColors: Record<IssueStatus, string> = {
-  new: 'bg-red-500',
-  triage: 'bg-orange-500',
-  'in-progress': 'bg-blue-500',
-  proposed: 'bg-yellow-500',
-  merged: 'bg-green-500',
-  rejected: 'bg-gray-500',
-  'merged-duplicate': 'bg-purple-500',
-};
-
 export function StatusDot({ status, className = '' }: { status: IssueStatus; className?: string }) {
-  const config = statusConfig[status];
+  const config = getStatusUi(status);
 
   return (
     <span
-      className={`inline-block w-2 h-2 rounded-full ${dotColors[status]} ${className}`}
+      className={`inline-block w-2 h-2 rounded-full ${config.dot} ${className}`}
       title={config.label}
     />
   );

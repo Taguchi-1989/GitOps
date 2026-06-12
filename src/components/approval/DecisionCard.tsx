@@ -70,17 +70,6 @@ export interface DecisionCardData {
 // ヘルパー
 // --------------------------------------------------------
 
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('ja-JP', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 const SEVERITY_STYLES: Record<
   'info' | 'warning' | 'error' | 'critical',
   { row: string; badge: string; label: string }

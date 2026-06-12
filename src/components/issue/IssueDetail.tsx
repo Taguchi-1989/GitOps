@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useSimpleMode } from '@/lib/simple-mode-context';
 import { GuidedWorkflow } from '@/components/ui/GuidedWorkflow';
+import { formatDateWithYear as formatDate } from '@/lib/format-date';
 
 interface IssueDetailProps {
   issue: IssueCardData & {
@@ -45,17 +46,6 @@ interface IssueDetailProps {
   onMergeClose?: () => void;
   onReject?: () => void;
   isLoading?: boolean;
-}
-
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('ja-JP', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 const AUDIT_ACTION_LABELS: Record<string, string> = {
@@ -112,6 +102,7 @@ export function IssueDetail({
   );
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState(false);
 
   // Check フォーム state
   const [checkForm, setCheckForm] = useState({
@@ -126,20 +117,24 @@ export function IssueDetail({
   });
   const [checkSaving, setCheckSaving] = useState(false);
   const [checkSaved, setCheckSaved] = useState(false);
+  const [checkSaveError, setCheckSaveError] = useState(false);
 
   const { isSimpleMode } = useSimpleMode();
   const router = useRouter();
 
   const fetchAuditLogs = useCallback(async () => {
     setAuditLoading(true);
+    setAuditError(false);
     try {
       const res = await fetch(`/api/audit?entityType=Issue&entityId=${issue.id}&limit=50`);
       const data = await res.json();
       if (data.ok && data.data?.logs) {
         setAuditLogs(data.data.logs);
+      } else {
+        setAuditError(true);
       }
     } catch {
-      // fail silently
+      setAuditError(true);
     } finally {
       setAuditLoading(false);
     }
@@ -155,6 +150,7 @@ export function IssueDetail({
 
   const saveCheck = async () => {
     setCheckSaving(true);
+    setCheckSaveError(false);
     try {
       const body: Record<string, string | undefined> = {};
       if (checkForm.metricBefore) body.metricBefore = checkForm.metricBefore;
@@ -163,21 +159,35 @@ export function IssueDetail({
       if (checkForm.checkResult) body.checkResult = checkForm.checkResult;
       if (checkForm.learning) body.learning = checkForm.learning;
       if (checkForm.nextAction) body.nextAction = checkForm.nextAction;
-      await fetch(`/api/issues/${issue.id}`, {
+      const res = await fetch(`/api/issues/${issue.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      if (!res.ok) {
+        setCheckSaveError(true);
+        return;
+      }
       setCheckSaved(true);
       setTimeout(() => setCheckSaved(false), 3000);
+    } catch {
+      setCheckSaveError(true);
     } finally {
       setCheckSaving(false);
     }
   };
 
   const handleStandardize = async () => {
-    await fetch(`/api/issues/${issue.id}/standardize`, { method: 'POST' });
-    router.refresh();
+    try {
+      const res = await fetch(`/api/issues/${issue.id}/standardize`, { method: 'POST' });
+      if (!res.ok) {
+        setCheckSaveError(true);
+        return;
+      }
+      router.refresh();
+    } catch {
+      setCheckSaveError(true);
+    }
   };
 
   const canStart = issue.status === 'new' || issue.status === 'triage';
@@ -394,6 +404,7 @@ export function IssueDetail({
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
+                aria-current={isActive ? 'page' : undefined}
                 className={`
                   flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
                   ${isActive ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}
@@ -686,6 +697,11 @@ export function IssueDetail({
               {checkSaved && (
                 <span className="text-sm text-green-600 font-medium">保存しました</span>
               )}
+              {checkSaveError && (
+                <span className="text-sm text-red-600 font-medium">
+                  保存に失敗しました。もう一度お試しください
+                </span>
+              )}
 
               {issue.status === 'merged' &&
                 !issue.standardizedAt &&
@@ -709,6 +725,17 @@ export function IssueDetail({
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               <Loader2 className="w-6 h-6 mx-auto mb-3 animate-spin text-gray-400 dark:text-gray-500" />
               <p>履歴を読み込み中...</p>
+            </div>
+          ) : auditError ? (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <History className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+              <p>履歴の読み込みに失敗しました</p>
+              <button
+                onClick={() => void fetchAuditLogs()}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                再試行
+              </button>
             </div>
           ) : auditLogs.length > 0 ? (
             <div className="space-y-3">

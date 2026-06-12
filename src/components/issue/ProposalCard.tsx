@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { Check, ChevronDown, ChevronUp, Clock, Code } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { useSimpleMode } from '@/lib/simple-mode-context';
+import { formatDate } from '@/lib/format-date';
 
 export interface ProposalData {
   id: string;
@@ -26,16 +27,6 @@ interface ProposalCardProps {
   proposal: ProposalData;
   onApply?: () => void;
   isLoading?: boolean;
-}
-
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('ja-JP', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalCardProps) {
