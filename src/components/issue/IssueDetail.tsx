@@ -15,6 +15,7 @@ import { StatusBadge } from './StatusBadge';
 import { StatusLifecycle } from './StatusLifecycle';
 import { IssueCardData } from './IssueCard';
 import { ProposalCard, ProposalData } from './ProposalCard';
+import { ManualProposalWizard } from './ManualProposalWizard';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import {
   ArrowLeft,
@@ -552,6 +553,16 @@ export function IssueDetail({
                     <Sparkles className="w-4 h-4" />
                     AIで改善案を生成
                   </button>
+
+                  <div className="flex items-center gap-3 my-6 max-w-md mx-auto">
+                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                    <span className="text-xs text-gray-400 dark:text-gray-500">または</span>
+                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                  </div>
+
+                  <div className="max-w-2xl mx-auto">
+                    <ManualProposalWizard issueId={issue.id} />
+                  </div>
                 </div>
               ) : issue.status === 'new' || issue.status === 'triage' ? (
                 <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">

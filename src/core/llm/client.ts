@@ -6,8 +6,8 @@
  */
 
 import OpenAI from 'openai';
-import { ProposalOutputSchema, ProposalOutput, JsonPatch } from '../patch/types';
-import { checkForbiddenPaths } from '../patch/apply';
+import { ProposalOutputSchema, ProposalOutput } from '../patch/types';
+import { validateProposalConstraints } from './validate-proposal';
 import { buildFullPrompt } from './prompts';
 import { getTraceId } from '@/lib/trace-context';
 import { extractJson } from '@/lib/extract-json';
@@ -141,39 +141,14 @@ class LLMClient {
   }
 
   /**
-   * LLM出力のセマンティック検証
-   * - 禁止パス（/id）の変更チェック
-   * - role/systemフィールドの辞書存在チェック
+   * LLM出力のセマンティック検証（ロジックは validate-proposal.ts に集約）
    */
   private validateProposalConstraints(
     output: ProposalOutput,
     roles?: string[],
     systems?: string[]
   ): void {
-    const violations: string[] = [];
-
-    // 禁止パスチェック
-    const forbidden = checkForbiddenPaths(output.patches as JsonPatch[], ['/id']);
-    violations.push(...forbidden);
-
-    // role/systemの辞書存在チェック
-    for (const patch of output.patches) {
-      if ((patch.op === 'add' || patch.op === 'replace') && patch.path.endsWith('/role')) {
-        if (roles && roles.length > 0) {
-          if (typeof patch.value !== 'string' || !roles.includes(patch.value)) {
-            violations.push(`Invalid or unknown role in patch: ${String(patch.value)}`);
-          }
-        }
-      }
-      if ((patch.op === 'add' || patch.op === 'replace') && patch.path.endsWith('/system')) {
-        if (systems && systems.length > 0) {
-          if (typeof patch.value !== 'string' || !systems.includes(patch.value)) {
-            violations.push(`Invalid or unknown system in patch: ${String(patch.value)}`);
-          }
-        }
-      }
-    }
-
+    const violations = validateProposalConstraints(output, roles, systems);
     if (violations.length > 0) {
       throw new LLMError('VALIDATION_ERROR', `Constraint violations: ${violations.join('; ')}`);
     }
