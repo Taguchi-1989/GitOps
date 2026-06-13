@@ -6,6 +6,7 @@
 
 import { notFound } from 'next/navigation';
 import { getFlow, getFlowYaml } from '@/lib/flow-service';
+import { sha256 } from '@/core/patch';
 import { FlowViewerClient } from './FlowViewerClient';
 
 interface PageProps {
@@ -35,6 +36,8 @@ export default async function FlowDetailPage({ params }: PageProps) {
   }
 
   const yamlContent = await getFlowYaml(id);
+  // グリッド編集の陳腐化検知用ハッシュ(サーバ側で計算: sha256 は node crypto 依存)
+  const baseHash = yamlContent ? sha256(yamlContent) : undefined;
 
   return (
     <div className="h-[calc(100vh-0px)]">
@@ -42,6 +45,7 @@ export default async function FlowDetailPage({ params }: PageProps) {
         flow={flowData.flow}
         mermaidContent={flowData.mermaid}
         yamlContent={yamlContent || undefined}
+        baseHash={baseHash}
       />
     </div>
   );

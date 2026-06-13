@@ -53,26 +53,41 @@
 | Validation | Zod (全入出力境界で使用) |
 | Testing | Vitest |
 
-## 最速ローカル起動
+## Windows ワンクリック起動（最も簡単 / Docker不要）
 
-**前提条件**: Node.js >= 18, Git, Docker
+**前提条件**: Node.js >= 18 だけ（Docker も Git も不要）
+
+リポジトリ直下の **`start.bat` をダブルクリック** するだけです。初回は自動で
+`.env` 作成 → 依存インストール → SQLite データベース作成 → 初期データ投入 →
+開発サーバー起動 → ブラウザを開く、まで一気に行います。
+
+- DB は **SQLite**（`prisma/dev.db`）。Docker や PostgreSQL は不要です。
+- ログイン: `admin@flowops.local` / `admin`
+- 停止: 起動ウィンドウを閉じる（または `Ctrl+C`）
+- LLM を使う機能を試す場合のみ、生成された `.env` の `LLM_API_KEY` を実際のキーに書き換えてください。
+
+> なぜ SQLite か: 別PCでも前提ソフトを増やさず確実に動かすためです。`.env` と
+> `prisma/dev.db` は git 管理外なので、clone 直後の他PCでは `start.bat` が
+> それらを自動生成します。
+
+## 手動ローカル起動（SQLite）
 
 ```bash
-# 1. DB起動
-docker compose up postgres -d
-
-# 2. セットアップ
+# 1. セットアップ
 npm install
-cp .env.example .env.local  # LLM_API_KEY を編集
-npx prisma db push
-npm run db:seed
+cp .env.example .env           # DATABASE_URL を file:./prisma/dev.db に設定
+npx prisma db push             # SQLite DB を作成
+npm run db:seed                # 初期データ投入
 
-# 3. 起動
+# 2. 起動
 npm run dev
 # → http://localhost:3000
 ```
 
-> `.env.example` の先頭にある「ローカル最小構成」セクションの3項目（`DATABASE_URL`, `AUTH_SECRET`, `LLM_API_KEY`）を設定するだけで動きます。
+> ⚠ 現在の `prisma/schema.prisma` は `provider = "sqlite"` です。`DATABASE_URL` は
+> `file:./prisma/dev.db` のような `file:` URL を指定してください
+> （`postgresql://...` を指定すると Prisma がエラーになります）。
+> PostgreSQL を使うフルスタック構成は次節を参照。
 
 ## Docker起動（フルスタック）
 

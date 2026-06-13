@@ -15,9 +15,15 @@ interface FlowViewerClientProps {
   flow: Flow;
   mermaidContent: string;
   yamlContent?: string;
+  baseHash?: string;
 }
 
-export function FlowViewerClient({ flow, mermaidContent, yamlContent }: FlowViewerClientProps) {
+export function FlowViewerClient({
+  flow,
+  mermaidContent,
+  yamlContent,
+  baseHash,
+}: FlowViewerClientProps) {
   const router = useRouter();
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -68,6 +74,7 @@ export function FlowViewerClient({ flow, mermaidContent, yamlContent }: FlowView
         flow={flow}
         mermaidContent={mermaidContent}
         yamlContent={yamlContent}
+        baseHash={baseHash}
         onBack={handleBack}
         onNodeClick={handleNodeClick}
         onCreateIssue={handleCreateIssue}

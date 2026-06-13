@@ -349,5 +349,22 @@ describe('auditRepository', () => {
       });
       expect(result).toBe(7);
     });
+
+    it('should respect actor, traceId and date range filters (regression)', async () => {
+      vi.mocked(prisma.auditLog.count).mockResolvedValue(3);
+
+      const startDate = new Date('2026-01-01');
+      const endDate = new Date('2026-01-31');
+
+      await auditRepository.count({ actor: 'admin', traceId: 'trace-1', startDate, endDate });
+
+      expect(prisma.auditLog.count).toHaveBeenCalledWith({
+        where: {
+          actor: 'admin',
+          traceId: 'trace-1',
+          createdAt: { gte: startDate, lte: endDate },
+        },
+      });
+    });
   });
 });

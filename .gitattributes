@@ -1,0 +1,4 @@
+# Windows バッチランチャーは必ず CRLF で取得させる
+# （LF だと cmd.exe が正しく解釈できず start.bat が動かないため）
+*.bat text eol=crlf
+*.cmd text eol=crlf
