@@ -189,7 +189,7 @@ describe('GET /api/audit', () => {
     vi.mocked(prisma.auditLog.findMany).mockResolvedValueOnce([]);
     vi.mocked(prisma.auditLog.count).mockResolvedValueOnce(0);
 
-    const request = new Request('http://localhost:3000/api/audit?entityType=Nonexistent', {
+    const request = new Request('http://localhost:3000/api/audit?entityType=Evidence', {
       method: 'GET',
     });
 
@@ -205,6 +205,41 @@ describe('GET /api/audit', () => {
       hasMore: false,
     });
     expect(result.status).toBe(200);
+  });
+
+  it('should reject an invalid entityType with 400', async () => {
+    const request = new Request('http://localhost:3000/api/audit?entityType=Nonexistent', {
+      method: 'GET',
+    });
+
+    const result = await GET(request as any);
+    const body = getBody(result);
+
+    expect(body.ok).toBe(false);
+    expect(body.errorCode).toBe('VALIDATION_ERROR');
+    expect(result.status).toBe(400);
+    expect(prisma.auditLog.findMany).not.toHaveBeenCalled();
+  });
+
+  it('should filter by actor, traceId and date range', async () => {
+    vi.mocked(prisma.auditLog.findMany).mockResolvedValueOnce([]);
+    vi.mocked(prisma.auditLog.count).mockResolvedValueOnce(0);
+
+    const request = new Request(
+      'http://localhost:3000/api/audit?actor=admin&traceId=trace-1&startDate=2026-01-01&endDate=2026-01-31',
+      { method: 'GET' }
+    );
+
+    const result = await GET(request as any);
+    const body = getBody(result);
+
+    expect(body.ok).toBe(true);
+    const callArg = vi.mocked(prisma.auditLog.findMany).mock.calls[0][0] as any;
+    expect(callArg.where.actor).toBe('admin');
+    expect(callArg.where.traceId).toBe('trace-1');
+    expect(callArg.where.createdAt.gte).toBeInstanceOf(Date);
+    // endDate (date-only) must be normalized to end-of-day
+    expect(callArg.where.createdAt.lte.getHours()).toBe(23);
   });
 
   it('should return 500 on error', async () => {

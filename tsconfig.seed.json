@@ -1,0 +1,12 @@
+{
+  "//": "prisma/seed.ts を ts-node で実行するための設定。base の module:esnext を CommonJS に上書きし、Windows cmd でのCLI JSONクォート問題を回避する（-P で参照）。",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["prisma/**/*.ts"]
+}

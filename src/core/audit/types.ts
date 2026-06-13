@@ -93,6 +93,7 @@ export interface AuditQueryOptions {
   entityType?: AuditEntityType;
   entityId?: string;
   action?: AuditAction;
+  actor?: string;
   traceId?: string;
   startDate?: Date;
   endDate?: Date;

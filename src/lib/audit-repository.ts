@@ -12,6 +12,47 @@ import {
   AuditQueryOptions,
 } from '@/core/audit';
 
+/**
+ * AuditQueryOptions から Prisma の where 句を構築する。
+ * findMany / count / route handler で共用し、フィルタ漏れを防ぐ。
+ */
+export function buildAuditWhere(options: AuditQueryOptions): Record<string, unknown> {
+  const where: Record<string, unknown> = {};
+
+  if (options.entityType) {
+    where.entityType = options.entityType;
+  }
+
+  if (options.entityId) {
+    where.entityId = options.entityId;
+  }
+
+  if (options.action) {
+    where.action = options.action;
+  }
+
+  if (options.actor) {
+    where.actor = options.actor;
+  }
+
+  if (options.traceId) {
+    where.traceId = options.traceId;
+  }
+
+  if (options.startDate || options.endDate) {
+    const createdAt: Record<string, Date> = {};
+    if (options.startDate) {
+      createdAt.gte = options.startDate;
+    }
+    if (options.endDate) {
+      createdAt.lte = options.endDate;
+    }
+    where.createdAt = createdAt;
+  }
+
+  return where;
+}
+
 class PrismaAuditRepository implements IAuditLogRepository {
   async create(entry: AuditLogEntry): Promise<AuditLogRecord> {
     const record = await prisma.auditLog.create({
@@ -38,33 +79,7 @@ class PrismaAuditRepository implements IAuditLogRepository {
   }
 
   async findMany(options: AuditQueryOptions): Promise<AuditLogRecord[]> {
-    const where: Record<string, unknown> = {};
-
-    if (options.entityType) {
-      where.entityType = options.entityType;
-    }
-
-    if (options.entityId) {
-      where.entityId = options.entityId;
-    }
-
-    if (options.action) {
-      where.action = options.action;
-    }
-
-    if (options.traceId) {
-      where.traceId = options.traceId;
-    }
-
-    if (options.startDate || options.endDate) {
-      where.createdAt = {};
-      if (options.startDate) {
-        (where.createdAt as Record<string, Date>).gte = options.startDate;
-      }
-      if (options.endDate) {
-        (where.createdAt as Record<string, Date>).lte = options.endDate;
-      }
-    }
+    const where = buildAuditWhere(options);
 
     const records = await prisma.auditLog.findMany({
       where,
@@ -86,20 +101,7 @@ class PrismaAuditRepository implements IAuditLogRepository {
   }
 
   async count(options: AuditQueryOptions): Promise<number> {
-    const where: Record<string, unknown> = {};
-
-    if (options.entityType) {
-      where.entityType = options.entityType;
-    }
-
-    if (options.entityId) {
-      where.entityId = options.entityId;
-    }
-
-    if (options.action) {
-      where.action = options.action;
-    }
-
+    const where = buildAuditWhere(options);
     return prisma.auditLog.count({ where });
   }
 }

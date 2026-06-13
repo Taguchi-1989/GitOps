@@ -6,9 +6,22 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// Prisma 7 はドライバアダプタ必須。src/lib/prisma.ts と同じ構築方法を使う。
+// DATABASE_URL 未設定時は SQLite (prisma/dev.db) にフォールバック。
+function createPrismaClient(): PrismaClient {
+  const url = process.env.DATABASE_URL ?? 'file:./prisma/dev.db';
+  const adapter =
+    url.startsWith('postgresql://') || url.startsWith('postgres://')
+      ? new PrismaPg({ connectionString: url })
+      : new PrismaBetterSqlite3({ url });
+  return new PrismaClient({ adapter });
+}
+
+const prisma = createPrismaClient();
 
 async function main() {
   // ─── Admin User ───────────────────────────────────────

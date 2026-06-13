@@ -11,9 +11,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { FlowExportImport } from './FlowExportImport';
+import { FlowGridEditor } from './grid/FlowGridEditor';
 import { Flow, stringifyFlow } from '@/core/parser';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
-import { ArrowLeft, FileText, Layers, Eye, Code, AlertCircle, Upload } from 'lucide-react';
+import { ArrowLeft, FileText, Layers, Eye, Code, AlertCircle, Upload, Table2 } from 'lucide-react';
 import { EditorToolbar } from './editor/EditorToolbar';
 import { NodeEditPanel } from './editor/NodeEditPanel';
 import { EdgeEditPanel } from './editor/EdgeEditPanel';
@@ -35,6 +36,7 @@ interface FlowViewerProps {
   flow: Flow;
   mermaidContent: string;
   yamlContent?: string;
+  baseHash?: string;
   onBack?: () => void;
   onNodeClick?: (nodeId: string) => void;
   onCreateIssue?: (nodeId?: string) => void;
@@ -51,6 +53,7 @@ export function FlowViewer({
   flow,
   mermaidContent,
   yamlContent,
+  baseHash,
   onBack,
   onNodeClick,
   onCreateIssue,
@@ -58,7 +61,9 @@ export function FlowViewer({
 }: FlowViewerProps) {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'diagram' | 'data' | 'export-import'>('diagram');
+  const [activeTab, setActiveTab] = useState<'diagram' | 'data' | 'grid' | 'export-import'>(
+    'diagram'
+  );
   const [editable, setEditable] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -274,6 +279,23 @@ export function FlowViewer({
             <Code className="w-4 h-4 inline mr-1" />
             生データ
           </button>
+          {baseHash && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('grid')}
+              className={`
+                px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
+                ${
+                  activeTab === 'grid'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }
+              `}
+            >
+              <Table2 className="w-4 h-4 inline mr-1" />
+              グリッド
+            </button>
+          )}
           {yamlContent && (
             <button
               type="button"
@@ -361,6 +383,10 @@ export function FlowViewer({
             <pre className="p-4 bg-gray-900 text-gray-100 rounded-lg text-sm overflow-x-auto">
               {JSON.stringify(displayedFlow, null, 2)}
             </pre>
+          ) : activeTab === 'grid' ? (
+            baseHash ? (
+              <FlowGridEditor flow={displayedFlow} baseHash={baseHash} />
+            ) : null
           ) : displayedYaml ? (
             <FlowExportImport
               flow={displayedFlow}
