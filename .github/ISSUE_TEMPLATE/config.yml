@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: AIMS 運用ルール（正本）
+    url: https://github.com/Taguchi-1989/GitOps/blob/master/docs/aims/aims-policy.md
+    about: AI 方針・運用ルールはこちら。起票前に種別の判断に迷ったら参照。
+  - name: AIMS コントロール対応表（SoA）
+    url: https://github.com/Taguchi-1989/GitOps/blob/master/docs/aims/iso42001-control-mapping.md
+    about: ISO/IEC 42001 Annex A と FlowOps の対応・ギャップ一覧。

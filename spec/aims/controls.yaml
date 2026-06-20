@@ -1,0 +1,229 @@
+# FlowOps AIMS コントロール台帳（ISO/IEC 42001:2023 Annex A）
+# 適用宣言書（Statement of Applicability, SoA）のデータ正本。
+# docs/aims/iso42001-control-mapping.md はこの YAML を人間可読に展開したもの。
+#
+# status の意味:
+#   met       … 既存の仕組みで充足（証跡あり）
+#   partial   … 部分的に充足（ギャップあり / Issue で追跡）
+#   planned   … 未実装だが対応方針あり（Issue 化）
+#   na        … 適用除外（理由を justification に明記）
+#
+# applicable: AIMS スコープに対して当該コントロールを適用するか（na の場合のみ false）
+schemaVersion: 1
+standard: "ISO/IEC 42001:2023"
+scope: "FlowOps の AI 関連機能（Intake / Proposal 生成 / リスク・影響評価アシスト / Agent 説明）"
+lastReviewed: "2026-06-20"
+owner: "product-owner"
+
+controls:
+  - id: A.2.2
+    title: AI 方針
+    applicable: true
+    status: met
+    flowops: DecisionOps 5ルール + AI 方針声明
+    evidence: docs/aims/aims-policy.md
+  - id: A.2.3
+    title: 組織方針との整合
+    applicable: true
+    status: met
+    flowops: AI 方針 §2（上位方針・価値との整合を明記）
+    evidence: docs/aims/aims-policy.md#2
+  - id: A.2.4
+    title: AI 方針のレビュー
+    applicable: true
+    status: partial
+    flowops: 半期レビュー期限を設定（マネジメントレビューで承認）
+    evidence: docs/aims/aims-policy.md
+    gapIssue: "レビュー実施記録のテンプレ未整備"
+  - id: A.3.2
+    title: 役割・責任の割当
+    applicable: true
+    status: met
+    flowops: 簡易 RACI（PO / テックリード / 改善担当 / 起票者 / 承認者）
+    evidence: docs/aims/aims-policy.md#4
+  - id: A.3.3
+    title: 懸念の通報
+    applicable: true
+    status: partial
+    flowops: aims:nonconformity Issue による通報経路
+    evidence: .github/ISSUE_TEMPLATE/aims-nonconformity.yml
+    gapIssue: "匿名・報復防止の運用明文化が未"
+  - id: A.4.2
+    title: 資源の文書化
+    applicable: true
+    status: met
+    flowops: docs/aims/** と spec/aims/** を管理文書化
+    evidence: docs/aims/README.md
+  - id: A.4.3
+    title: データ資源
+    applicable: true
+    status: met
+    flowops: 辞書（roles/systems/sensitivity-levels）+ Git 正本
+    evidence: spec/dictionary/
+  - id: A.4.4
+    title: ツール資源
+    applicable: true
+    status: met
+    flowops: LiteLLM ゲートウェイ + Langfuse 可観測性
+    evidence: infrastructure/litellm/config.yaml
+  - id: A.4.5
+    title: システム・計算資源
+    applicable: true
+    status: partial
+    flowops: Docker / PostgreSQL 構成
+    evidence: docker-compose.yml
+    gapIssue: "LLM コスト/計算資源の上限ガード未整備（backlog F-1）"
+  - id: A.4.6
+    title: 人的資源・力量
+    applicable: true
+    status: partial
+    flowops: RACI で役割定義
+    evidence: docs/aims/aims-policy.md#4
+    gapIssue: "AI リテラシ/教育（箇条 7.2-7.3）の記録が未"
+  - id: A.5.2
+    title: AI システム影響評価プロセス
+    applicable: true
+    status: partial
+    flowops: 安全レビューゲート + 影響評価 Issue テンプレ
+    evidence: docs/aims/risk-and-impact-assessment.md
+    gapIssue: "影響評価の必須トリガ条件をゲートに機械判定として実装"
+  - id: A.5.3
+    title: 影響評価の文書化
+    applicable: true
+    status: met
+    flowops: 影響評価 Issue + AuditLog + assumptions スナップショット
+    evidence: .github/ISSUE_TEMPLATE/aims-impact-assessment.yml
+  - id: A.5.4
+    title: 個人・集団への影響評価
+    applicable: true
+    status: partial
+    flowops: 影響評価手順 §影響カテゴリ
+    evidence: docs/aims/risk-and-impact-assessment.md
+    gapIssue: "個人/集団影響のチェックリスト具体化"
+  - id: A.5.5
+    title: 社会への影響評価
+    applicable: true
+    status: partial
+    flowops: 影響評価手順 §影響カテゴリ
+    evidence: docs/aims/risk-and-impact-assessment.md
+  - id: A.6.1
+    title: ライフサイクルの管理指針
+    applicable: true
+    status: met
+    flowops: "draft → reviewed → approved → active → deprecated"
+    evidence: docs/decisionops-operating-model.md
+  - id: A.6.2.2
+    title: 責任ある設計・開発プロセス
+    applicable: true
+    status: met
+    flowops: Issue → Proposal → 承認 → commit の決定論パイプライン
+    evidence: docs/agent-first-deterministic-pipeline.md
+  - id: A.6.2.4
+    title: 要求・仕様
+    applicable: true
+    status: met
+    flowops: spec/flows / spec/tasks / spec/gates（Zod 検証）
+    evidence: spec/
+  - id: A.6.2.6
+    title: 検証・妥当性確認
+    applicable: true
+    status: partial
+    flowops: vitest + 構造検証 + 受入ゲート
+    evidence: vitest.config.mts
+    gapIssue: "E2E クリティカルパス未自動化（backlog B-1）"
+  - id: A.6.2.7
+    title: 運用・監視
+    applicable: true
+    status: partial
+    flowops: pino 構造化ログ + 監査メトリクス
+    evidence: src/lib/logger.ts
+    gapIssue: "提案採択率/差し戻し率の運用 KPI 未整備（backlog D-3）"
+  - id: A.6.2.8
+    title: イベントログ・追跡可能性
+    applicable: true
+    status: met
+    flowops: AuditLog + traceId(AsyncLocalStorage) + GateEvaluation 二重記録
+    evidence: src/lib/trace-context.ts
+  - id: A.7.2
+    title: 開発用データの管理
+    applicable: true
+    status: met
+    flowops: spec/** を Git 正本としてバージョン管理
+    evidence: spec/
+  - id: A.7.4
+    title: データ品質
+    applicable: true
+    status: partial
+    flowops: 辞書整合チェック（validateFlow）
+    evidence: src/core/orchestrator/
+    gapIssue: "辞書参照の不統一（backlog A-2）"
+  - id: A.7.5
+    title: データの出所（来歴）
+    applicable: true
+    status: met
+    flowops: Git 履歴 + AuditLog による来歴記録
+    evidence: src/lib/trace-context.ts
+  - id: A.7.6
+    title: データ準備
+    applicable: true
+    status: met
+    flowops: Intake による入力構造化（人レビュー前提）
+    evidence: docs/decisionops-operating-model.md
+  - id: A.8.2
+    title: システム文書
+    applicable: true
+    status: partial
+    flowops: README + docs/**
+    evidence: README.md
+    gapIssue: "README 陳腐化（backlog C-1）"
+  - id: A.8.3
+    title: 外部への報告
+    applicable: true
+    status: na
+    applicableReason: ""
+    justification: "現時点で外部公開・第三者提供を行わない社内ツール。提供開始時に再評価。"
+  - id: A.8.4
+    title: インシデントの伝達
+    applicable: true
+    status: partial
+    flowops: aims:nonconformity Issue（インシデント分類を含む）
+    evidence: .github/ISSUE_TEMPLATE/aims-nonconformity.yml
+    gapIssue: "重大インシデントのエスカレーション SLA 未定義"
+  - id: A.8.5
+    title: 利用者への情報提供
+    applicable: true
+    status: partial
+    flowops: Agent 説明（何が分かったか/前提/不足証跡）
+    evidence: docs/decisionops-operating-model.md
+    gapIssue: "AI 利用であることの UI 明示（ディスクロージャ）未確認"
+  - id: A.9.2
+    title: 責任ある利用プロセス
+    applicable: true
+    status: met
+    flowops: Decision Card による人間監督（理由必須の承認/差し戻し）
+    evidence: docs/decisionops-operating-model.md
+  - id: A.9.4
+    title: 意図した利用
+    applicable: true
+    status: met
+    flowops: AI=助言者という位置づけを方針で固定
+    evidence: docs/aims/aims-policy.md#1
+  - id: A.10.2
+    title: 第三者への責任配分
+    applicable: true
+    status: partial
+    flowops: LLM プロバイダ（LiteLLM 経由）への依存を明示
+    evidence: infrastructure/litellm/config.yaml
+    gapIssue: "プロバイダ責任分界・データ取扱条項の整理が未"
+  - id: A.10.3
+    title: 供給者
+    applicable: true
+    status: planned
+    flowops: ""
+    evidence: ""
+    gapIssue: "LLM/クラウド供給者の評価基準を定義（Issue 化）"
+  - id: A.10.4
+    title: 顧客
+    applicable: true
+    status: na
+    justification: "外部顧客提供前の社内ツール。提供開始時に再評価。"

@@ -1,0 +1,62 @@
+name: "AIMS: 変更要求 (Change Request)"
+description: "AI システム / ロジック / 管理策の変更を申請する（ISO/IEC 42001 8.1 / A.6）"
+title: "[AI-Change] "
+labels: ["aims", "aims:change"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        AI システム・ロジック・ゲート・前提・管理策の変更を申請します。
+        **Rule 1/2**: LLM 出力は提案にすぎず、人のレビューと承認を経て `active` 化されます。
+  - type: input
+    id: target
+    attributes:
+      label: 変更対象
+      placeholder: "例: spec/gates/safety-review-gate.yaml / risk-estimation の計算式"
+    validations:
+      required: true
+  - type: dropdown
+    id: change-type
+    attributes:
+      label: 変更種別
+      options:
+        - "フロー変更 (flow-change)"
+        - "ゲート/受入基準変更 (acceptance-gate)"
+        - "計算式/前提変更 (decision-review)"
+        - "ルール/管理策変更 (policy)"
+        - "データ辞書変更 (data)"
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: 変更理由 (なぜ必要か)
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 影響範囲 (どのフロー / 工程 / 利用者に影響するか)
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: 想定リスクレベル
+      options: ["低", "中", "高"]
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: バージョン管理情報 (Rule 3)
+      description: "現行と変更後の version / 前提 id / 影響する output_hash 等"
+  - type: checkboxes
+    id: lifecycle
+    attributes:
+      label: ライフサイクル・チェック (Rule 2)
+      options:
+        - label: 中以上のリスクは AI Risk Issue を起票する
+        - label: 高リスクは Impact Assessment Issue を起票する
+        - label: active 化前に人承認 (Decision Card) を通す
+        - label: 変更は Git commit + AuditLog に記録される

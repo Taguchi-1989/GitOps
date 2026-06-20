@@ -1,0 +1,69 @@
+name: "AIMS: 不適合・インシデント (Nonconformity)"
+description: "ルール/ゲート/管理策からの逸脱・AI インシデントを起票し是正する（ISO/IEC 42001 10.1 / A.8.4）"
+title: "[AI-NC] "
+labels: ["aims", "aims:nonconformity"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ルール・ゲート・管理策の逸脱、または AI インシデントを記録します。**懸念は報復なく通報できます（A.3.3）**。
+        是正フローは [risk-and-impact-assessment.md §5](../blob/master/docs/aims/risk-and-impact-assessment.md) を参照。
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 種別
+      options:
+        - "ルール逸脱 (DecisionOps 5ルール / 方針)"
+        - "管理策のすり抜け (ゲート / 承認 / ライフサイクル)"
+        - "AI インシデント (誤動作 / 機微データ漏れ / コスト暴走 等)"
+        - "監査ログ欠損・追跡不能"
+        - "その他"
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 深刻度
+      options: ["低", "中", "高", "重大 (即時エスカレーション)"]
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 事象 (何が起きたか / どう検出したか)
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影響 (誰に / 何に / 可逆か)
+    validations:
+      required: true
+  - type: input
+    id: related-control
+    attributes:
+      label: 関連コントロール / ルール
+      placeholder: "例: A.6.2.8, Rule 2"
+  - type: textarea
+    id: immediate-action
+    attributes:
+      label: 一次対応 (実施済み / 必要)
+      description: "例: 該当ロジックを active から外した / 差し戻した"
+  - type: textarea
+    id: root-cause
+    attributes:
+      label: 原因分析 (なぜ管理策をすり抜けたか)
+      description: "人 / 仕組み / データ のどこに穴があったか"
+  - type: textarea
+    id: corrective-action
+    attributes:
+      label: 是正処置 (恒久対策)
+      description: "追加/修正する管理策（ゲート / テスト / ルール）。Proposal 化して標準化まで。"
+  - type: checkboxes
+    id: closure
+    attributes:
+      label: クローズ条件
+      options:
+        - label: 有効性確認 (再発しないことを検証) を行う
+        - label: 恒久対策を spec/** に正本化する
+        - label: AuditLog に是正の証跡を残す

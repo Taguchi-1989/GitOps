@@ -1,0 +1,66 @@
+name: "AIMS: AI リスク (Risk)"
+description: "AI 固有のリスクを起票する（ISO/IEC 42001 6.1.2 / 8.2）"
+title: "[AI-Risk] "
+labels: ["aims", "aims:risk"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        AI に関するリスクを記録します。手順は [risk-and-impact-assessment.md](../blob/master/docs/aims/risk-and-impact-assessment.md) を参照。
+        **影響評価が必要なリスク（中以上）は、別途 Impact Assessment Issue も起票してください。**
+  - type: input
+    id: target
+    attributes:
+      label: 対象 (AI 機能 / ロジック / データ範囲)
+      placeholder: "例: Proposal 生成 LLM / risk-estimation タスク / spec/tasks/*.yaml"
+    validations:
+      required: true
+  - type: textarea
+    id: risk-source
+    attributes:
+      label: リスク源 (何が問題になりうるか)
+      description: "AI 固有観点（誤提案の本番反映 / バイアス / ハルシネーション / 機微データ送信 / プロバイダ依存 / コスト暴走 など）"
+    validations:
+      required: true
+  - type: dropdown
+    id: likelihood
+    attributes:
+      label: 起こりやすさ
+      options: ["低", "中", "高"]
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 影響度
+      options: ["低", "中", "高", "受容不可"]
+    validations:
+      required: true
+  - type: dropdown
+    id: risk-level
+    attributes:
+      label: 総合リスクレベル
+      description: "受容基準は手順書 §4 を参照"
+      options: ["低", "中", "高", "受容不可"]
+    validations:
+      required: true
+  - type: textarea
+    id: treatment
+    attributes:
+      label: リスク対応 (回避 / 低減 / 移転 / 受容)
+      description: "選んだ対応と、落とし込む管理策（ゲート / 人承認 / 制限 / テスト）"
+    validations:
+      required: true
+  - type: input
+    id: version-link
+    attributes:
+      label: 関連バージョン (formula_version / assumption_id 等)
+      description: "Rule 3: 計算式・前提のバージョンを紐付ける"
+  - type: checkboxes
+    id: gates
+    attributes:
+      label: 適用前チェック
+      options:
+        - label: 中以上のリスクのため Impact Assessment Issue を起票した（または不要と判断した）
+        - label: active 化前に安全レビューゲート / 人承認を通す計画がある
+        - label: AuditLog に記録される操作経路で実施する

@@ -142,3 +142,23 @@ interface ApiResponse<T> {
   details?: string;
 }
 ```
+
+## AIMS（ISO/IEC 42001）連携
+
+Issue は AIMS の主要な記録媒体。ガバナンス文脈は `aims` ラベル＋種別ラベルで分類し、
+起票テンプレ（`.github/ISSUE_TEMPLATE/aims-*.yml`）を入口にする。
+正本: [docs/aims/aims-policy.md](../../../docs/aims/aims-policy.md) / SoA: [iso42001-control-mapping.md](../../../docs/aims/iso42001-control-mapping.md)。
+
+| 種別ラベル | テンプレ | ISO 42001 |
+| --- | --- | --- |
+| `aims:risk` | aims-risk.yml | 6.1.2 / 8.2 |
+| `aims:impact` | aims-impact-assessment.yml | 6.1.4 / A.5 |
+| `aims:nonconformity` | aims-nonconformity.yml | 10.1 / A.8.4 |
+| `aims:change` | aims-change-request.yml | 8.1 / A.6 |
+| `aims:improvement` | aims-improvement.yml | 10.2 |
+
+遵守事項:
+- Rule 1/2: `proposed → merged` は Decision Card の人承認を経るまで `active` 反映しない。
+- Rule 3: 計算式・前提を変える Issue は `formula_version`/`assumption_id` を記録。
+- A.6.2.8: 状態遷移・統合・是正は AuditLog に残す（`ISSUE_CREATE`/`GATE_EVALUATE` 等を欠損させない）。
+- 10.1: `aims:nonconformity` は PDCA Check/Act（`checkResult`/`standardizedAt`）で標準化まで追跡。
