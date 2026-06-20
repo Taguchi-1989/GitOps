@@ -1,0 +1,69 @@
+name: "AIMS: 影響評価 (Impact Assessment)"
+description: "AI システムの個人・集団・社会への影響を評価する（ISO/IEC 42001 6.1.4 / 8.4 / A.5）"
+title: "[AI-Impact] "
+labels: ["aims", "aims:impact"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        AI システムが**人・社会に与える影響**を評価します。高リスク（人身安全・個人/集団への重大影響・法規制）は本評価が必須です。
+  - type: input
+    id: target
+    attributes:
+      label: 対象 AI システム / 変更
+      placeholder: "例: ai-inquiry-handling フローの自動応答ドラフト"
+    validations:
+      required: true
+  - type: textarea
+    id: intended-use
+    attributes:
+      label: 意図した利用 (A.9.4)
+      description: "誰が、何のために、どの範囲で使うか"
+    validations:
+      required: true
+  - type: textarea
+    id: impact-individual
+    attributes:
+      label: 個人への影響 (A.5.4)
+      description: "特定個人の権利・安全・機会への影響。深刻度・可逆性・緩和策を記述。なければ「なし」と根拠。"
+    validations:
+      required: true
+  - type: textarea
+    id: impact-group
+    attributes:
+      label: 集団への影響 (A.5.4)
+      description: "特定集団への不利益・偏り。なければ「なし」と根拠。"
+    validations:
+      required: true
+  - type: textarea
+    id: impact-society
+    attributes:
+      label: 社会への影響 (A.5.5)
+      description: "法規制・安全規格・社会的信頼への影響。なければ「なし」と根拠。"
+    validations:
+      required: true
+  - type: input
+    id: assumptions
+    attributes:
+      label: 評価時の前提 (assumption スナップショット)
+      placeholder: "例: spec/assumptions/safety-review-assumptions.yaml@<commit>"
+  - type: dropdown
+    id: decision
+    attributes:
+      label: 判定
+      options:
+        - "Go (許容、active 化可)"
+        - "Revise (緩和策を加えて再評価)"
+        - "Hold (保留)"
+        - "Stop (active 化禁止 / 設計変更 or 中止)"
+        - "Watch (条件付きで監視)"
+    validations:
+      required: true
+  - type: checkboxes
+    id: gates
+    attributes:
+      label: 適用前チェック
+      options:
+        - label: 高リスクの場合、安全レビューゲートを通過する計画がある
+        - label: 二重承認（高リスク時）の対象であることを承認者に共有した
+        - label: 影響評価結果を AuditLog / Decision Card に残す

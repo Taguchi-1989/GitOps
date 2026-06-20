@@ -1,0 +1,47 @@
+name: "AIMS: 改善 (Improvement)"
+description: "AIMS / ガバナンスの継続的改善を提案する（ISO/IEC 42001 10.2）"
+title: "[AI-Improve] "
+labels: ["aims", "aims:improvement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        AI ガバナンス・管理策・運用の改善を提案します。差し戻し・不適合は改善の入力です（Rule 5）。
+        既存の改善バックログ（[improvement-backlog-pdca.md](../blob/master/docs/improvement-backlog-pdca.md)）と重複する場合はそちらを正本に。
+  - type: textarea
+    id: current
+    attributes:
+      label: 現状の困りごと (Plan)
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する状態
+    validations:
+      required: true
+  - type: input
+    id: control
+    attributes:
+      label: 関連 AIMS コントロール / メトリクス
+      placeholder: "例: A.2.4 / A.5.2 / 提案採択率"
+  - type: input
+    id: metric
+    attributes:
+      label: 効果を測る指標 (Check)
+      placeholder: "例: 影響評価実施率を 100% にする"
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 重大度
+      options: ["🟢 Low", "🟡 Med", "🔴 High"]
+    validations:
+      required: true
+  - type: checkboxes
+    id: dor
+    attributes:
+      label: Definition of Ready
+      options:
+        - label: 課題と期待効果が 1 行で言える
+        - label: 受入条件 (KPI もしくは検証手順) がある
+        - label: 影響ファイルが特定済み
