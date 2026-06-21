@@ -438,14 +438,14 @@ OpenAI互換APIを使用し、複数のLLMプロバイダーに対応。`LLM_PRO
 
 ### 対応プロバイダー一覧
 
-| プロバイダー      | `LLM_PROVIDER` | デフォルトモデル             | JSON Mode | ベースURL                                                 |
-| ----------------- | -------------- | ---------------------------- | --------- | --------------------------------------------------------- |
-| OpenAI            | `openai`       | `gpt-4o`                     | Yes       | `https://api.openai.com/v1`                               |
-| Anthropic         | `anthropic`    | `claude-sonnet-4-5-20250929` | No        | `https://api.anthropic.com/v1`                            |
-| Google Gemini     | `gemini`       | `gemini-2.0-flash`           | Yes       | `https://generativelanguage.googleapis.com/v1beta/openai` |
-| Groq              | `groq`         | `llama-3.3-70b-versatile`    | Yes       | `https://api.groq.com/openai/v1`                          |
-| Ollama (ローカル) | `ollama`       | `llama3.2`                   | Yes       | `http://localhost:11434/v1`                               |
-| カスタム          | `custom`       | -                            | 要設定    | `LLM_BASE_URL`で指定                                      |
+| プロバイダー      | `LLM_PROVIDER` | デフォルトモデル          | JSON Mode | ベースURL                                                 |
+| ----------------- | -------------- | ------------------------- | --------- | --------------------------------------------------------- |
+| OpenAI            | `openai`       | `gpt-4o`                  | Yes       | `https://api.openai.com/v1`                               |
+| Anthropic         | `anthropic`    | `claude-sonnet-4-6`       | No        | `https://api.anthropic.com/v1`                            |
+| Google Gemini     | `gemini`       | `gemini-2.5-flash`        | Yes       | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| Groq              | `groq`         | `llama-3.3-70b-versatile` | Yes       | `https://api.groq.com/openai/v1`                          |
+| Ollama (ローカル) | `ollama`       | `llama3.2`                | Yes       | `http://localhost:11434/v1`                               |
+| カスタム          | `custom`       | -                         | 要設定    | `LLM_BASE_URL`で指定                                      |
 
 ### プロバイダー別 .env.local 設定例
 
@@ -462,7 +462,7 @@ LLM_API_KEY=sk-xxxxxxxxxxxxxxxx
 ```bash
 LLM_PROVIDER=anthropic
 LLM_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
-# LLM_MODEL=claude-sonnet-4-5-20250929  (デフォルト)
+# LLM_MODEL=claude-sonnet-4-6  (デフォルト)
 # JSON mode非対応のため、レスポンスからJSON部分を自動抽出
 ```
 
@@ -471,7 +471,7 @@ LLM_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
 ```bash
 LLM_PROVIDER=gemini
 LLM_API_KEY=AIzaxxxxxxxxxxxxxxxxx
-# LLM_MODEL=gemini-2.0-flash  (デフォルト)
+# LLM_MODEL=gemini-2.5-flash  (デフォルト)
 ```
 
 #### Groq
