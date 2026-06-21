@@ -14,6 +14,13 @@ import {
   DetectionClass,
 } from './types';
 
+/**
+ * 走査対象の最大長（文字）。これを超える入力は ReDoS の温床かつ正規表現の
+ * バックトラッキングで event loop を専有しうるため、走査せず安全側（block）へ倒す。
+ * 「過大入力＝疑わしい」を fail-safe で扱う（ING-2 / セキュリティレビュー指摘）。
+ */
+export const MAX_SCAN_LENGTH = 100_000;
+
 /** 結合型を伏字化する際の置換トークン（実体は残さない） */
 function maskToken(patternId: string): string {
   return `«REDACTED:${patternId}»`;
@@ -73,23 +80,34 @@ function classify(
  *  - いずれも無ければ pass
  */
 export function scanIngress(text: string, policy: IngressPolicy): IngressEvaluation {
-  const detections: IngressDetection[] = [];
-  let working = text;
+  // 過大入力は走査せず安全側へ倒す（ReDoS 回避 + fail-safe）。
+  if (text.length > MAX_SCAN_LENGTH) {
+    return {
+      policyId: policy.id,
+      policyVersion: policy.version,
+      decision: 'block',
+      tier: 'thick',
+      detections: [
+        {
+          patternId: '__length_exceeded__',
+          classification: 'uncertain',
+          kind: 'combination',
+          confidence: 0,
+          count: 1,
+        },
+      ],
+      maskedText: text,
+      maskedCount: 0,
+    };
+  }
 
-  // まずは検出のみ（分類確定）。マスクは「最終 decision が mask のとき」に効かせたいが、
-  // 結合型の伏字化はテキスト変換を伴うため、検出と同時に working へ適用しておき、
-  // decision が block/pass の場合は maskedText を使わない（元テキストを返す）。
+  // ── Pass 1: 元テキストに対してのみ検出（変換しない）。
+  // これにより、結合型のマスクが後続の値型検出を覆い隠す相互作用を排除する
+  // （セキュリティレビュー MEDIUM 指摘 = パターン順序依存の解消）。
+  const detections: IngressDetection[] = [];
   for (const pattern of policy.patterns) {
     const classification = classify(pattern.kind, pattern.confidence, policy.confidenceThreshold);
-    // 伏字化はマスク可能な結合型のみ。value/uncertain は実体を残さず block する前提なので変換しない。
-    const shouldMask = classification === 'combination';
-    const { count, text: nextText } = applyPattern(
-      working,
-      pattern.id,
-      pattern.regex,
-      pattern.flags,
-      shouldMask
-    );
+    const { count } = applyPattern(text, pattern.id, pattern.regex, pattern.flags, false);
     if (count > 0) {
       detections.push({
         patternId: pattern.id,
@@ -98,9 +116,6 @@ export function scanIngress(text: string, policy: IngressPolicy): IngressEvaluat
         confidence: pattern.confidence,
         count,
       });
-      if (shouldMask) {
-        working = nextText;
-      }
     }
   }
 
@@ -131,14 +146,26 @@ export function scanIngress(text: string, policy: IngressPolicy): IngressEvaluat
     tier = 'thin';
   }
 
+  // ── Pass 2: decision が mask のときのみ、結合型を伏字化する。
+  // block/pass では外部送出しない or 機密が無いため変換不要。
+  let maskedText = text;
+  if (decision === 'mask') {
+    for (const pattern of policy.patterns) {
+      if (
+        classify(pattern.kind, pattern.confidence, policy.confidenceThreshold) === 'combination'
+      ) {
+        maskedText = applyPattern(maskedText, pattern.id, pattern.regex, pattern.flags, true).text;
+      }
+    }
+  }
+
   return {
     policyId: policy.id,
     policyVersion: policy.version,
     decision,
     tier,
     detections,
-    // block / pass では伏字化テキストを採用しない（元テキストを返す）
-    maskedText: decision === 'mask' ? working : text,
+    maskedText,
     maskedCount: decision === 'mask' ? maskedCount : 0,
   };
 }

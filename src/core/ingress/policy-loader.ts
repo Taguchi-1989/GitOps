@@ -32,7 +32,8 @@ export const DEFAULT_INGRESS_POLICY: IngressPolicy = IngressPolicySchema.parse({
       id: 'email',
       kind: 'combination',
       description: 'メールアドレス',
-      regex: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}',
+      // 量指定子を上限付きに（ReDoS の O(n^2) バックトラッキング回避）
+      regex: '[A-Za-z0-9._%+-]{1,254}@[A-Za-z0-9.-]{1,253}\\.[A-Za-z]{2,63}',
       confidence: 0.9,
     },
     {
@@ -60,8 +61,9 @@ export const DEFAULT_INGRESS_POLICY: IngressPolicy = IngressPolicySchema.parse({
     {
       id: 'github-pat',
       kind: 'value',
-      description: 'GitHub PAT',
-      regex: 'ghp_[A-Za-z0-9]{36}',
+      description: 'GitHub トークン（PAT/App/OAuth/user-to-server）',
+      // ghp_/gho_/ghu_/ghs_/ghr_ を網羅
+      regex: 'gh[pousr]_[A-Za-z0-9]{36,}',
       confidence: 0.95,
     },
     {
@@ -82,7 +84,7 @@ export const DEFAULT_INGRESS_POLICY: IngressPolicy = IngressPolicySchema.parse({
       id: 'bearer-token',
       kind: 'value',
       description: 'Authorization Bearer トークン',
-      regex: 'bearer\\s+[A-Za-z0-9._-]{16,}',
+      regex: 'bearer\\s+[A-Za-z0-9._-]{12,}',
       flags: 'i',
       confidence: 0.8,
     },

@@ -44,7 +44,8 @@ export const IngressPolicySchema = z.object({
   confidenceThreshold: z.number().min(0).max(1).default(0.5),
   // POL-3: 判定不能・値型検出時の既定動作。安全側のみ許容（block 固定）
   failSafe: z.literal('block').default('block'),
-  patterns: z.array(IngressPatternSchema).default([]),
+  // パターン0件のポリシーは全件素通しになり危険 → 最低1件を要求（セキュリティレビュー指摘）
+  patterns: z.array(IngressPatternSchema).min(1, 'ポリシーは最低1件の検出パターンを要する'),
 });
 export type IngressPolicy = z.infer<typeof IngressPolicySchema>;
 
