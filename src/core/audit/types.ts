@@ -75,6 +75,15 @@ export const AuditEntityTypeSchema = z.enum([
 export type AuditEntityType = z.infer<typeof AuditEntityTypeSchema>;
 
 // --------------------------------------------------------
+// Audit Severity Tier (ガバナンス・ハーネス §6.2 階層化監査)
+// --------------------------------------------------------
+// thin  : 通過（安全側で素通り）。最小記録・時間減衰で日次サマリへ畳む対象
+// thick : 例外（人へエスカレーション）。判断文脈を保持・長期
+// full  : インシデント（ポリシー違反検出）。再現可能な完全証跡・最長期
+export const AuditTierSchema = z.enum(['thin', 'thick', 'full']);
+export type AuditTier = z.infer<typeof AuditTierSchema>;
+
+// --------------------------------------------------------
 // Audit Log Entry
 // --------------------------------------------------------
 export interface AuditLogEntry {
@@ -84,6 +93,13 @@ export interface AuditLogEntry {
   traceId?: string;
   payload?: Record<string, unknown>;
   actor?: string;
+
+  // ガバナンス・ハーネス POL-2/LOG-4: 判定時のポリシー版とその内容ハッシュ
+  policyVersion?: string;
+  policyHash?: string;
+
+  // ガバナンス・ハーネス §6.2: 重大度層（既定は thin）
+  severity?: AuditTier;
 }
 
 // --------------------------------------------------------
@@ -95,6 +111,9 @@ export interface AuditQueryOptions {
   action?: AuditAction;
   actor?: string;
   traceId?: string;
+  // ガバナンス・ハーネス: コンテンツアドレス / ポリシー版での照会（重複排除・版追跡）
+  contentHash?: string;
+  policyVersion?: string;
   startDate?: Date;
   endDate?: Date;
   limit?: number;

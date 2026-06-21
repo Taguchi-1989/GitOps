@@ -4,7 +4,7 @@
  * 監査ログの記録と照会
  */
 
-import { AuditLogEntry, AuditQueryOptions } from './types';
+import { AuditLogEntry, AuditQueryOptions, AuditTier } from './types';
 import { getTraceId } from '@/lib/trace-context';
 
 // Note: 実際のPrismaクライアントはlibから注入される
@@ -18,6 +18,12 @@ export interface AuditLogRecord {
   entityId: string;
   traceId: string | null;
   payload: unknown;
+  // ガバナンス・ハーネス: コンテンツアドレス（LOG-1/2）・ポリシー版刻印（POL-2/LOG-4）・重大度層（§6.2）。
+  // Prisma リポジトリは常にこれらを充足して返す（mapRecord 参照）。読み取り側の後方互換のため optional。
+  contentHash?: string | null;
+  policyVersion?: string | null;
+  policyHash?: string | null;
+  severity?: string;
   createdAt: Date;
 }
 
@@ -210,7 +216,9 @@ class AuditLogger {
       | 'HUMAN_REJECT',
     entityId: string,
     traceId: string,
-    payload?: Record<string, unknown>
+    payload?: Record<string, unknown>,
+    // ガバナンス・ハーネス: ゲート判定や承認に、ポリシー版・内容ハッシュ・重大度層を刻む
+    meta?: { policyVersion?: string; policyHash?: string; severity?: AuditTier }
   ): Promise<void> {
     await this.record({
       action,
@@ -218,6 +226,9 @@ class AuditLogger {
       entityId,
       traceId,
       payload,
+      policyVersion: meta?.policyVersion,
+      policyHash: meta?.policyHash,
+      severity: meta?.severity,
     });
   }
 }

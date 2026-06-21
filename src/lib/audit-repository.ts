@@ -10,6 +10,7 @@ import {
   AuditLogRecord,
   AuditLogEntry,
   AuditQueryOptions,
+  hashContent,
 } from '@/core/audit';
 
 /**
@@ -39,6 +40,14 @@ export function buildAuditWhere(options: AuditQueryOptions): Record<string, unkn
     where.traceId = options.traceId;
   }
 
+  if (options.contentHash) {
+    where.contentHash = options.contentHash;
+  }
+
+  if (options.policyVersion) {
+    where.policyVersion = options.policyVersion;
+  }
+
   if (options.startDate || options.endDate) {
     const createdAt: Record<string, Date> = {};
     if (options.startDate) {
@@ -53,6 +62,41 @@ export function buildAuditWhere(options: AuditQueryOptions): Record<string, unkn
   return where;
 }
 
+/**
+ * Prisma レコード → AuditLogRecord への射影。
+ * ガバナンス・ハーネスのコンテンツアドレス / ポリシー版 / 重大度層を含めて返す。
+ * 旧データ（新カラム未充足）は null / 既定値 'thin' へフォールバックする。
+ */
+function mapRecord(r: {
+  id: string;
+  actor: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  traceId: string | null;
+  payload: string | null;
+  contentHash?: string | null;
+  policyVersion?: string | null;
+  policyHash?: string | null;
+  severity?: string | null;
+  createdAt: Date;
+}): AuditLogRecord {
+  return {
+    id: r.id,
+    actor: r.actor,
+    action: r.action,
+    entityType: r.entityType,
+    entityId: r.entityId,
+    traceId: r.traceId,
+    payload: r.payload,
+    contentHash: r.contentHash ?? null,
+    policyVersion: r.policyVersion ?? null,
+    policyHash: r.policyHash ?? null,
+    severity: r.severity ?? 'thin',
+    createdAt: r.createdAt,
+  };
+}
+
 class PrismaAuditRepository implements IAuditLogRepository {
   async create(entry: AuditLogEntry): Promise<AuditLogRecord> {
     const record = await prisma.auditLog.create({
@@ -63,19 +107,17 @@ class PrismaAuditRepository implements IAuditLogRepository {
         entityId: entry.entityId,
         traceId: entry.traceId || null,
         payload: entry.payload ? JSON.stringify(entry.payload) : null,
+        // LOG-1/LOG-2: payload のコンテンツアドレス（重複排除キー）
+        contentHash: hashContent(entry.payload),
+        // POL-2/LOG-4: ポリシー版とその内容ハッシュ
+        policyVersion: entry.policyVersion ?? null,
+        policyHash: entry.policyHash ?? null,
+        // §6.2: 重大度層（既定 thin）
+        severity: entry.severity ?? 'thin',
       },
     });
 
-    return {
-      id: record.id,
-      actor: record.actor,
-      action: record.action,
-      entityType: record.entityType,
-      entityId: record.entityId,
-      traceId: record.traceId,
-      payload: record.payload,
-      createdAt: record.createdAt,
-    };
+    return mapRecord(record);
   }
 
   async findMany(options: AuditQueryOptions): Promise<AuditLogRecord[]> {
@@ -88,16 +130,7 @@ class PrismaAuditRepository implements IAuditLogRepository {
       skip: options.offset || 0,
     });
 
-    return records.map(r => ({
-      id: r.id,
-      actor: r.actor,
-      action: r.action,
-      entityType: r.entityType,
-      entityId: r.entityId,
-      traceId: r.traceId,
-      payload: r.payload,
-      createdAt: r.createdAt,
-    }));
+    return records.map(mapRecord);
   }
 
   async count(options: AuditQueryOptions): Promise<number> {

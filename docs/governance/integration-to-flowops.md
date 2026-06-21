@@ -68,8 +68,8 @@
 
 | 段階 | 作業 | 対象 | 既存/新規 |
 |---|---|---|---|
-| **P0-1** | 監査ログを仕様準拠へ（hash・policyVersion・append-only） | `src/core/audit/*`、`prisma/schema.prisma` | 強化 |
-| **P0-2** | ポリシー版ハッシュ刻印 | `gate-loader.ts` / `rule-loader.ts` | 強化 |
+| **P0-1** ✅ | 監査ログを仕様準拠へ（hash・policyVersion・severity層・append-only方針） | `src/core/audit/*`、`prisma/schema.prisma`、[append-only](audit-append-only.md) | 実装済 |
+| **P0-2** | ポリシー版ハッシュ刻印（ロード時に算出しゲート評価で刻む） | `gate-loader.ts` / `rule-loader.ts`（GATE_EVALUATE での `policyHash` は P0-1 で先行） | 強化 |
 | **P0-3** | 入口ゲート（結合型Presidio + fail-safe default） | 新 `ingress-gate` + `spec/gates/ingress-*.yaml` | 新規 |
 | **P0-4** | 差し替え可能点B 受け入れ確認（設定一行切替テスト） | `infrastructure/litellm/`、`src/core/llm/` | 検証 |
 | **P1** | 出口ゲート拡張（CVE/シークレット/SAST） | `gate-evaluator` 系に独立検出系を追加 | 強化 |

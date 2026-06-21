@@ -154,12 +154,27 @@ model AuditLog {
 
   payload String? // 差分や理由など (JSON文字列として保存)
 
+  // ガバナンス・ハーネス LOG-1/LOG-2: payload のコンテンツアドレス（sha256）。
+  // 同一内容は同一ハッシュ → 重複排除キー。実体を外部ストレージへ退避する将来移行の参照点。
+  contentHash String?
+
+  // ガバナンス・ハーネス POL-2/LOG-4: 判定時のポリシー版とその内容ハッシュ。
+  // 「当時のポリシーで見れば妥当だった」を後から再現するための刻印。
+  policyVersion String?
+  policyHash    String?
+
+  // ガバナンス・ハーネス §6.2 階層化: thin（通過）/ thick（例外）/ full（インシデント）。
+  // 時間減衰・PDCA 対象の選別に用いる重大度層。
+  severity String @default("thin")
+
   createdAt DateTime @default(now())
 
   @@index([entityType, entityId])
   @@index([action])
   @@index([traceId])
   @@index([createdAt])
+  @@index([contentHash])
+  @@index([policyVersion])
 }
 
 // --------------------------------------------------------
