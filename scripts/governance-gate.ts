@@ -21,22 +21,26 @@ import {
   decisionPackageTitle,
 } from '@/core/gitops';
 
+// 検査対象から除外する pathspec。
+// テストフィクスチャ・ドキュメントは例示シークレット（AWS 公式のサンプルアクセスキー等）を
+// 正当に含むため、本番ソースのみを走査する。実在シークレットの検出力は本番パスで維持される。
+const EXCLUDE_PATHSPECS = [
+  ':(exclude)**/*.test.ts',
+  ':(exclude)**/*.test.tsx',
+  ':(exclude)docs/**',
+  ':(exclude)**/*.md',
+];
+
 function getDiff(): { text: string; ok: boolean } {
   const baseRef = process.env.GITHUB_BASE_REF;
+  const range = baseRef ? `origin/${baseRef}...HEAD` : 'HEAD~1';
+  const rangeArgs = baseRef ? [range] : ['HEAD~1', 'HEAD'];
   try {
-    if (baseRef) {
-      // PR: ベースとのマージベースからの差分
-      const out = execFileSync(
-        'git',
-        ['diff', '--no-color', `origin/${baseRef}...HEAD`],
-        { encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024 }
-      );
-      return { text: out, ok: true };
-    }
-    const out = execFileSync('git', ['diff', '--no-color', 'HEAD~1', 'HEAD'], {
-      encoding: 'utf-8',
-      maxBuffer: 64 * 1024 * 1024,
-    });
+    const out = execFileSync(
+      'git',
+      ['diff', '--no-color', ...rangeArgs, '--', '.', ...EXCLUDE_PATHSPECS],
+      { encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024 }
+    );
     return { text: out, ok: true };
   } catch {
     return { text: '', ok: false };
