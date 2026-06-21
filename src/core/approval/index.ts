@@ -12,3 +12,15 @@ export {
   requiredApprovalLine,
   deriveRiskGrade,
 } from './precedent';
+export { sampleHash, shouldSampleAudit } from './sample-audit';
+export {
+  decideAutoApproval,
+  tryAutoApprove,
+  loadAutoApprovalConfig,
+  autoApprovalConfigHash,
+  DEFAULT_AUTO_APPROVAL_CONFIG,
+  type AutoApprovalConfig,
+  type AutoApprovalInput,
+  type AutoApprovalResult,
+  type TryAutoApproveOptions,
+} from './auto-approve';

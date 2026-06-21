@@ -41,6 +41,7 @@ export const AuditActionSchema = z.enum([
   'HUMAN_APPROVE',
   'HUMAN_REJECT',
   'PRECEDENT_RECORD', // ガバナンス・ハーネス §5.1/§5.3: 人手承認の前例蓄積（Phase 0）
+  'AUTO_APPROVE', // ガバナンス・ハーネス §5.1.1/§5.3: 前例に基づく自動承認（Phase 2）
 
   // Flow lifecycle
   'FLOW_CREATE',
