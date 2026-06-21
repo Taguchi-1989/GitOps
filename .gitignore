@@ -57,3 +57,7 @@ dist/
 
 # Windows artifacts
 nul
+
+# local sqlite dev database
+dev.db
+*.db
