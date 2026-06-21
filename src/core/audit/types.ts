@@ -37,6 +37,7 @@ export const AuditActionSchema = z.enum([
   'TASK_EXECUTE',
   'GATE_EVALUATE',
   'INGRESS_GATE', // ガバナンス・ハーネス §4.1: 入口ゲート（機密混入検査）判定
+  'EGRESS_GATE', // ガバナンス・ハーネス §4.2: 出口ゲート（出力検査）判定
   'HUMAN_APPROVE',
   'HUMAN_REJECT',
 

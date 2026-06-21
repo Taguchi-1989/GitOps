@@ -98,6 +98,17 @@ vi.mock('@/core/ingress', () => ({
   },
 }));
 
+// 出口ゲート（§4.2）もデフォルトはパススルー。ゲート本体は src/core/egress/*.test.ts で検証。
+vi.mock('@/core/egress', () => ({
+  guardEgress: vi.fn(async () => ({ decision: 'pass', tier: 'thin', findings: [] })),
+  EgressBlockedError: class EgressBlockedError extends Error {
+    constructor() {
+      super('Egress gate blocked output: egress-aws-key@patches[0].value');
+      this.name = 'EgressBlockedError';
+    }
+  },
+}));
+
 // --------------------------------------------------------
 // Imports
 // --------------------------------------------------------
@@ -107,6 +118,7 @@ import { getFlowYaml } from '@/lib/flow-service';
 import { getLLMClient, LLMError } from '@/core/llm';
 import { auditLog } from '@/core/audit';
 import { guardIngress, IngressBlockedError } from '@/core/ingress';
+import { guardEgress, EgressBlockedError } from '@/core/egress';
 
 /** Helper to extract response body from mocked NextResponse */
 function getBody(result: any): any {
@@ -348,5 +360,31 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
     expect(result.status).toBe(422);
     // 外部送出（LLM）は行われない
     expect(generateProposal).not.toHaveBeenCalled();
+  });
+
+  it('出口ゲートが既知危険を検出したら 422 EGRESS_BLOCKED を返し、Proposalを保存しない', async () => {
+    const mockIssue = createMockIssue({
+      title: 'Fix order flow',
+      description: 'The approval step is missing',
+      status: 'in-progress',
+      targetFlowId: 'order-processing',
+    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValueOnce(mockIssue as any);
+    vi.mocked(getFlowYaml).mockResolvedValueOnce('title: Order Processing\nnodes: {}');
+
+    // 出口ゲートをブロック挙動に上書き
+    vi.mocked(guardEgress).mockRejectedValueOnce(new EgressBlockedError('full', []));
+
+    const request = new Request('http://localhost:3000/api/issues/issue-1/proposals/generate', {
+      method: 'POST',
+    });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
+    const body = getBody(result);
+
+    expect(body.ok).toBe(false);
+    expect(body.errorCode).toBe('EGRESS_BLOCKED');
+    expect(result.status).toBe(422);
+    // 危険な出力は永続化しない
+    expect(prisma.proposal.create).not.toHaveBeenCalled();
   });
 });

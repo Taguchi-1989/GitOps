@@ -20,6 +20,7 @@ import { sha256, applyPatches, diffFlows, formatDiffAsHtml } from '@/core/patch'
 import { parseFlowYaml } from '@/core/parser';
 import { auditLog } from '@/core/audit';
 import { guardIngress, IngressBlockedError } from '@/core/ingress';
+import { guardEgress, EgressBlockedError } from '@/core/egress';
 import { logger } from '@/lib/logger';
 
 interface RouteParams {
@@ -115,6 +116,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     } catch (error) {
       if (error instanceof LLMError) {
         return errorResponse(API_ERROR_CODES.LLM_ERROR, `LLM error: ${error.message}`, 500);
+      }
+      throw error;
+    }
+
+    // 出口ゲート（ガバナンス・ハーネス §4.2）: 生成出力に既知危険（秘密の反射・破壊的
+    // コマンド・スクリプト注入等）が無いか独立検出系で検査。high検出でblock（永続化しない）。
+    // 位置づけ(OUTG-3): 既知危険の確率的削減 + 入口の二重化トリップ。ゼロデイは非担保。
+    try {
+      await guardEgress(proposalOutput, {
+        entityId: issue.id,
+        entityType: 'Proposal',
+        actor: getAuditActor(request) ?? undefined,
+      });
+    } catch (error) {
+      if (error instanceof EgressBlockedError) {
+        return errorResponse(
+          API_ERROR_CODES.EGRESS_BLOCKED,
+          `Egress gate blocked generated output (既知危険の疑い). ${error.message}`,
+          422
+        );
       }
       throw error;
     }

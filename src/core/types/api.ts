@@ -48,6 +48,8 @@ export const API_ERROR_CODES = {
   DATA_GOVERNANCE_VIOLATION: 'DATA_GOVERNANCE_VIOLATION',
   // ガバナンス・ハーネス §4.1: 入口ゲートが機密混入を検出し外部送出をブロック
   INGRESS_BLOCKED: 'INGRESS_BLOCKED',
+  // ガバナンス・ハーネス §4.2: 出口ゲートが出力中の既知危険を検出しブロック
+  EGRESS_BLOCKED: 'EGRESS_BLOCKED',
 } as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES];
