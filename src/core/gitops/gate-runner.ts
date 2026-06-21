@@ -72,25 +72,31 @@ export async function runGovernanceGate(input: GovernanceGateInput): Promise<Gov
     git: input.git,
   };
 
-  // GIT-1: 判定を commit SHA / PR 番号に紐づけて監査（実体は載せない）
-  await auditLog.record({
-    action: 'GITOPS_GATE',
-    entityType: 'System',
-    entityId: input.git.commitSha || 'unknown-sha',
-    actor: input.git.actor ?? undefined,
-    severity: tierForAction(action),
-    policyVersion: ingress?.policyVersion ?? egress?.policyVersion ?? undefined,
-    payload: {
-      action,
-      riskGrade,
-      prNumber: input.git.prNumber,
-      branch: input.git.branch,
-      repo: input.git.repo,
-      ingress,
-      egress,
-      reasons,
-    },
-  });
+  // GIT-1: 判定を commit SHA / PR 番号に紐づけて監査（実体は載せない）。
+  // 監査の永続化は best-effort: DB 未整備の CI 等で書込みに失敗しても判定は返す
+  // （ゲート判定と exit code が CI のマージ制御の本体。監査永続化はアプリ実行時に行う）。
+  try {
+    await auditLog.record({
+      action: 'GITOPS_GATE',
+      entityType: 'System',
+      entityId: input.git.commitSha || 'unknown-sha',
+      actor: input.git.actor ?? undefined,
+      severity: tierForAction(action),
+      policyVersion: ingress?.policyVersion ?? egress?.policyVersion ?? undefined,
+      payload: {
+        action,
+        riskGrade,
+        prNumber: input.git.prNumber,
+        branch: input.git.branch,
+        repo: input.git.repo,
+        ingress,
+        egress,
+        reasons,
+      },
+    });
+  } catch {
+    // 監査書込み失敗は判定に影響させない（best-effort）
+  }
 
   return result;
 }

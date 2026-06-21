@@ -49,11 +49,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TITLE="$(cat governance-decision-title.txt)"
-          gh issue create \
-            --title "$TITLE" \
-            --body-file governance-decision.md \
-            --label "governance,approval-needed" || true
+          if [ -f governance-decision.md ] && [ -f governance-decision-title.txt ]; then
+            gh issue create \
+              --title "$(cat governance-decision-title.txt)" \
+              --body-file governance-decision.md \
+              --label "governance,approval-needed" || true
+          else
+            echo "決裁パッケージ未生成（判定が allow か、ゲートの想定外エラー）。issue 起票をスキップ。"
+          fi
 
       - name: Enforce gate result (required check)
         if: steps.gate.outputs.should_block == 'true'
