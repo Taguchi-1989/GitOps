@@ -38,6 +38,7 @@ export const AuditActionSchema = z.enum([
   'GATE_EVALUATE',
   'INGRESS_GATE', // ガバナンス・ハーネス §4.1: 入口ゲート（機密混入検査）判定
   'EGRESS_GATE', // ガバナンス・ハーネス §4.2: 出口ゲート（出力検査）判定
+  'GITOPS_GATE', // ガバナンス・ハーネス §11 GIT-1: GitOps結合ゲート判定（commit SHA/PR紐付け）
   'HUMAN_APPROVE',
   'HUMAN_REJECT',
   'PRECEDENT_RECORD', // ガバナンス・ハーネス §5.1/§5.3: 人手承認の前例蓄積（Phase 0）
