@@ -18,6 +18,7 @@ vi.mock('./prisma', () => ({
 
 import { auditRepository } from './audit-repository';
 import { prisma } from './prisma';
+import { hashContent } from '@/core/audit';
 
 describe('auditRepository', () => {
   beforeEach(() => {
@@ -35,6 +36,10 @@ describe('auditRepository', () => {
         entityId: 'issue-1',
         traceId: 'trace-abc',
         payload: '{"title":"New Issue"}',
+        contentHash: hashContent({ title: 'New Issue' }),
+        policyVersion: null,
+        policyHash: null,
+        severity: 'thin',
         createdAt,
       } as any);
 
@@ -47,6 +52,7 @@ describe('auditRepository', () => {
         payload: { title: 'New Issue' },
       });
 
+      // ガバナンス・ハーネス LOG-1: payload のコンテンツハッシュが刻まれる
       expect(prisma.auditLog.create).toHaveBeenCalledWith({
         data: {
           actor: 'admin',
@@ -55,6 +61,10 @@ describe('auditRepository', () => {
           entityId: 'issue-1',
           traceId: 'trace-abc',
           payload: '{"title":"New Issue"}',
+          contentHash: hashContent({ title: 'New Issue' }),
+          policyVersion: null,
+          policyHash: null,
+          severity: 'thin',
         },
       });
 
@@ -66,7 +76,77 @@ describe('auditRepository', () => {
         entityId: 'issue-1',
         traceId: 'trace-abc',
         payload: '{"title":"New Issue"}',
+        contentHash: hashContent({ title: 'New Issue' }),
+        policyVersion: null,
+        policyHash: null,
+        severity: 'thin',
         createdAt,
+      });
+    });
+
+    it('should stamp policyVersion/policyHash/severity when provided', async () => {
+      vi.mocked(prisma.auditLog.create).mockResolvedValue({
+        id: 'log-gate',
+        actor: 'you',
+        action: 'GATE_EVALUATE',
+        entityType: 'WorkflowExecution',
+        entityId: 'wf-9',
+        traceId: 'trace-gate',
+        payload: '{"outcome":"hold"}',
+        contentHash: hashContent({ outcome: 'hold' }),
+        policyVersion: '1.0.0',
+        policyHash: 'abc123',
+        severity: 'thick',
+        createdAt: new Date('2026-01-01'),
+      } as any);
+
+      await auditRepository.create({
+        action: 'GATE_EVALUATE',
+        entityType: 'WorkflowExecution',
+        entityId: 'wf-9',
+        traceId: 'trace-gate',
+        payload: { outcome: 'hold' },
+        policyVersion: '1.0.0',
+        policyHash: 'abc123',
+        severity: 'thick',
+      });
+
+      expect(prisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          policyVersion: '1.0.0',
+          policyHash: 'abc123',
+          severity: 'thick',
+        }),
+      });
+    });
+
+    it('should default contentHash to null and severity to "thin" when no payload', async () => {
+      vi.mocked(prisma.auditLog.create).mockResolvedValue({
+        id: 'log-empty',
+        actor: 'you',
+        action: 'ISSUE_CLOSE',
+        entityType: 'Issue',
+        entityId: 'issue-x',
+        traceId: null,
+        payload: null,
+        contentHash: null,
+        policyVersion: null,
+        policyHash: null,
+        severity: 'thin',
+        createdAt: new Date('2026-01-01'),
+      } as any);
+
+      await auditRepository.create({
+        action: 'ISSUE_CLOSE',
+        entityType: 'Issue',
+        entityId: 'issue-x',
+      });
+
+      expect(prisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          contentHash: null,
+          severity: 'thin',
+        }),
       });
     });
 
@@ -231,9 +311,26 @@ describe('auditRepository', () => {
           entityId: 'issue-10',
           traceId: null,
           payload: null,
+          contentHash: null,
+          policyVersion: null,
+          policyHash: null,
+          severity: 'thin',
           createdAt: new Date('2026-01-01'),
         },
       ]);
+    });
+
+    it('should filter by contentHash and policyVersion (governance harness)', async () => {
+      vi.mocked(prisma.auditLog.findMany).mockResolvedValue([]);
+
+      await auditRepository.findMany({ contentHash: 'deadbeef', policyVersion: '1.0.0' });
+
+      expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
+        where: { contentHash: 'deadbeef', policyVersion: '1.0.0' },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        skip: 0,
+      });
     });
 
     it('should filter by entityType', async () => {

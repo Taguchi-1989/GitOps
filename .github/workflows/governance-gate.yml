@@ -1,0 +1,65 @@
+name: Governance Gate
+
+# ガバナンス・ハーネス 第II部（§10-§11）in-line モードの結線。
+# PR 差分を入口/出口ゲートで検査し、block/escalate でマージをブロック（required check）+
+# 決裁パッケージ（GIT-2）を承認 issue として自動起票する。
+#
+# 設計: 判定ロジックは第I部コア（src/core/*）、結線は src/core/gitops アダプタ + CLI。
+# GitHub 固有処理（issue 起票）はこの workflow 側に隔離（GIT-4 移植性）。
+
+on:
+  pull_request:
+    branches: ['*']
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  DATABASE_URL: 'file:./gov-gate.db'
+
+jobs:
+  governance-gate:
+    name: Governance Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 差分計算のため全履歴
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - run: npm ci
+      - run: npx prisma generate
+
+      - name: Run governance gate
+        id: gate
+        continue-on-error: true # 判定結果で後続のissue起票を制御するため一旦継続
+        env:
+          GH_PR_NUMBER: ${{ github.event.pull_request.number }}
+          GOVERNANCE_RISK_GRADE: ${{ vars.GOVERNANCE_RISK_GRADE || 'medium' }}
+        run: npm run governance:gate
+
+      - name: Open approval issue on block/escalate (GIT-2)
+        if: steps.gate.outputs.should_block == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f governance-decision.md ] && [ -f governance-decision-title.txt ]; then
+            gh issue create \
+              --title "$(cat governance-decision-title.txt)" \
+              --body-file governance-decision.md \
+              --label "governance,approval-needed" || true
+          else
+            echo "決裁パッケージ未生成（判定が allow か、ゲートの想定外エラー）。issue 起票をスキップ。"
+          fi
+
+      - name: Enforce gate result (required check)
+        if: steps.gate.outputs.should_block == 'true'
+        run: |
+          echo "ガバナンス・ハーネスが block/escalate を判定しました。承認 issue を確認してください。"
+          exit 1

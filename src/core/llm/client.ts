@@ -217,10 +217,12 @@ export function createLLMClient(
     );
   }
 
-  // Anthropic SDK を直接使うパス
+  // Anthropic SDK を使うパス（差し替え可能点B: baseURL 指定でゲートウェイ経由に切替可能）
   if (provider === 'anthropic') {
     const model = config?.model || process.env.LLM_MODEL || 'claude-haiku-4-5-20251001';
-    return new AnthropicLLMClient(apiKey, model, config?.maxTokens);
+    // 直叩き禁止運用では ANTHROPIC_BASE_URL を設定してゲートウェイ(LiteLLM等)へ振る
+    const baseURL = config?.baseURL || process.env.ANTHROPIC_BASE_URL;
+    return new AnthropicLLMClient(apiKey, model, config?.maxTokens, baseURL);
   }
 
   // OpenAI 互換パス（openai / gemini / groq / ollama / custom）

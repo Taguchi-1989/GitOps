@@ -65,6 +65,24 @@ describe('AnthropicLLMClient', () => {
     );
   });
 
+  it('差し替え可能点B: baseURL を渡すとゲートウェイ経由でSDKを生成する', async () => {
+    mockCreate.mockResolvedValueOnce(textResponse(JSON.stringify(validProposal)));
+    const client = new AnthropicLLMClient('sk-test', undefined, undefined, 'http://litellm:4000');
+
+    await client.generateProposal(params);
+
+    expect(Anthropic).toHaveBeenCalledWith({ apiKey: 'sk-test', baseURL: 'http://litellm:4000' });
+  });
+
+  it('baseURL 未指定なら直結（baseURL を渡さない）', async () => {
+    mockCreate.mockResolvedValueOnce(textResponse(JSON.stringify(validProposal)));
+    const client = new AnthropicLLMClient('sk-test');
+
+    await client.generateProposal(params);
+
+    expect(Anthropic).toHaveBeenCalledWith({ apiKey: 'sk-test' });
+  });
+
   it('returns a validated proposal on a successful text response', async () => {
     mockCreate.mockResolvedValueOnce(textResponse(JSON.stringify(validProposal)));
     const client = new AnthropicLLMClient('sk-test');

@@ -532,7 +532,9 @@ describe('WorkflowEngine', () => {
         'GATE_EVALUATE',
         expect.any(String),
         'trace-g1',
-        expect.objectContaining({ gateId: 'safety-review-gate', outcome: 'revise' })
+        expect.objectContaining({ gateId: 'safety-review-gate', outcome: 'revise' }),
+        // ガバナンス・ハーネス: ポリシー版・内容ハッシュ・重大度層が刻まれる（revise は通過層 thin）
+        expect.objectContaining({ policyVersion: '1.0.0', severity: 'thin' })
       );
     });
 

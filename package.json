@@ -13,6 +13,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "ts-node -P tsconfig.seed.json --transpile-only prisma/seed.ts",
+    "governance:gate": "ts-node -r tsconfig-paths/register -P tsconfig.seed.json --transpile-only scripts/governance-gate.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

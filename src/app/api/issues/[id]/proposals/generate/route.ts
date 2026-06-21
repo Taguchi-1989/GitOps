@@ -19,6 +19,8 @@ import { getLLMClient, LLMError } from '@/core/llm';
 import { sha256, applyPatches, diffFlows, formatDiffAsHtml } from '@/core/patch';
 import { parseFlowYaml } from '@/core/parser';
 import { auditLog } from '@/core/audit';
+import { guardIngress, IngressBlockedError } from '@/core/ingress';
+import { guardEgress, EgressBlockedError } from '@/core/egress';
 import { logger } from '@/lib/logger';
 
 interface RouteParams {
@@ -72,20 +74,68 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // 辞書を取得
     const dictionary = await getDictionary();
 
-    // LLMで提案を生成
+    // 入口ゲート（ガバナンス・ハーネス §4.1）: 外部送出前に機密混入を決定論的に検査。
+    // 結合型は伏字化、値型/判定不能は block（人間承認フローへ）。判定は監査ログへ記録。
+    let gatedTitle = issue.title;
+    let gatedDescription = issue.description;
+    let gatedFlowYaml = flowYaml;
+    try {
+      const { fields } = await guardIngress(
+        {
+          issueTitle: issue.title,
+          issueDescription: issue.description,
+          flowYaml,
+        },
+        { entityId: issue.id, entityType: 'Issue', actor: getAuditActor(request) ?? undefined }
+      );
+      gatedTitle = fields.issueTitle;
+      gatedDescription = fields.issueDescription;
+      gatedFlowYaml = fields.flowYaml;
+    } catch (error) {
+      if (error instanceof IngressBlockedError) {
+        return errorResponse(
+          API_ERROR_CODES.INGRESS_BLOCKED,
+          `Ingress gate blocked external send (機密混入の疑い). ${error.message}`,
+          422
+        );
+      }
+      throw error;
+    }
+
+    // LLMで提案を生成（入口ゲート通過後の安全化済みテキストを使用）
     let proposalOutput;
     try {
       const llm = getLLMClient();
       proposalOutput = await llm.generateProposal({
-        issueTitle: issue.title,
-        issueDescription: issue.description,
-        flowYaml,
+        issueTitle: gatedTitle,
+        issueDescription: gatedDescription,
+        flowYaml: gatedFlowYaml,
         roles: dictionary.roles,
         systems: dictionary.systems,
       });
     } catch (error) {
       if (error instanceof LLMError) {
         return errorResponse(API_ERROR_CODES.LLM_ERROR, `LLM error: ${error.message}`, 500);
+      }
+      throw error;
+    }
+
+    // 出口ゲート（ガバナンス・ハーネス §4.2）: 生成出力に既知危険（秘密の反射・破壊的
+    // コマンド・スクリプト注入等）が無いか独立検出系で検査。high検出でblock（永続化しない）。
+    // 位置づけ(OUTG-3): 既知危険の確率的削減 + 入口の二重化トリップ。ゼロデイは非担保。
+    try {
+      await guardEgress(proposalOutput, {
+        entityId: issue.id,
+        entityType: 'Proposal',
+        actor: getAuditActor(request) ?? undefined,
+      });
+    } catch (error) {
+      if (error instanceof EgressBlockedError) {
+        return errorResponse(
+          API_ERROR_CODES.EGRESS_BLOCKED,
+          `Egress gate blocked generated output (既知危険の疑い). ${error.message}`,
+          422
+        );
       }
       throw error;
     }

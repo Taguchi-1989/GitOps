@@ -7,6 +7,7 @@
 
 import { ApprovalDecision } from './schemas/execution';
 import { auditLog } from '../audit/logger';
+import { recordPrecedent, deriveRiskGrade, signatureFromContext } from '../approval';
 
 export interface ApprovalRequestRecord {
   id: string;
@@ -95,6 +96,21 @@ export class HumanLoopManager {
         decidedBy: decision.decidedBy,
       }
     );
+
+    // ガバナンス・ハーネス §5.1/§5.3 Phase 0: 人手決定を「前例」として蓄積する。
+    // 判断は人（上記 decision）、記録は機械（案件シグネチャ・リスク等級・ポリシー版を展開）。
+    // ここでは蓄積のみ。自動承認はしない。
+    const policyVersion =
+      typeof request.context.policyVersion === 'string' ? request.context.policyVersion : undefined;
+    await recordPrecedent({
+      signature: signatureFromContext(request.context),
+      riskGrade: deriveRiskGrade(request.context),
+      policyVersion,
+      approved: decision.approved,
+      reason: decision.reason,
+      decidedBy: decision.decidedBy,
+      sourceEntityId: request.workflowId,
+    });
 
     return updated;
   }

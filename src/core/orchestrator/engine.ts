@@ -15,6 +15,8 @@ import { ruleRegistry } from './rule-registry';
 import { resolveAssumptions } from './assumption-loader';
 import { evaluateGate, GateEvaluation } from './gate-evaluator';
 import { auditLog } from '../audit/logger';
+import { hashPolicy } from '../audit/hash';
+import { AuditTier } from '../audit/types';
 import { logger } from '@/lib/logger';
 
 // --------------------------------------------------------
@@ -441,16 +443,30 @@ export class WorkflowEngine {
     const assumptions = await resolveAssumptions(gate.assumptionRefs ?? []);
     const evaluation = evaluateGate(gate, rules, taskOutput, new Date().toISOString());
 
-    // 不変監査（AuditLog は append-only）
-    await auditLog.logWorkflowAction('GATE_EVALUATE', state.executionId, state.traceId, {
-      nodeId: node.id,
-      taskId: node.task.id,
-      gateId: gate.id,
-      gateVersion: gate.version,
-      outcome: evaluation.outcome,
-      worstSeverity: evaluation.summary.worstSeverity,
-      failedRuleIds: evaluation.summary.failedRuleIds,
-    });
+    // ガバナンス・ハーネス §6.2 重大度層: 停止/保留はエスカレーション層(thick)、通過は薄層(thin)
+    const tier: AuditTier =
+      evaluation.outcome === 'stop' || evaluation.outcome === 'hold' ? 'thick' : 'thin';
+
+    // 不変監査（AuditLog は append-only）。ポリシー版・内容ハッシュを刻む（POL-2/LOG-4）
+    await auditLog.logWorkflowAction(
+      'GATE_EVALUATE',
+      state.executionId,
+      state.traceId,
+      {
+        nodeId: node.id,
+        taskId: node.task.id,
+        gateId: gate.id,
+        gateVersion: gate.version,
+        outcome: evaluation.outcome,
+        worstSeverity: evaluation.summary.worstSeverity,
+        failedRuleIds: evaluation.summary.failedRuleIds,
+      },
+      {
+        policyVersion: gate.version,
+        policyHash: hashPolicy(gate) ?? undefined,
+        severity: tier,
+      }
+    );
 
     // 表示・操作用（DB。未実装リポジトリでは skip）
     if (this.repository?.createGateEvaluation) {

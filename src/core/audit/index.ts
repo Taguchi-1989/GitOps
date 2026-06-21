@@ -4,3 +4,4 @@
 
 export * from './types';
 export { auditLog, AuditLogger, type IAuditLogRepository, type AuditLogRecord } from './logger';
+export { hashContent, hashPolicy, sha256Hex, stableStringify } from './hash';
