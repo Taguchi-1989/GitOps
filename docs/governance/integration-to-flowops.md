@@ -40,10 +40,11 @@
 
 ## 2. ギャップ詳細（埋めるべき差分）
 
-### G1. 入口ゲート（機密混入検査） — [P0 / 最大の差分]
-- 現状: 入力を外部APIへ渡す前の**決定論的な機密検査が存在しない**。
-- 必要: spec §4.1（ING-1〜3）。結合型はマスキング（Presidio等、ローカル決定論検出）、値型は検出時点で外部送出禁止 → 人間承認フロー。**入口ゲートはLLMを呼ばない**。
-- FlowOpsへの落とし方: `src/core/orchestrator/` に `ingress-gate.ts`(仮) を新設し、既存 `gate-evaluator` と**別ロジック**で実装（spec OUTG-2 多様性要件）。`spec/gates/ingress-secret-gate.yaml`(仮) をポリシー源に。
+### G1. 入口ゲート（機密混入検査） — [P0 / 最大の差分] ✅ 実装済
+- 実装: `src/core/ingress/`（`scanner.ts` 純関数 / `types.ts` バージョン付きポリシー / `policy-loader.ts` YAML+既定フォールバック / `guard.ts` 監査結線）。ポリシー源 `spec/gates/ingress-secret-gate.yaml`。
+- 結合型→マスキング、値型/判定不能→block（人間承認フローへ）。LLMを呼ばない（ING-3）。`evaluateGate` とは別ロジック（OUTG-2 多様性）。
+- 結線: 提案生成 `route.ts` で `generateProposal` 前に `guardIngress`、block時 422 `INGRESS_BLOCKED`（LLM未送出）。判定は `INGRESS_GATE` として監査（policyVersion/policyHash/severity、実体は載せない）。
+- 独立セキュリティレビュー反映: ReDoS耐性（量指定子上限＋100KB上限block）、二段走査（順序非依存）、パターン拡張。spec不変条件は全PASS。
 
 ### G2. 監査ログの仕様強化 — [P0]
 現 `AuditLog`（`prisma/schema.prisma:144`）に対し:
@@ -70,7 +71,7 @@
 |---|---|---|---|
 | **P0-1** ✅ | 監査ログを仕様準拠へ（hash・policyVersion・severity層・append-only方針） | `src/core/audit/*`、`prisma/schema.prisma`、[append-only](audit-append-only.md) | 実装済 |
 | **P0-2** | ポリシー版ハッシュ刻印（ロード時に算出しゲート評価で刻む） | `gate-loader.ts` / `rule-loader.ts`（GATE_EVALUATE での `policyHash` は P0-1 で先行） | 強化 |
-| **P0-3** | 入口ゲート（結合型Presidio + fail-safe default） | 新 `ingress-gate` + `spec/gates/ingress-*.yaml` | 新規 |
+| **P0-3** ✅ | 入口ゲート（決定論検出 + fail-safe + 二段走査 + ReDoS耐性） | `src/core/ingress/*`、`spec/gates/ingress-secret-gate.yaml`、提案生成routeへ結線 | 実装済 |
 | **P0-4** | 差し替え可能点B 受け入れ確認（設定一行切替テスト） | `infrastructure/litellm/`、`src/core/llm/` | 検証 |
 | **P1** | 出口ゲート拡張（CVE/シークレット/SAST） | `gate-evaluator` 系に独立検出系を追加 | 強化 |
 | **P1** | 承認ワークフロー Phase 0（全件人手 + 前例蓄積） | `human-loop.ts` + `issue-management` | 強化 |
