@@ -22,6 +22,14 @@ export function caseSignature(features: Record<string, unknown>): string {
  * 承認リクエストの context から、前例同定に使う特徴を抽出する。
  * context.caseFeatures が明示されていればそれを、無ければ context 全体を用いる。
  * 決定や時刻など可変フィールドは呼び出し側で caseFeatures に含めない運用とする。
+ *
+ * ⚠ 信頼境界（重要 / セキュリティレビュー指摘）:
+ * シグネチャは caseFeatures の中身だけで決まる。前例自動承認(§5.1.1)の「同型性」は
+ * この特徴選択の質に等しい。したがって caseFeatures は
+ *   - **システムが案件の実体から導出した特徴**であること（自由入力のユーザ値を直接入れない）。
+ *   - 案件の本質を区別するに足る粒度（粗すぎる特徴は別案件を同型と誤認させる）。
+ * を満たす必要がある。粗い/外部操作可能な特徴は「前例の事前仕込み」攻撃を許す。
+ * 呼び出し側はシステム割当の caseType 等を含め、エンドユーザ入力をそのまま渡さないこと。
  */
 export function signatureFromContext(context: Record<string, unknown>): string {
   const features =

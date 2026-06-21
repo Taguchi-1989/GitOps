@@ -17,7 +17,6 @@ export {
   decideAutoApproval,
   tryAutoApprove,
   loadAutoApprovalConfig,
-  autoApprovalConfigHash,
   DEFAULT_AUTO_APPROVAL_CONFIG,
   type AutoApprovalConfig,
   type AutoApprovalInput,

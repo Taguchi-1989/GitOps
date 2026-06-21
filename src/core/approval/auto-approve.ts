@@ -15,7 +15,7 @@
 
 import { auditLog, hashPolicy } from '../audit';
 import { Precedent, RiskGrade } from './types';
-import { findPrecedents } from './precedent';
+import { findPrecedents, PRECEDENT_FETCH_LIMIT } from './precedent';
 import { shouldSampleAudit } from './sample-audit';
 
 export interface AutoApprovalConfig {
@@ -76,7 +76,9 @@ export interface AutoApprovalResult {
     | 'grade-not-allowed'
     | 'policy-version-unknown'
     | 'insufficient-precedents'
-    | 'conflicting-rejection';
+    | 'conflicting-rejection'
+    | 'precedent-overflow' // 前例が多すぎて全件確認を保証できない → 人手へ
+    | 'audit-write-failed'; // 自動承認の監査記録に失敗 → 承認扱いにしない（人手へ）
   /** 人可読の理由（承認時は `auto-approved by precedent #N`） */
   reason: string;
   matchedPrecedents: number;
@@ -159,6 +161,16 @@ export async function tryAutoApprove(
   const finder = options.precedentFinder ?? findPrecedents;
   const precedents = await finder(input.signature, input.policyVersion);
 
+  // conflict-safety: 取得が上限に達したら「全前例（却下含む）を見たと保証できない」→ 人手へ。
+  // 黙って打ち切らず fail-safe で倒す（no silent caps）。
+  if (precedents.length >= PRECEDENT_FETCH_LIMIT) {
+    return deny(
+      'precedent-overflow',
+      `前例が取得上限(${PRECEDENT_FETCH_LIMIT})に達し全件確認を保証できない。人手承認へ`,
+      precedents.length
+    );
+  }
+
   const eventKey = options.eventKey ?? input.signature;
   const result = decideAutoApproval(input, precedents, config, key =>
     shouldSampleAudit(`${eventKey}:${key}`, config.sampleAuditRate)
@@ -167,28 +179,33 @@ export async function tryAutoApprove(
   if (result.autoApprove) {
     // §5.2: サンプル監査対象は厚層(thick)で残し PDCA の人手レビューに乗せる。
     // 非対象は薄層(thin)。いずれも「auto-approved by precedent #N」を刻む。
-    await auditLog.record({
-      action: 'AUTO_APPROVE',
-      entityType: 'System',
-      entityId: `precedent:${input.signature}`,
-      actor: options.actor,
-      severity: result.sampleAudit ? 'thick' : 'thin',
-      policyVersion: input.policyVersion,
-      payload: {
-        signature: input.signature,
-        riskGrade: input.riskGrade,
-        matchedPrecedents: result.matchedPrecedents,
-        reason: result.reason,
-        sampleAudit: result.sampleAudit,
-        sourceEntityId: options.sourceEntityId ?? null,
-      },
-    });
+    try {
+      await auditLog.record({
+        action: 'AUTO_APPROVE',
+        entityType: 'System',
+        entityId: `precedent:${input.signature}`,
+        actor: options.actor,
+        severity: result.sampleAudit ? 'thick' : 'thin',
+        policyVersion: input.policyVersion,
+        payload: {
+          signature: input.signature,
+          riskGrade: input.riskGrade,
+          matchedPrecedents: result.matchedPrecedents,
+          reason: result.reason,
+          sampleAudit: result.sampleAudit,
+          configHash: hashPolicy(config), // この承認を生んだ config の指紋（来歴）
+          sourceEntityId: options.sourceEntityId ?? null,
+        },
+      });
+    } catch {
+      // 監査記録に失敗したら自動承認扱いにしない（証跡なき承認を作らない / 配管最優先）→ 人手へ。
+      return deny(
+        'audit-write-failed',
+        '自動承認の監査記録に失敗。証跡なき承認を作らず人手承認へ',
+        result.matchedPrecedents
+      );
+    }
   }
 
   return result;
-}
-
-/** ルールセット/ポリシー指紋（監査の相互参照用ヘルパ） */
-export function autoApprovalConfigHash(config: AutoApprovalConfig): string | null {
-  return hashPolicy(config);
 }

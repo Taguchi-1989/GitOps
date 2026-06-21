@@ -191,4 +191,22 @@ describe('tryAutoApprove (I/O)', () => {
     });
     expect(record).toHaveBeenCalledWith(expect.objectContaining({ severity: 'thick' }));
   });
+
+  it('前例が取得上限に達したら fail-safe で人手へ（conflict-safety: 却下取りこぼし防止）', async () => {
+    vi.spyOn(auditLog, 'record').mockResolvedValue(null);
+    // 上限(1000)件すべて承認でも、全件確認を保証できないため deny
+    const many = Array.from({ length: 1000 }, () => precedent());
+    const finder = vi.fn().mockResolvedValue(many);
+    const r = await tryAutoApprove(lowInput, { config: ENABLED, precedentFinder: finder });
+    expect(r.autoApprove).toBe(false);
+    expect(r.code).toBe('precedent-overflow');
+  });
+
+  it('監査記録に失敗したら自動承認扱いにしない（証跡なき承認を作らない）', async () => {
+    vi.spyOn(auditLog, 'record').mockRejectedValue(new Error('db down'));
+    const finder = vi.fn().mockResolvedValue([precedent()]);
+    const r = await tryAutoApprove(lowInput, { config: ENABLED, precedentFinder: finder });
+    expect(r.autoApprove).toBe(false);
+    expect(r.code).toBe('audit-write-failed');
+  });
 });

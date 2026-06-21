@@ -17,6 +17,14 @@ import { RiskGrade, ApprovalLine, Precedent, RecordPrecedentInput } from './type
 const PRECEDENT_ACTION = 'PRECEDENT_RECORD' as const;
 const PRECEDENT_PREFIX = 'precedent:';
 
+/**
+ * 前例照会の取得上限。監査ログ repository は limit 未指定だと既定 50 件で打ち切るため、
+ * 明示的に大きめの上限を渡し、却下前例の取りこぼし（pagination による conflict-safety 破れ）を防ぐ。
+ * この上限に達した場合、呼び出し側（tryAutoApprove）は「全件を見たと保証できない」として
+ * fail-safe で人手へ倒す。
+ */
+export const PRECEDENT_FETCH_LIMIT = 1000;
+
 /** リスク等級 → 決裁ライン（§5.1.2: 全件を最高権限者に上げない） */
 export function requiredApprovalLine(grade: RiskGrade): ApprovalLine {
   switch (grade) {
@@ -87,6 +95,8 @@ export async function findPrecedents(
     action: PRECEDENT_ACTION,
     entityId: `${PRECEDENT_PREFIX}${signature}`,
     ...(policyVersion ? { policyVersion } : {}),
+    // 既定50件打ち切りを避け、却下前例を取りこぼさない（conflict-safety）
+    limit: PRECEDENT_FETCH_LIMIT,
   });
 
   return records.map(r => {
