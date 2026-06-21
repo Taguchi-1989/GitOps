@@ -73,8 +73,8 @@
 | **P0-2** | ポリシー版ハッシュ刻印（ロード時に算出しゲート評価で刻む） | `gate-loader.ts` / `rule-loader.ts`（GATE_EVALUATE での `policyHash` は P0-1 で先行） | 強化 |
 | **P0-3** ✅ | 入口ゲート（決定論検出 + fail-safe + 二段走査 + ReDoS耐性） | `src/core/ingress/*`、`spec/gates/ingress-secret-gate.yaml`、提案生成routeへ結線 | 実装済 |
 | **P0-4** ✅ | 差し替え可能点B 受け入れ確認（直叩き是正・一行切替） | `src/core/llm/*`、[swappable-point-b](swappable-point-b.md) | 検証済 |
-| **P1** | 出口ゲート拡張（CVE/シークレット/SAST） | `gate-evaluator` 系に独立検出系を追加 | 強化 |
-| **P1** | 承認ワークフロー Phase 0（全件人手 + 前例蓄積） | `human-loop.ts` + `issue-management` | 強化 |
+| **P1** ✅ | 出口ゲート（独立検出系: ルール+エントロピー） | `src/core/egress/*`、[egress-gate](egress-gate.md) | 実装済 |
+| **P1** ✅ | 承認ワークフロー Phase 0（全件人手 + 前例蓄積） | `src/core/approval/*` + `human-loop.ts`、[approval-phase0](approval-phase0.md) | 実装済 |
 | **P2** | 前例自動承認 + 事後サンプル監査 | 新規 | 新規 |
 
 ### 第II部 GitOps 結合（結合モード）
@@ -93,11 +93,13 @@
 
 ## 5. 受け入れ基準（spec §12 を FlowOps で確認）
 
-- [ ] 監査ログが素通し状態でも全判定を追記し、**ポリシー版・時刻・ハッシュ**を刻む（P0-1/P0-2）
-- [ ] ポリシー変更が人間ゲート（PR）を通らずに反映される経路が存在しない（POL-4）
-- [ ] 判定不能時に安全側へ倒れるテストが通る（POL-3 / ING-2）
-- [ ] 差し替え可能点Bで設定一行のプロバイダ切替が三層コード無変更で成立（LiteLLM）
-- [ ] §8 の全リスクがレビューされ受容判断が記録されている
+- [x] 監査ログが素通し状態でも全判定を追記し、**ポリシー版・時刻・ハッシュ**を刻む（P0-1）
+- [x] 判定不能時に安全側へ倒れるテストが通る（POL-3 / ING-2 — 入口ゲート fail-safe テスト）
+- [x] 差し替え可能点Bで設定一行のプロバイダ切替が三層コード無変更で成立（P0-4 / [swappable-point-b](swappable-point-b.md)）
+- [ ] ポリシー変更が人間ゲート（PR）を通らずに反映される経路が存在しない（POL-4 — YAMLはPR管理だが自動学習ループ禁止の明文ガードは未）
+- [ ] §8 の全リスクがレビューされ受容判断が記録されている（§8.1/8.2 は egress/ingress 文書で言及。正式な受容記録は未）
+
+> 進捗サマリ: **P0(P0-1/P0-3/P0-4) + P1(出口ゲート/承認Phase0) 完了。** 残: P0-2(ポリシー版ハッシュのロード時刻印を全ルールへ)、P1b(CVEシグネチャ)、P2(前例自動承認+事後サンプル監査)、§8リスクの正式受容記録。
 
 ---
 
@@ -107,6 +109,8 @@
 - [AI統合アーキテクチャ](../architecture-ai-integration.md) — 5層プラットフォーム設計
 - [DecisionOps オペレーティングモデル](../decisionops-operating-model.md) — 承認ワークフローの運用思想
 - `spec/gates/safety-review-gate.yaml` — 既存ゲート実装の参照例
+- [監査ログ append-only](audit-append-only.md)（P0-1）/ [入口ゲート補足](#g1-入口ゲート機密混入検査--p0--最大の差分-実装済)（P0-3）
+- [差し替え可能点B](swappable-point-b.md)（P0-4）/ [出口ゲート](egress-gate.md)（P1）/ [承認 Phase 0](approval-phase0.md)（P1）
 
 ---
 
