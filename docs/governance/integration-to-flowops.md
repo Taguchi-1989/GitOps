@@ -77,8 +77,9 @@
 | **P1** ✅ | 承認ワークフロー Phase 0（全件人手 + 前例蓄積） | `src/core/approval/*` + `human-loop.ts`、[approval-phase0](approval-phase0.md) | 実装済 |
 | **P2** ✅ | 前例自動承認 + 事後サンプル監査 | `src/core/approval/auto-approve.ts` `sample-audit.ts`、[auto-approval-phase2](auto-approval-phase2.md) | 実装済 |
 
-### 第II部 GitOps 結合（結合モード）
-- spec §10: in-line / gateway の二モード。FlowOpsは自前オーケストレータのため**in-line（同期挿入）が自然**。ゲート判定を commit SHA / PR番号に紐づけ（GIT-1）、`high` 等級でマージブロック + 承認issue自動起票（GIT-2、既存 `issue-management` を流用）。
+### 第II部 GitOps 結合（結合モード） ✅ 実装済
+- spec §10: in-line を採用（既存 `ci.yml` が同期ステップを許す）。実装: `src/core/gitops/`（アダプタ・GitHub SDK非依存=GIT-4）+ `scripts/governance-gate.ts`（CLI）+ `.github/workflows/governance-gate.yml`（PR required check）。
+- GIT-1: 判定を commit SHA / PR番号に紐づけ `GITOPS_GATE` 監査。GIT-2: block/escalate で決裁パッケージ（§5.1.2）を承認issue自動起票 + exit 1でマージ停止。GIT-4: portability.test で「アダプタはGitHub SDK非依存・コアはgitops非依存」を静的検査。詳細 [gitops-binding](gitops-binding.md)。
 
 ---
 
@@ -99,7 +100,7 @@
 - [ ] ポリシー変更が人間ゲート（PR）を通らずに反映される経路が存在しない（POL-4 — YAMLはPR管理だが自動学習ループ禁止の明文ガードは未）
 - [ ] §8 の全リスクがレビューされ受容判断が記録されている（§8.1/8.2 は egress/ingress 文書で言及。正式な受容記録は未）
 
-> 進捗サマリ: **P0(P0-1/P0-3/P0-4) + P1(出口ゲート/承認Phase0) + P2(前例自動承認+サンプル監査) 完了。** ロードマップ主要項目は全て実装済。残: P0-2(ポリシー版ハッシュのロード時刻印を全ルールへ)、P1b(CVEシグネチャ)、§8リスクの正式受容記録、POL-4自動学習禁止の明文ガード、第II部 GitOps結線(GIT-1/2)、自動承認の有効化判断（一致率計測・現場合意）。
+> 進捗サマリ: **第I部 P0(P0-1/P0-3/P0-4) + P1(出口ゲート/承認Phase0) + P2(前例自動承認+サンプル監査)、第II部 GitOps結合(GIT-1〜4) すべて完了。** ロードマップの全主要項目を実装。残（任意）: P0-2(ポリシー版ハッシュ刻印の全ルール徹底)、P1b(CVEシグネチャ)、§8リスクの正式受容記録、POL-4自動学習禁止の明文ガード、GIT-3(過去PR前例の自動承認結線)、自動承認の有効化判断（一致率計測・現場合意）、caseFeaturesのschema強制、gatewayモード雛形。
 
 ---
 
