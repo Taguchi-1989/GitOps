@@ -75,7 +75,7 @@
 | **P0-4** ✅ | 差し替え可能点B 受け入れ確認（直叩き是正・一行切替） | `src/core/llm/*`、[swappable-point-b](swappable-point-b.md) | 検証済 |
 | **P1** ✅ | 出口ゲート（独立検出系: ルール+エントロピー） | `src/core/egress/*`、[egress-gate](egress-gate.md) | 実装済 |
 | **P1** ✅ | 承認ワークフロー Phase 0（全件人手 + 前例蓄積） | `src/core/approval/*` + `human-loop.ts`、[approval-phase0](approval-phase0.md) | 実装済 |
-| **P2** | 前例自動承認 + 事後サンプル監査 | 新規 | 新規 |
+| **P2** ✅ | 前例自動承認 + 事後サンプル監査 | `src/core/approval/auto-approve.ts` `sample-audit.ts`、[auto-approval-phase2](auto-approval-phase2.md) | 実装済 |
 
 ### 第II部 GitOps 結合（結合モード）
 - spec §10: in-line / gateway の二モード。FlowOpsは自前オーケストレータのため**in-line（同期挿入）が自然**。ゲート判定を commit SHA / PR番号に紐づけ（GIT-1）、`high` 等級でマージブロック + 承認issue自動起票（GIT-2、既存 `issue-management` を流用）。
@@ -99,7 +99,7 @@
 - [ ] ポリシー変更が人間ゲート（PR）を通らずに反映される経路が存在しない（POL-4 — YAMLはPR管理だが自動学習ループ禁止の明文ガードは未）
 - [ ] §8 の全リスクがレビューされ受容判断が記録されている（§8.1/8.2 は egress/ingress 文書で言及。正式な受容記録は未）
 
-> 進捗サマリ: **P0(P0-1/P0-3/P0-4) + P1(出口ゲート/承認Phase0) 完了。** 残: P0-2(ポリシー版ハッシュのロード時刻印を全ルールへ)、P1b(CVEシグネチャ)、P2(前例自動承認+事後サンプル監査)、§8リスクの正式受容記録。
+> 進捗サマリ: **P0(P0-1/P0-3/P0-4) + P1(出口ゲート/承認Phase0) + P2(前例自動承認+サンプル監査) 完了。** ロードマップ主要項目は全て実装済。残: P0-2(ポリシー版ハッシュのロード時刻印を全ルールへ)、P1b(CVEシグネチャ)、§8リスクの正式受容記録、POL-4自動学習禁止の明文ガード、第II部 GitOps結線(GIT-1/2)、自動承認の有効化判断（一致率計測・現場合意）。
 
 ---
 
