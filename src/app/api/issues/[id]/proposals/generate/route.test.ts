@@ -82,6 +82,22 @@ vi.mock('@/core/parser', () => ({
   parseFlowYaml: vi.fn(() => ({ success: true, flow: { id: 'test', title: 'Test' } })),
 }));
 
+// 入口ゲート（§4.1）はここではパススルーをデフォルトとし、ゲート本体の挙動は
+// src/core/ingress/guard.test.ts で検証する。ブロック経路はテスト内で個別に上書きする。
+vi.mock('@/core/ingress', () => ({
+  guardIngress: vi.fn(async (fields: Record<string, string>) => ({
+    fields,
+    evaluation: { decision: 'pass' },
+    perField: {},
+  })),
+  IngressBlockedError: class IngressBlockedError extends Error {
+    constructor() {
+      super('Ingress gate blocked external send: email(value)');
+      this.name = 'IngressBlockedError';
+    }
+  },
+}));
+
 // --------------------------------------------------------
 // Imports
 // --------------------------------------------------------
@@ -90,6 +106,7 @@ import { prisma } from '@/lib/prisma';
 import { getFlowYaml } from '@/lib/flow-service';
 import { getLLMClient, LLMError } from '@/core/llm';
 import { auditLog } from '@/core/audit';
+import { guardIngress, IngressBlockedError } from '@/core/ingress';
 
 /** Helper to extract response body from mocked NextResponse */
 function getBody(result: any): any {
@@ -303,5 +320,33 @@ describe('POST /api/issues/[id]/proposals/generate', () => {
     expect(body.details).toContain('LLM error');
     expect(body.details).toContain('Rate limit exceeded');
     expect(result.status).toBe(500);
+  });
+
+  it('入口ゲートが機密を検出したら 422 INGRESS_BLOCKED を返し、LLMを呼ばない', async () => {
+    const mockIssue = createMockIssue({
+      title: 'Fix order flow',
+      description: 'secret AKIAIOSFODNN7EXAMPLE',
+      status: 'in-progress',
+      targetFlowId: 'order-processing',
+    });
+    vi.mocked(prisma.issue.findUnique).mockResolvedValueOnce(mockIssue as any);
+    vi.mocked(getFlowYaml).mockResolvedValueOnce('title: Order Processing\nnodes: {}');
+
+    // 入口ゲートをブロック挙動に上書き
+    vi.mocked(guardIngress).mockRejectedValueOnce(new IngressBlockedError('1.0.0', 'full', []));
+    const generateProposal = vi.fn();
+    vi.mocked(getLLMClient).mockReturnValueOnce({ generateProposal } as any);
+
+    const request = new Request('http://localhost:3000/api/issues/issue-1/proposals/generate', {
+      method: 'POST',
+    });
+    const result = await POST(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
+    const body = getBody(result);
+
+    expect(body.ok).toBe(false);
+    expect(body.errorCode).toBe('INGRESS_BLOCKED');
+    expect(result.status).toBe(422);
+    // 外部送出（LLM）は行われない
+    expect(generateProposal).not.toHaveBeenCalled();
   });
 });

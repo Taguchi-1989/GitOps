@@ -46,6 +46,8 @@ export const API_ERROR_CODES = {
   // Data Governance
   ACCESS_DENIED: 'ACCESS_DENIED',
   DATA_GOVERNANCE_VIOLATION: 'DATA_GOVERNANCE_VIOLATION',
+  // ガバナンス・ハーネス §4.1: 入口ゲートが機密混入を検出し外部送出をブロック
+  INGRESS_BLOCKED: 'INGRESS_BLOCKED',
 } as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES];

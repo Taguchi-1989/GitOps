@@ -19,6 +19,7 @@ import { getLLMClient, LLMError } from '@/core/llm';
 import { sha256, applyPatches, diffFlows, formatDiffAsHtml } from '@/core/patch';
 import { parseFlowYaml } from '@/core/parser';
 import { auditLog } from '@/core/audit';
+import { guardIngress, IngressBlockedError } from '@/core/ingress';
 import { logger } from '@/lib/logger';
 
 interface RouteParams {
@@ -72,14 +73,42 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // 辞書を取得
     const dictionary = await getDictionary();
 
-    // LLMで提案を生成
+    // 入口ゲート（ガバナンス・ハーネス §4.1）: 外部送出前に機密混入を決定論的に検査。
+    // 結合型は伏字化、値型/判定不能は block（人間承認フローへ）。判定は監査ログへ記録。
+    let gatedTitle = issue.title;
+    let gatedDescription = issue.description;
+    let gatedFlowYaml = flowYaml;
+    try {
+      const { fields } = await guardIngress(
+        {
+          issueTitle: issue.title,
+          issueDescription: issue.description,
+          flowYaml,
+        },
+        { entityId: issue.id, entityType: 'Issue', actor: getAuditActor(request) ?? undefined }
+      );
+      gatedTitle = fields.issueTitle;
+      gatedDescription = fields.issueDescription;
+      gatedFlowYaml = fields.flowYaml;
+    } catch (error) {
+      if (error instanceof IngressBlockedError) {
+        return errorResponse(
+          API_ERROR_CODES.INGRESS_BLOCKED,
+          `Ingress gate blocked external send (機密混入の疑い). ${error.message}`,
+          422
+        );
+      }
+      throw error;
+    }
+
+    // LLMで提案を生成（入口ゲート通過後の安全化済みテキストを使用）
     let proposalOutput;
     try {
       const llm = getLLMClient();
       proposalOutput = await llm.generateProposal({
-        issueTitle: issue.title,
-        issueDescription: issue.description,
-        flowYaml,
+        issueTitle: gatedTitle,
+        issueDescription: gatedDescription,
+        flowYaml: gatedFlowYaml,
         roles: dictionary.roles,
         systems: dictionary.systems,
       });
