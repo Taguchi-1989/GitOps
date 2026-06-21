@@ -72,7 +72,7 @@
 | **P0-1** ✅ | 監査ログを仕様準拠へ（hash・policyVersion・severity層・append-only方針） | `src/core/audit/*`、`prisma/schema.prisma`、[append-only](audit-append-only.md) | 実装済 |
 | **P0-2** | ポリシー版ハッシュ刻印（ロード時に算出しゲート評価で刻む） | `gate-loader.ts` / `rule-loader.ts`（GATE_EVALUATE での `policyHash` は P0-1 で先行） | 強化 |
 | **P0-3** ✅ | 入口ゲート（決定論検出 + fail-safe + 二段走査 + ReDoS耐性） | `src/core/ingress/*`、`spec/gates/ingress-secret-gate.yaml`、提案生成routeへ結線 | 実装済 |
-| **P0-4** | 差し替え可能点B 受け入れ確認（設定一行切替テスト） | `infrastructure/litellm/`、`src/core/llm/` | 検証 |
+| **P0-4** ✅ | 差し替え可能点B 受け入れ確認（直叩き是正・一行切替） | `src/core/llm/*`、[swappable-point-b](swappable-point-b.md) | 検証済 |
 | **P1** | 出口ゲート拡張（CVE/シークレット/SAST） | `gate-evaluator` 系に独立検出系を追加 | 強化 |
 | **P1** | 承認ワークフロー Phase 0（全件人手 + 前例蓄積） | `human-loop.ts` + `issue-management` | 強化 |
 | **P2** | 前例自動承認 + 事後サンプル監査 | 新規 | 新規 |
