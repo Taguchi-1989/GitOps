@@ -16,8 +16,11 @@ export class AnthropicLLMClient {
   private model: string;
   private maxTokens: number;
 
-  constructor(apiKey: string, model?: string, maxTokens?: number) {
-    this.client = new Anthropic({ apiKey });
+  constructor(apiKey: string, model?: string, maxTokens?: number, baseURL?: string) {
+    // 差し替え可能点B（ガバナンス・ハーネス）: baseURL を与えればゲートウェイ(LiteLLM等)へ
+    // routing 可能にする。未指定時のみ Anthropic 直結（直叩き）にフォールバック。
+    // 直叩きを構造的に禁止したい運用では ANTHROPIC_BASE_URL を必ず設定する。
+    this.client = new Anthropic({ apiKey, ...(baseURL ? { baseURL } : {}) });
     this.model = model ?? 'claude-haiku-4-5-20251001';
     this.maxTokens = maxTokens ?? 2048;
   }
