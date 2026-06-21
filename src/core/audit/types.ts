@@ -40,6 +40,7 @@ export const AuditActionSchema = z.enum([
   'EGRESS_GATE', // ガバナンス・ハーネス §4.2: 出口ゲート（出力検査）判定
   'HUMAN_APPROVE',
   'HUMAN_REJECT',
+  'PRECEDENT_RECORD', // ガバナンス・ハーネス §5.1/§5.3: 人手承認の前例蓄積（Phase 0）
 
   // Flow lifecycle
   'FLOW_CREATE',

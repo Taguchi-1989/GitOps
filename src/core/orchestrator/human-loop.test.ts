@@ -10,6 +10,9 @@ import { auditLog } from '../audit/logger';
 vi.mock('../audit/logger', () => ({
   auditLog: {
     logWorkflowAction: vi.fn(),
+    // 前例蓄積(§5.3 Phase 0)が呼ぶ record / query も用意
+    record: vi.fn(),
+    query: vi.fn(async () => []),
   },
 }));
 
