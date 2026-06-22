@@ -32,11 +32,16 @@
 ```bash
 git clone https://github.com/Taguchi-1989/GitOps.git && cd GitOps
 npm install
-cp .env.example .env                 # 既定で SQLite。LLMを試す時だけ LLM_API_KEY を設定
+cp .env.example .env
+# ↓ .env の DATABASE_URL を SQLite に変更（.env.example の既定は PostgreSQL、schema は SQLite）
+#   DATABASE_URL="file:./prisma/dev.db"
+# （LLM を試す時だけ LLM_API_KEY も設定）
 npx prisma db push                   # SQLite DB を作成
 npm run db:seed                      # 初期データ投入
 npm run dev                          # → http://localhost:3000
 ```
+
+> `start.bat` はこの DATABASE_URL（SQLite）を自動生成します。コマンド手順では `.env` の `DATABASE_URL` を必ず `file:` URL にしてください（PostgreSQL のままだと `prisma db push` / `npm run dev` が失敗します）。
 
 - ログイン: `admin@flowops.local` / `admin`
 - まず試すこと: ダッシュボード → フロー閲覧（Mermaid図）→ Issue作成 → （LLMキーがあれば）提案生成
