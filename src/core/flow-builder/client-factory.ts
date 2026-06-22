@@ -15,12 +15,12 @@ const PROVIDER_DEFAULTS: Record<
   openai: { baseURL: 'https://api.openai.com/v1', model: 'gpt-4o', supportsJsonMode: true },
   anthropic: {
     baseURL: 'https://api.anthropic.com/v1',
-    model: 'claude-sonnet-4-5-20250929',
+    model: 'claude-sonnet-4-6',
     supportsJsonMode: false,
   },
   gemini: {
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3-flash',
     supportsJsonMode: true,
   },
   groq: {
