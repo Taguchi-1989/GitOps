@@ -23,7 +23,7 @@ model_list:
 
   - model_name: "gemini-flash"
     litellm_params:
-      model: "gemini/gemini-2.5-flash"
+      model: "gemini/gemini-3-flash"
       api_key: "os.environ/GEMINI_API_KEY"
 
   # --- ローカルLLM (Phase 2: --profile local-llm) ---

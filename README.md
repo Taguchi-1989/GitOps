@@ -447,7 +447,7 @@ OpenAI互換APIを使用し、複数のLLMプロバイダーに対応。`LLM_PRO
 | ----------------- | -------------- | ------------------------- | --------- | --------------------------------------------------------- |
 | OpenAI            | `openai`       | `gpt-4o`                  | Yes       | `https://api.openai.com/v1`                               |
 | Anthropic         | `anthropic`    | `claude-sonnet-4-6`       | No        | `https://api.anthropic.com/v1`                            |
-| Google Gemini     | `gemini`       | `gemini-2.5-flash`        | Yes       | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| Google Gemini     | `gemini`       | `gemini-3-flash`          | Yes       | `https://generativelanguage.googleapis.com/v1beta/openai` |
 | Groq              | `groq`         | `llama-3.3-70b-versatile` | Yes       | `https://api.groq.com/openai/v1`                          |
 | Ollama (ローカル) | `ollama`       | `llama3.2`                | Yes       | `http://localhost:11434/v1`                               |
 | カスタム          | `custom`       | -                         | 要設定    | `LLM_BASE_URL`で指定                                      |
@@ -476,7 +476,7 @@ LLM_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
 ```bash
 LLM_PROVIDER=gemini
 LLM_API_KEY=AIzaxxxxxxxxxxxxxxxxx
-# LLM_MODEL=gemini-2.5-flash  (デフォルト)
+# LLM_MODEL=gemini-3-flash  (デフォルト)
 ```
 
 #### Groq

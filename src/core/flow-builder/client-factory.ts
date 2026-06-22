@@ -20,7 +20,7 @@ const PROVIDER_DEFAULTS: Record<
   },
   gemini: {
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash',
     supportsJsonMode: true,
   },
   groq: {
