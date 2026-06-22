@@ -22,13 +22,18 @@ import {
 } from '@/core/gitops';
 
 // 検査対象から除外する pathspec。
-// テストフィクスチャ・ドキュメントは例示シークレット（AWS 公式のサンプルアクセスキー等）を
-// 正当に含むため、本番ソースのみを走査する。実在シークレットの検出力は本番パスで維持される。
+// テストフィクスチャ・ドキュメントは例示シークレット（AWS 公式のサンプルアクセスキーや
+// .env のプレースホルダ等）を正当に含むため、本番ソースのみを走査する。実在シークレットの
+// 検出力は本番パスで維持される。
+//
+// 重要: `:(glob)` magic を付与する。既定の git pathspec では `**/` がディレクトリ階層を
+// 跨がず、ルート直下の `README.md` などが除外されない（CI で README の .env 例が誤検出された）。
+// glob magic により `**/` がゼロ階層を含む全階層にマッチし、ルート/ネスト両方を確実に除外する。
 const EXCLUDE_PATHSPECS = [
-  ':(exclude)**/*.test.ts',
-  ':(exclude)**/*.test.tsx',
-  ':(exclude)docs/**',
-  ':(exclude)**/*.md',
+  ':(exclude,glob)**/*.test.ts',
+  ':(exclude,glob)**/*.test.tsx',
+  ':(exclude,glob)docs/**',
+  ':(exclude,glob)**/*.md',
 ];
 
 function getDiff(): { text: string; ok: boolean } {
