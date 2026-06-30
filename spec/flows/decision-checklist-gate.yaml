@@ -1,0 +1,146 @@
+id: decision-checklist-gate
+title: 判断チェックリスト・ゲート（合格/報告 ＋ 証跡保存 ＋ 前例再利用）
+layer: L1
+updatedAt: '2026-06-29T00:00:00+09:00'
+businessPurpose: >-
+  「器（プラットフォーム等）の選定」のような判断ポイントで、チェックリストを満たせば合格（承認）、
+  満たさなければ報告（人手レビューへエスカレーション）とする再利用可能なワークフロー。
+  チェックリスト充足の証跡を監査ログに保存し、同種案件は前例として再利用する。
+ownerOrg: governance
+
+nodes:
+  start_decision:
+    id: start_decision
+    type: start
+    label: 判断の開始
+    role: supervisor
+    meta:
+      description: 判断対象（例：デプロイ先プラットフォームの選定）を起点に、適用するチェックリストを特定する
+
+  gather_checklist:
+    id: gather_checklist
+    type: process
+    label: チェックリスト項目の収集・記入
+    role: supervisor
+    meta:
+      description: >-
+        判断軸（評価軸）をチェックリストとして列挙し、各項目に対する根拠（エビデンス）を集めて記入する。
+        例: 永続FS / 単一インスタンス整合 / 機密ガバナンス適合 / コスト / 可用性 など
+      checklistSource: docs/platform-choice-discussion.md#判断チェックリストゲート
+
+  precedent_check:
+    id: precedent_check
+    type: decision
+    label: 同種前例の有無
+    role: supervisor
+    meta:
+      description: >-
+        過去に同種の判断（同じチェックリスト・同等条件）の合格前例があるかを確認する。
+        前例があれば軽量経路で再利用、なければ通常評価へ進む
+
+  evaluate_checklist:
+    id: evaluate_checklist
+    type: decision
+    label: チェックリストの充足判定
+    role: supervisor
+    meta:
+      description: 全必須項目を満たすかを判定する。全充足=合格、未達あり=報告
+
+  record_evidence:
+    id: record_evidence
+    type: process
+    label: 充足証跡の保存
+    role: supervisor
+    meta:
+      description: >-
+        チェックリスト充足の事実（項目・根拠・判定者・時刻）を監査ログ（追記専用）に証跡として保存する。
+        判断の再現性・説明責任を担保する
+      auditTrail: append-only
+
+  approve_decision:
+    id: approve_decision
+    type: human-review
+    label: 合格 → 承認
+    role: supervisor
+    meta:
+      description: 全項目充足を確認のうえ判断を承認する（判断は人・記録は機械）。承認結果は前例として蓄積される
+
+  report_decision:
+    id: report_decision
+    type: human-review
+    label: 未達 → 報告（エスカレーション）
+    role: supervisor
+    meta:
+      description: >-
+        未達項目を添えて人手レビューへ報告・エスカレーションする。
+        是正後に再評価するか、リスク受容の判断を仰ぐ
+
+  end_approved:
+    id: end_approved
+    type: end
+    label: 承認完了（合格）
+    role: supervisor
+    meta:
+      description: 判断が承認され、証跡と前例が保存された状態
+
+  end_reported:
+    id: end_reported
+    type: end
+    label: 報告完了（要対応）
+    role: supervisor
+    meta:
+      description: 未達のまま人手レビューへ報告された状態。是正→再評価のループに戻りうる
+
+edges:
+  e1:
+    id: e1
+    from: start_decision
+    to: gather_checklist
+
+  e2:
+    id: e2
+    from: gather_checklist
+    to: precedent_check
+
+  e3:
+    id: e3
+    from: precedent_check
+    to: approve_decision
+    label: 同種前例あり（再利用）
+    condition: precedent_match == true
+
+  e4:
+    id: e4
+    from: precedent_check
+    to: evaluate_checklist
+    label: 前例なし（通常評価）
+    condition: precedent_match == false
+
+  e5:
+    id: e5
+    from: evaluate_checklist
+    to: record_evidence
+    label: 全項目充足（合格）
+    condition: checklist_satisfied == true
+
+  e6:
+    id: e6
+    from: evaluate_checklist
+    to: report_decision
+    label: 未達あり（報告）
+    condition: checklist_satisfied == false
+
+  e7:
+    id: e7
+    from: record_evidence
+    to: approve_decision
+
+  e8:
+    id: e8
+    from: approve_decision
+    to: end_approved
+
+  e9:
+    id: e9
+    from: report_decision
+    to: end_reported
