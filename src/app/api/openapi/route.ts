@@ -97,12 +97,50 @@ const spec = {
           hasMore: { type: 'boolean' },
         },
       },
+      AimsEvidenceInput: {
+        type: 'object',
+        required: ['title', 'sourceText'],
+        properties: {
+          title: { type: 'string', minLength: 1, maxLength: 200 },
+          sourceText: { type: 'string', minLength: 1, maxLength: 500000 },
+          sourceType: { type: 'string', default: 'historical-text' },
+          sourceLabel: { type: 'string', maxLength: 500 },
+          sensitivityLevel: {
+            type: 'string',
+            enum: ['L0', 'L1', 'L2', 'L3', 'L4', 'L5'],
+            default: 'L2',
+          },
+          occurredAt: { type: 'string', format: 'date-time' },
+          tags: { type: 'array', items: { type: 'string' }, maxItems: 50 },
+          metadata: { type: 'object', additionalProperties: true },
+        },
+      },
+      AimsReviewOutput: {
+        type: 'object',
+        required: ['schemaVersion', 'executiveSummary', 'humanDecisionRequired', 'confidence'],
+        properties: {
+          schemaVersion: { type: 'string', enum: ['aims-review.v1'] },
+          reviewScope: { type: 'string' },
+          executiveSummary: { type: 'string' },
+          sourceSummary: { type: 'string' },
+          claims: { type: 'array', items: { type: 'object' } },
+          controlAssessments: { type: 'array', items: { type: 'object' } },
+          risks: { type: 'array', items: { type: 'object' } },
+          findings: { type: 'array', items: { type: 'object' } },
+          uncertainties: { type: 'array', items: { type: 'string' } },
+          disagreements: { type: 'array', items: { type: 'object' } },
+          recommendedActions: { type: 'array', items: { type: 'object' } },
+          humanDecisionRequired: { type: 'boolean', enum: [true] },
+          confidence: { type: 'number', minimum: 0, maximum: 1 },
+          extensions: { type: 'object', additionalProperties: true },
+        },
+      },
     },
     securitySchemes: {
       session: {
         type: 'apiKey',
         in: 'cookie',
-        name: 'next-auth.session-token',
+        name: 'authjs.session-token',
       },
     },
   },
@@ -115,6 +153,109 @@ const spec = {
         security: [],
         responses: {
           200: { description: 'Healthy' },
+        },
+      },
+    },
+    '/aims/evidence': {
+      get: {
+        summary: 'AIMS証拠一覧（原文を除く）',
+        tags: ['AIMS'],
+        parameters: [
+          { name: 'status', in: 'query', schema: { type: 'string' } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+        ],
+        responses: { 200: { description: '証拠一覧とページネーション' } },
+      },
+      post: {
+        summary: '過去テキストをAIMS証拠として取り込む',
+        tags: ['AIMS'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AimsEvidenceInput' },
+            },
+          },
+        },
+        responses: {
+          201: { description: '原文ハッシュ付きで取り込み完了' },
+          400: { description: 'Validation error' },
+        },
+      },
+    },
+    '/aims/evidence/{id}': {
+      get: {
+        summary: 'AIMS証拠とレビュー履歴を取得',
+        tags: ['AIMS'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '証拠詳細' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/aims/evidence/{id}/reviews': {
+      post: {
+        summary: '複数LLMによる独立レビューと統合を実行',
+        description:
+          '各モデル出力は助言であり、人の最終判断を必要とする。機密検査、モデル別記録、統合、出力検査を行う。',
+        tags: ['AIMS'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  objective: { type: 'string', maxLength: 2000 },
+                  reviewerIds: {
+                    type: 'array',
+                    minItems: 1,
+                    maxItems: 8,
+                    items: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'レビュー完了または一部成功' },
+          413: { description: '設定されたレビュー長上限を超過' },
+          422: { description: 'Ingress/Egress Gateがブロック' },
+          502: { description: '全独立レビューが失敗' },
+        },
+      },
+    },
+    '/aims/reviews/{id}': {
+      get: {
+        summary: 'モデル別結果と統合結果を取得',
+        tags: ['AIMS'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'レビュー詳細' }, 404: { description: 'Not found' } },
+      },
+    },
+    '/aims/reviews/{id}/decision': {
+      post: {
+        summary: 'AIMSレビューに対する人の判断を理由付きで記録',
+        tags: ['AIMS'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['decision', 'reason'],
+                properties: {
+                  decision: { type: 'string', enum: ['approved', 'revise', 'rejected'] },
+                  reason: { type: 'string', minLength: 1, maxLength: 4000 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: '判断記録完了' },
+          409: { description: '未完了または判断記録済み' },
         },
       },
     },
@@ -277,6 +418,203 @@ const spec = {
         responses: { 200: { description: '統合成功' } },
       },
     },
+    '/issues/{id}/standardize': {
+      post: {
+        summary: '効果確認済みの改善を標準化',
+        tags: ['Issues'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '標準化成功' } },
+      },
+    },
+    '/issues/{id}/proposals/import': {
+      post: {
+        summary: '外部エージェントの提案を取り込み',
+        tags: ['Proposals'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 201: { description: '提案取り込み成功' } },
+      },
+    },
+    '/issues/{id}/proposals/prompt': {
+      get: {
+        summary: '外部エージェント向け提案プロンプトを取得',
+        tags: ['Proposals'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'プロンプト' } },
+      },
+    },
+    '/flows/create': {
+      post: {
+        summary: 'フローを新規作成',
+        tags: ['Flows'],
+        responses: { 201: { description: 'フロー作成成功' } },
+      },
+    },
+    '/flows/draft': {
+      post: {
+        summary: 'LLMでフロー下書きを生成',
+        tags: ['Flows'],
+        responses: { 200: { description: 'フロー下書き' } },
+      },
+    },
+    '/flows/import': {
+      post: {
+        summary: 'YAMLフローを取り込み',
+        tags: ['Flows'],
+        responses: { 201: { description: '取り込み成功' } },
+      },
+    },
+    '/flows/from-image': {
+      post: {
+        summary: '画像からフロー下書きを生成',
+        tags: ['Flows'],
+        responses: { 200: { description: 'フロー下書き' } },
+      },
+    },
+    '/flows/{id}/expand': {
+      post: {
+        summary: 'フロー階層を展開',
+        tags: ['Flows'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '展開結果' } },
+      },
+    },
+    '/flows/{id}/grid-proposal': {
+      post: {
+        summary: 'グリッド編集内容から提案を生成',
+        tags: ['Flows'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 201: { description: '提案生成成功' } },
+      },
+    },
+    '/flows/{id}/validate-structure': {
+      post: {
+        summary: 'フロー構造を検証',
+        tags: ['Flows'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '構造検証結果' } },
+      },
+    },
+    '/workflows': {
+      get: {
+        summary: 'ワークフロー実行一覧',
+        tags: ['Workflows'],
+        responses: { 200: { description: '実行一覧' } },
+      },
+      post: {
+        summary: 'ワークフロー実行を開始',
+        tags: ['Workflows'],
+        responses: { 201: { description: '実行開始' } },
+      },
+    },
+    '/workflows/{id}': {
+      get: {
+        summary: 'ワークフロー実行詳細',
+        tags: ['Workflows'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '実行詳細' } },
+      },
+    },
+    '/workflows/{id}/approve': {
+      post: {
+        summary: '保留中の判断を承認・差戻し・停止',
+        tags: ['Workflows'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '判断を記録' } },
+      },
+    },
+    '/workflows/{id}/cancel': {
+      post: {
+        summary: 'ワークフロー実行を中止',
+        tags: ['Workflows'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '中止成功' } },
+      },
+    },
+    '/tasks': {
+      get: {
+        summary: 'マイクロタスク一覧',
+        tags: ['Tasks'],
+        responses: { 200: { description: 'タスク一覧' } },
+      },
+    },
+    '/tasks/{id}': {
+      get: {
+        summary: 'マイクロタスク詳細',
+        tags: ['Tasks'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'タスク詳細' } },
+      },
+    },
+    '/tasks/{id}/test': {
+      post: {
+        summary: 'マイクロタスクを試験実行',
+        tags: ['Tasks'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '試験結果' } },
+      },
+    },
+    '/data-objects': {
+      get: {
+        summary: 'データオブジェクト一覧',
+        tags: ['Data Objects'],
+        responses: { 200: { description: 'オブジェクト一覧' } },
+      },
+      post: {
+        summary: 'データオブジェクト作成',
+        tags: ['Data Objects'],
+        responses: { 201: { description: '作成成功' } },
+      },
+    },
+    '/data-objects/{id}': {
+      get: {
+        summary: 'データオブジェクト詳細',
+        tags: ['Data Objects'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'オブジェクト詳細' } },
+      },
+      patch: {
+        summary: 'データオブジェクト更新',
+        tags: ['Data Objects'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '更新成功' } },
+      },
+      delete: {
+        summary: 'データオブジェクト削除',
+        tags: ['Data Objects'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '削除成功' } },
+      },
+    },
+    '/data-objects/{id}/references': {
+      get: {
+        summary: 'データ参照関係を取得',
+        tags: ['Data Objects'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: '参照一覧' } },
+      },
+      post: {
+        summary: 'データ参照関係を追加',
+        tags: ['Data Objects'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 201: { description: '参照追加成功' } },
+      },
+    },
+    '/data-objects/{id}/access-check': {
+      post: {
+        summary: 'データオブジェクトへのアクセス可否を判定',
+        tags: ['Data Objects'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'アクセス判定' } },
+      },
+    },
+    '/governance/trace/{traceId}': {
+      get: {
+        summary: 'Trace IDに紐づくガバナンス判定を取得',
+        tags: ['Governance'],
+        parameters: [{ name: 'traceId', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'ガバナンストレース' } },
+      },
+    },
     '/audit': {
       get: {
         summary: '監査ログ照会',
@@ -289,6 +627,18 @@ const spec = {
           { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
         ],
         responses: { 200: { description: '監査ログ一覧' } },
+      },
+    },
+    '/audit/export': {
+      get: {
+        summary: '監査ログをCSVまたはJSONで出力',
+        tags: ['Audit'],
+        parameters: [
+          { name: 'format', in: 'query', schema: { type: 'string', enum: ['csv', 'json'] } },
+          { name: 'actor', in: 'query', schema: { type: 'string' } },
+          { name: 'action', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: { 200: { description: '監査ログファイル' } },
       },
     },
   },

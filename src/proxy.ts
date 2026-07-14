@@ -3,6 +3,7 @@ import NextAuth from 'next-auth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { authConfig } from '@/lib/auth-config';
 import { API_ERROR_CODES } from '@/core/types/api';
+import { isAuthDisabled } from '@/lib/auth-mode';
 
 const { auth } = NextAuth(authConfig);
 
@@ -38,12 +39,16 @@ function getClientIp(request: NextRequest): string {
 export default auth(async function proxy(request) {
   const { pathname } = request.nextUrl;
   const origin = request.headers.get('origin');
-  const actorId =
-    request.auth?.user?.email || request.auth?.user?.id || request.auth?.user?.name || 'anonymous';
-  const actorRole =
-    process.env.AUTH_DISABLED === 'true'
-      ? 'admin'
-      : (request.auth?.user as { role?: string } | undefined)?.role || 'viewer';
+  const authDisabled = isAuthDisabled();
+  const actorId = authDisabled
+    ? 'local-admin'
+    : request.auth?.user?.email ||
+      request.auth?.user?.id ||
+      request.auth?.user?.name ||
+      'anonymous';
+  const actorRole = authDisabled
+    ? 'admin'
+    : (request.auth?.user as { role?: string } | undefined)?.role || 'viewer';
   const traceId = request.headers.get('x-trace-id') || crypto.randomUUID();
 
   if (request.method === 'OPTIONS' && pathname.startsWith('/api')) {
@@ -78,7 +83,9 @@ export default auth(async function proxy(request) {
     }
 
     const clientIp = getClientIp(request);
-    const isLlmRoute = pathname.includes('/proposals/generate');
+    const isLlmRoute =
+      pathname.includes('/proposals/generate') ||
+      /^\/api\/aims\/evidence\/[^/]+\/reviews$/.test(pathname);
     const isAuthRoute = pathname.startsWith('/api/auth');
     const config = isAuthRoute ? RATE_LIMITS.auth : isLlmRoute ? RATE_LIMITS.llm : RATE_LIMITS.api;
     const rateLimitKey = isAuthRoute ? 'auth' : isLlmRoute ? 'llm' : 'api';

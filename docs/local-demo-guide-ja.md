@@ -9,22 +9,26 @@
 ## 1. ローカルサーバー起動
 
 前提
-- Node.js 18+
+- Node.js 20.19+（22 LTS 推奨）
 - Git
 
 手順
 ```bash
 npm install
-cp .env.example .env.local
-npx prisma db push
+cp .env.example .env
+# AUTH_SECRET と FLOWOPS_ADMIN_PASSWORD を変更
+npm run db:push
+npm run db:seed
 npm run dev
 ```
 
 アクセス先
 - `http://localhost:3000`
 
-`.env.local` 最低限
-- `DATABASE_URL=file:./dev.db`
+`.env` 最低限
+- `DATABASE_URL=file:./prisma/dev.db`
+- `AUTH_SECRET`（32文字以上）
+- `FLOWOPS_ADMIN_PASSWORD`
 - `LLM_PROVIDER=openai`
 - `LLM_API_KEY=...`
 
@@ -70,7 +74,7 @@ npm run dev
 ### 3.3 業務ログ/Issue管理データ
 - 保存先: `prisma/dev.db`（SQLite）
 - 内容: Issue, Proposal, Evidence, AuditLog
-- 注意: ローカルDBは共有されないため、チーム共有したい場合はDB運用方針を別途定義（将来的にPostgreSQL移行を推奨）
+- 注意: SQLiteはMVPの正本DBです。チーム共有・高可用性が必要になった時点で、schema・マイグレーション・アダプタを一括して再設計します
 
 ### 3.4 証跡ファイル（画像・ログ）
 - 現状: ファイルアップロードAPIは未実装。Evidenceは `url` 文字列管理
@@ -96,6 +100,8 @@ npm run dev
 npm run test
 npm run typecheck
 npm run lint
+npm run validate:flows
+npm run test:e2e
 ```
 
 5. マージ後に共有

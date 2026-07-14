@@ -34,6 +34,9 @@ const EXCLUDE_PATHSPECS = [
   ':(exclude,glob)**/*.test.tsx',
   ':(exclude,glob)docs/**',
   ':(exclude,glob)**/*.md',
+  ':(exclude,glob)**/.env.example',
+  ':(exclude,glob)**/.env.*.example',
+  ':(exclude,glob)**/package-lock.json',
 ];
 
 function getDiff(): { text: string; ok: boolean } {
@@ -43,10 +46,13 @@ function getDiff(): { text: string; ok: boolean } {
   try {
     const out = execFileSync(
       'git',
-      ['diff', '--no-color', ...rangeArgs, '--', '.', ...EXCLUDE_PATHSPECS],
+      ['diff', '--no-color', '--unified=0', ...rangeArgs, '--', '.', ...EXCLUDE_PATHSPECS],
       { encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024 }
     );
-    return { text: out, ok: true };
+    const addedLines = out
+      .split(/\r?\n/)
+      .filter(line => line.startsWith('+') && !line.startsWith('+++'));
+    return { text: addedLines.join('\n'), ok: true };
   } catch {
     return { text: '', ok: false };
   }
@@ -71,6 +77,8 @@ async function main(): Promise<void> {
   const result = await runGovernanceGate({
     git,
     diffText: diff.text,
+    artifact: diff.text,
+    ingressPolicyId: 'gitops-secret-gate',
     riskGrade,
   });
 

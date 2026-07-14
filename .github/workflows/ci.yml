@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DATABASE_URL: 'postgresql://ci:ci@localhost:5432/ci_dummy'
-  AUTH_SECRET: 'ci-test-secret-not-real'
+  DATABASE_URL: 'file:./ci.db'
+  AUTH_SECRET: 'ci-test-secret-not-real-32-characters-minimum'
 
 jobs:
   typecheck:
@@ -41,6 +41,7 @@ jobs:
       - run: npx prisma generate
       - run: npm run lint
       - run: npm run format:check
+      - run: npm run validate:flows
 
   test:
     name: Test
@@ -65,10 +66,6 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: [typecheck, lint, test]
-    # schema.prisma は provider=sqlite のため prisma generate は sqlite クライアントを生成する。
-    # ビルドの「Collecting page data」で prisma.ts が DATABASE_URL からアダプタを選ぶため、
-    # postgres URL だと adapter-pg と sqlite クライアントが不整合になりビルドが失敗する。
-    # ビルドは DB に接続しないので、アダプタ整合のため sqlite の DATABASE_URL を使う。
     env:
       DATABASE_URL: 'file:./ci-build.db'
     steps:
@@ -80,3 +77,26 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: npm run build
+
+  e2e:
+    name: Critical Path E2E
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, test]
+    env:
+      E2E_DATABASE_URL: 'file:./e2e.db'
+      AUTH_DISABLED: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { MicroTaskDefinitionSchema, TaskInvocationSchema, TaskResultSchema } from './micro-task';
-import { ApprovalDecisionSchema } from './execution';
+import { ApprovalDecisionRequestSchema, ApprovalDecisionSchema } from './execution';
 
 describe('MicroTaskDefinitionSchema', () => {
   const validTask = {
@@ -237,5 +237,13 @@ describe('ApprovalDecisionSchema', () => {
       reason: 'Needs changes',
     });
     expect(result.success).toBe(false);
+  });
+
+  it('should accept an API request without client-supplied decidedBy', () => {
+    const result = ApprovalDecisionRequestSchema.safeParse({
+      approved: true,
+      reason: 'Reviewed by the authenticated user',
+    });
+    expect(result.success).toBe(true);
   });
 });

@@ -18,6 +18,11 @@ import { auditLog } from '../audit/logger';
 import { hashPolicy } from '../audit/hash';
 import { AuditTier } from '../audit/types';
 import { logger } from '@/lib/logger';
+import { deriveRiskGrade, signatureFromContext, tryAutoApprove } from '../approval';
+import {
+  evaluateConditionExpression,
+  isSupportedConditionExpression,
+} from './condition-expression';
 
 // --------------------------------------------------------
 // Engine Types
@@ -121,10 +126,16 @@ export class WorkflowEngine {
       await this.repository.createExecution(state);
     }
 
-    await auditLog.logWorkflowAction('WORKFLOW_START', executionId, traceId, {
-      flowId: workflow.flowId,
-      initiatorId,
-    });
+    await auditLog.logWorkflowAction(
+      'WORKFLOW_START',
+      executionId,
+      traceId,
+      {
+        flowId: workflow.flowId,
+        initiatorId,
+      },
+      { actor: initiatorId }
+    );
 
     // 自動的にstartノードから実行を開始
     return this.runUntilPause(workflow, state);
@@ -490,13 +501,48 @@ export class WorkflowEngine {
     node: CompiledNode,
     state: WorkflowState
   ): Promise<NodeResult> {
+    const context = {
+      stateData: state.stateData,
+      flowId: state.flowId,
+      nodeId: node.id,
+      policyVersion:
+        typeof state.stateData.policyVersion === 'string'
+          ? state.stateData.policyVersion
+          : undefined,
+      riskGrade: state.stateData.riskGrade,
+    };
+    const autoApproval = await tryAutoApprove(
+      {
+        signature: signatureFromContext(context),
+        policyVersion: context.policyVersion,
+        riskGrade: deriveRiskGrade(context),
+      },
+      {
+        eventKey: `${state.executionId}:${node.id}`,
+        actor: state.initiatorId,
+        sourceEntityId: state.executionId,
+      }
+    );
+
+    if (autoApproval.autoApprove) {
+      const nextEdge = node.outgoingEdges[0];
+      return {
+        nextNodeId: nextEdge?.to ?? null,
+        output: {
+          [`${node.id}_auto_approved`]: true,
+          [`${node.id}_auto_approval_reason`]: autoApproval.reason,
+        },
+        status: nextEdge ? 'continue' : 'completed',
+      };
+    }
+
     let approvalRequestId: string | undefined;
     if (this.repository) {
       approvalRequestId = await this.repository.createApprovalRequest({
         workflowId: state.executionId,
         nodeId: node.id,
         description: node.label,
-        context: { stateData: state.stateData },
+        context,
       });
     }
 
@@ -532,12 +578,11 @@ export class WorkflowEngine {
       };
     }
 
-    // いずれの条件にもマッチしない場合は最初のエッジ
-    const fallbackEdge = node.outgoingEdges[0];
+    // 条件不一致を暗黙に最初の分岐へ流さない。定義漏れは安全側で失敗させる。
     return {
-      nextNodeId: fallbackEdge?.to || null,
-      output: { [`${node.id}_decision`]: 'fallback' },
-      status: fallbackEdge ? 'continue' : 'failed',
+      nextNodeId: null,
+      output: { [`${node.id}_decision`]: 'no-matching-condition' },
+      status: 'failed',
     };
   }
 
@@ -545,28 +590,11 @@ export class WorkflowEngine {
    * 条件式を評価（簡易実装: stateDataのキーベースで判定）
    */
   private evaluateCondition(condition: string, stateData: Record<string, unknown>): boolean {
-    // "key == value" 形式（ハイフン・ドット含むキーにも対応）
-    const eqMatch = condition.match(/^([\w.-]+)\s*==\s*['"]?(.+?)['"]?$/);
-    if (eqMatch) {
-      const [, key, value] = eqMatch;
-      return String(stateData[key]) === value;
+    if (!isSupportedConditionExpression(condition)) {
+      logger.warn({ condition }, 'Unrecognized condition expression, defaulting to false');
+      return false;
     }
-
-    // "key != value" 形式
-    const neqMatch = condition.match(/^([\w.-]+)\s*!=\s*['"]?(.+?)['"]?$/);
-    if (neqMatch) {
-      const [, key, value] = neqMatch;
-      return String(stateData[key]) !== value;
-    }
-
-    // "key" のみ（truthy判定）
-    if (/^[\w.-]+$/.test(condition)) {
-      return !!stateData[condition];
-    }
-
-    // 評価不能な条件はfalse（安全側に倒す）
-    logger.warn({ condition }, 'Unrecognized condition expression, defaulting to false');
-    return false;
+    return evaluateConditionExpression(condition, stateData);
   }
 }
 

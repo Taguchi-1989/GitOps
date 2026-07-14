@@ -11,36 +11,31 @@ nodes:
     id: receive_order
     type: process
     label: 受注受付（要確認）
-    role: 営業
-    system: CRM
+    role: sales
+    system: crm
     checkRequired: true
   check_stock:
     id: check_stock
     type: decision
     label: 在庫確認
-    role: 倉庫
-    system: WMS
+    role: warehouse
+    system: wms
   process_order:
     id: process_order
     type: process
     label: 受注処理
-    role: 営業
-    system: 基幹システム
+    role: sales
+    system: erp
   notify_customer:
     id: notify_customer
     type: process
     label: 顧客通知
-    role: 営業
-    system: メール
+    role: sales
+    system: notification-system
   end_node:
     id: end_node
     type: end
     label: 完了
-  check_receive_order:
-    id: check_receive_order
-    type: decision
-    label: 確認完了？
-    role: 営業
 edges:
   e1:
     id: e1
@@ -62,6 +57,11 @@ edges:
     to: notify_customer
     label: 在庫なし
     condition: stock == 0
+  e4_default:
+    id: e4_default
+    from: check_stock
+    to: notify_customer
+    label: 在庫確認不能
   e5:
     id: e5
     from: process_order

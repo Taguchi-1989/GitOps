@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   X,
   ArrowRight,
@@ -94,14 +94,19 @@ const steps = [
 ];
 
 export function WelcomeGuide() {
-  const [isOpen, setIsOpen] = useState(() => {
-    try {
-      return !localStorage.getItem(STORAGE_KEY);
-    } catch {
-      return false;
-    }
-  });
+  const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        setIsOpen(!localStorage.getItem(STORAGE_KEY));
+      } catch {
+        setIsOpen(false);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);

@@ -92,7 +92,8 @@ describe('WorkflowEngine', () => {
         'WORKFLOW_START',
         expect.any(String),
         'trace-1',
-        expect.objectContaining({ flowId: 'test-flow' })
+        expect.objectContaining({ flowId: 'test-flow' }),
+        { actor: 'user-1' }
       );
       expect(auditLog.logWorkflowAction).toHaveBeenCalledWith(
         'WORKFLOW_COMPLETE',
@@ -256,6 +257,56 @@ describe('WorkflowEngine', () => {
         approved: false,
       });
       expect(state2.stateData).toHaveProperty('pathB_completed', true);
+    });
+
+    it('should evaluate numeric comparison conditions', async () => {
+      const nodes = new Map<string, CompiledNode>([
+        ['start', makeNode('start', 'start', [{ id: 'e1', to: 'decide' }])],
+        [
+          'decide',
+          makeNode('decide', 'decision', [
+            { id: 'e2', to: 'inStock', condition: 'stock > 0' },
+            { id: 'e3', to: 'outOfStock' },
+          ]),
+        ],
+        ['inStock', makeNode('inStock', 'process', [{ id: 'e4', to: 'end' }])],
+        ['outOfStock', makeNode('outOfStock', 'process', [{ id: 'e5', to: 'end' }])],
+        ['end', makeNode('end', 'end')],
+      ]);
+
+      const state = await engine.startExecution(
+        createCompiledWorkflow(nodes),
+        'trace-numeric',
+        'user-1',
+        { stock: 3 }
+      );
+
+      expect(state.stateData).toHaveProperty('inStock_completed', true);
+      expect(state.stateData).not.toHaveProperty('outOfStock_completed');
+    });
+
+    it('should fail safely when no condition matches and no default exists', async () => {
+      const nodes = new Map<string, CompiledNode>([
+        ['start', makeNode('start', 'start', [{ id: 'e1', to: 'decide' }])],
+        [
+          'decide',
+          makeNode('decide', 'decision', [
+            { id: 'e2', to: 'pathA', condition: "status == 'known'" },
+          ]),
+        ],
+        ['pathA', makeNode('pathA', 'process', [{ id: 'e3', to: 'end' }])],
+        ['end', makeNode('end', 'end')],
+      ]);
+
+      const state = await engine.startExecution(
+        createCompiledWorkflow(nodes),
+        'trace-no-match',
+        'user-1',
+        { status: 'unknown' }
+      );
+
+      expect(state.status).toBe('failed');
+      expect(state.stateData).not.toHaveProperty('pathA_completed');
     });
   });
 

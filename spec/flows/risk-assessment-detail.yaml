@@ -288,3 +288,15 @@ edges:
     id: e22
     from: finalize_record
     to: assessment_complete
+
+  evaluate_risk_default:
+    id: evaluate_risk_default
+    from: evaluate_risk
+    to: ai_risk_reduction
+    label: 判定不能（安全側へ）
+
+  residual_risk_default:
+    id: residual_risk_default
+    from: residual_risk_check
+    to: implement_additional
+    label: 判定不能（追加対策）

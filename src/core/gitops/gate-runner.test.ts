@@ -49,6 +49,31 @@ describe('runGovernanceGate', () => {
     expect(record).toHaveBeenCalledWith(expect.objectContaining({ severity: 'full' }));
   });
 
+  it('Git差分専用ポリシーはコード上の変数代入を秘密値と誤認しない', async () => {
+    vi.spyOn(auditLog, 'record').mockResolvedValue(null);
+    const r = await runGovernanceGate({
+      git,
+      diffText: '+ const apiKey = provider.apiKey;',
+      ingressPolicyId: 'gitops-secret-gate',
+      riskGrade: 'low',
+    });
+
+    expect(r.action).toBe('allow');
+    expect(r.ingress?.decision).toBe('pass');
+  });
+
+  it('Git差分専用ポリシーでも既知形式の秘密値は block する', async () => {
+    vi.spyOn(auditLog, 'record').mockResolvedValue(null);
+    const r = await runGovernanceGate({
+      git,
+      diffText: '+ AWS_KEY=AKIAIOSFODNN7EXAMPLE',
+      ingressPolicyId: 'gitops-secret-gate',
+      riskGrade: 'low',
+    });
+
+    expect(r.action).toBe('block');
+  });
+
   it('出口成果物に既知危険があれば block', async () => {
     vi.spyOn(auditLog, 'record').mockResolvedValue(null);
     const r = await runGovernanceGate({
@@ -71,5 +96,42 @@ describe('runGovernanceGate', () => {
     const r = await runGovernanceGate({ git, diffText: '+ 連絡先 a@b.com', riskGrade: 'low' });
     expect(r.action).toBe('escalate');
     expect(r.ingress?.decision).toBe('mask');
+  });
+
+  it('大きな複数行差分は行境界で分割して検査する', async () => {
+    vi.spyOn(auditLog, 'record').mockResolvedValue(null);
+    const largeSafeDiff = '+ 通常の変更\n'.repeat(20_000);
+    const r = await runGovernanceGate({
+      git,
+      diffText: largeSafeDiff,
+      artifact: largeSafeDiff,
+      riskGrade: 'low',
+    });
+
+    expect(largeSafeDiff.length).toBeGreaterThan(100_000);
+    expect(r.action).toBe('allow');
+    expect(r.ingress?.decision).toBe('pass');
+    expect(r.egress?.decision).toBe('pass');
+  });
+
+  it('分割後の後続チャンクにある機密も検出する', async () => {
+    vi.spyOn(auditLog, 'record').mockResolvedValue(null);
+    const largeDiff = `${'+ 通常の変更\n'.repeat(12_000)}+ AWS_KEY=AKIAIOSFODNN7EXAMPLE`;
+    const r = await runGovernanceGate({ git, diffText: largeDiff, riskGrade: 'low' });
+
+    expect(r.action).toBe('block');
+    expect(r.ingress?.decision).toBe('block');
+  });
+
+  it('巨大な単一行は分割せず fail-safe で block する', async () => {
+    vi.spyOn(auditLog, 'record').mockResolvedValue(null);
+    const r = await runGovernanceGate({
+      git,
+      diffText: `+ ${'x'.repeat(100_001)}`,
+      riskGrade: 'low',
+    });
+
+    expect(r.action).toBe('block');
+    expect(r.ingress?.decision).toBe('block');
   });
 });

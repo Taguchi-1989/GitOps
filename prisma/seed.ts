@@ -7,17 +7,16 @@
 
 import { PrismaClient } from '@prisma/client';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 
 // Prisma 7 はドライバアダプタ必須。src/lib/prisma.ts と同じ構築方法を使う。
 // DATABASE_URL 未設定時は SQLite (prisma/dev.db) にフォールバック。
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL ?? 'file:./prisma/dev.db';
-  const adapter =
-    url.startsWith('postgresql://') || url.startsWith('postgres://')
-      ? new PrismaPg({ connectionString: url })
-      : new PrismaBetterSqlite3({ url });
+  if (!url.startsWith('file:')) {
+    throw new Error('FlowOps MVP supports SQLite only. DATABASE_URL must start with "file:".');
+  }
+  const adapter = new PrismaBetterSqlite3({ url });
   return new PrismaClient({ adapter });
 }
 
@@ -25,23 +24,29 @@ const prisma = createPrismaClient();
 
 async function main() {
   // ─── Admin User ───────────────────────────────────────
-  const email = 'admin@flowops.local';
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const email = process.env.FLOWOPS_ADMIN_EMAIL || 'admin@flowops.local';
+  const password =
+    process.env.FLOWOPS_ADMIN_PASSWORD ||
+    (process.env.NODE_ENV === 'production' ? undefined : 'admin');
 
-  if (existing) {
-    console.log(`User ${email} already exists, skipping.`);
-  } else {
-    const hashedPassword = await bcrypt.hash('admin', 12);
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name: 'Admin',
-        hashedPassword,
-        role: 'admin',
-      },
-    });
-    console.log(`Created admin user: ${user.email} (${user.id})`);
+  if (!password) {
+    throw new Error('FLOWOPS_ADMIN_PASSWORD is required when seeding in production.');
   }
+  const hashedPassword = await bcrypt.hash(password, 12);
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {
+      hashedPassword,
+      role: 'admin',
+    },
+    create: {
+      email,
+      name: 'Admin',
+      hashedPassword,
+      role: 'admin',
+    },
+  });
+  console.log(`Ensured admin user: ${user.email} (${user.id})`);
 
   // ─── Sample Issues ───────────────────────────────────
   const issues = [
@@ -87,7 +92,7 @@ async function main() {
     // ─── AuditLog for each Issue ──────────────────────
     await prisma.auditLog.create({
       data: {
-        actor: 'admin@flowops.local',
+        actor: email,
         action: 'ISSUE_CREATE',
         entityType: 'Issue',
         entityId: issue.id,
@@ -105,8 +110,7 @@ async function main() {
       await prisma.proposal.create({
         data: {
           issueId: issue.id,
-          intent:
-            '問い合わせ種別（技術/営業/一般）に基づく担当者自動割り当てノードを追加',
+          intent: '問い合わせ種別（技術/営業/一般）に基づく担当者自動割り当てノードを追加',
           jsonPatch: JSON.stringify([
             {
               op: 'add',
@@ -115,8 +119,8 @@ async function main() {
                 id: 'auto_assign',
                 type: 'process',
                 label: '担当者自動割り当て',
-                role: 'システム',
-                system: 'CRM',
+                role: 'support',
+                system: 'crm',
               },
             },
             {

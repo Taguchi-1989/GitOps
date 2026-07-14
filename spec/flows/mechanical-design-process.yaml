@@ -229,3 +229,27 @@ edges:
     id: e17
     from: final_approval
     to: design_complete
+
+  dr1_default:
+    id: dr1_default
+    from: dr1_review
+    to: conceptual_design
+    label: 判定不能（差戻し）
+
+  dr2_default:
+    id: dr2_default
+    from: dr2_review
+    to: basic_design
+    label: 判定不能（差戻し）
+
+  dr3_default:
+    id: dr3_default
+    from: dr3_review
+    to: detailed_design
+    label: 判定不能（差戻し）
+
+  prototype_default:
+    id: prototype_default
+    from: prototype_evaluation
+    to: detailed_design
+    label: 判定不能（設計再確認）

@@ -39,6 +39,8 @@ coverage/
 
 # Playwright
 .playwright-mcp/
+playwright-report/
+test-results/
 
 # Build outputs
 dist/

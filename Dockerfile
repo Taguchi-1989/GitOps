@@ -1,7 +1,7 @@
 # ============================================================
 # Stage 1: Base image
 # ============================================================
-FROM node:18-alpine AS base
+FROM node:22-alpine AS base
 RUN apk add --no-cache git openssl
 
 # ============================================================
@@ -10,9 +10,17 @@ RUN apk add --no-cache git openssl
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
 COPY prisma ./prisma
-RUN npx prisma generate
+RUN npm ci
+
+# ============================================================
+# Stage 2b: Production dependencies (includes Prisma CLI for db push)
+# ============================================================
+FROM base AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+RUN npm ci --omit=dev
 
 # ============================================================
 # Stage 3: Build the application
@@ -24,8 +32,9 @@ COPY . .
 # DATABASE_URL required at build time for Prisma prerendering
 ENV DATABASE_URL="file:./build.db"
 RUN npx prisma generate
-RUN npx prisma db push --skip-generate
-RUN npm run build
+RUN npx prisma db push
+RUN AUTH_SECRET=build-only-placeholder-not-for-runtime npm run build
+RUN npx tsc -p tsconfig.seed.json --outDir /app/seed-dist
 
 # ============================================================
 # Stage 4: Production runner
@@ -46,11 +55,10 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy Prisma schema + engine + CLI (not included in standalone output)
+# Copy runtime dependencies. Prisma CLI is required by the SQLite bootstrap step.
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/seed-dist ./seed-dist
 
 # Copy spec directory as default seed data
 COPY --from=builder /app/spec ./spec.default

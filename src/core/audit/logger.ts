@@ -218,7 +218,7 @@ class AuditLogger {
     traceId: string,
     payload?: Record<string, unknown>,
     // ガバナンス・ハーネス: ゲート判定や承認に、ポリシー版・内容ハッシュ・重大度層を刻む
-    meta?: { policyVersion?: string; policyHash?: string; severity?: AuditTier }
+    meta?: { policyVersion?: string; policyHash?: string; severity?: AuditTier; actor?: string }
   ): Promise<void> {
     await this.record({
       action,
@@ -229,6 +229,7 @@ class AuditLogger {
       policyVersion: meta?.policyVersion,
       policyHash: meta?.policyHash,
       severity: meta?.severity,
+      actor: meta?.actor,
     });
   }
 }

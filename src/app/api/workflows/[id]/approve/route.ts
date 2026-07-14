@@ -7,7 +7,7 @@
 import { prisma } from '@/lib/prisma';
 import {
   humanLoopManager,
-  ApprovalDecisionSchema,
+  ApprovalDecisionRequestSchema,
   compileWorkflow,
   workflowEngine,
 } from '@/core/orchestrator';
@@ -19,6 +19,7 @@ import {
   notFoundResponse,
   internalErrorResponse,
   parseBody,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 
@@ -55,14 +56,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // リクエストボディをパース
-    const { data, error } = await parseBody(request, ApprovalDecisionSchema);
+    const { data, error } = await parseBody(request, ApprovalDecisionRequestSchema);
     if (error) return error;
+    const decidedBy = getAuditActor(request);
+    if (!decidedBy) {
+      return errorResponse(API_ERROR_CODES.UNAUTHORIZED, 'Authentication required', 401);
+    }
+    const decision = { ...data, decidedBy };
 
     // 承認/否認を記録
-    await humanLoopManager.submitDecision(pendingRequest.id, data, execution.traceId);
+    await humanLoopManager.submitDecision(pendingRequest.id, decision, execution.traceId);
 
     // 承認された場合、ワークフローを再開
-    if (data.approved) {
+    if (decision.approved) {
       const flowYaml = await getFlowYaml(execution.flowId);
       if (!flowYaml) {
         return errorResponse(API_ERROR_CODES.NOT_FOUND, 'Flow not found');
@@ -96,8 +102,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
         return successResponse({
           executionId: execution.id,
-          decision: data.approved ? 'approved' : 'rejected',
-          reason: data.reason,
+          decision: decision.approved ? 'approved' : 'rejected',
+          reason: decision.reason,
           workflowStatus: updatedState.status,
           currentNodeId: updatedState.currentNodeId,
         });
@@ -105,7 +111,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // 否認された場合、ワークフローを失敗に遷移
-    if (!data.approved) {
+    if (!decision.approved) {
       await prisma.workflowExecution.update({
         where: { id },
         data: {
@@ -114,8 +120,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             ...(typeof execution.stateData === 'string'
               ? JSON.parse(execution.stateData)
               : execution.stateData),
-            rejectionReason: data.reason,
-            rejectedBy: data.decidedBy,
+            rejectionReason: decision.reason,
+            rejectedBy: decision.decidedBy,
           }),
         },
       });
@@ -123,9 +129,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     return successResponse({
       executionId: execution.id,
-      decision: data.approved ? 'approved' : 'rejected',
-      reason: data.reason,
-      workflowStatus: data.approved ? 'running' : 'failed',
+      decision: decision.approved ? 'approved' : 'rejected',
+      reason: decision.reason,
+      workflowStatus: decision.approved ? 'running' : 'failed',
     });
   } catch (error) {
     return internalErrorResponse(error);

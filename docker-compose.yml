@@ -9,18 +9,21 @@ services:
       - "${FLOWOPS_PORT:-3000}:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://flowops:${DB_PASSWORD:-flowops}@postgres:5432/flowops
+      - DATABASE_URL=file:/app/data/flowops.db
+      - AUTH_SECRET=${AUTH_SECRET:?Set AUTH_SECRET in .env}
+      - AUTH_TRUST_HOST=true
+      - FLOWOPS_ADMIN_EMAIL=${FLOWOPS_ADMIN_EMAIL:-admin@flowops.local}
+      - FLOWOPS_ADMIN_PASSWORD=${FLOWOPS_ADMIN_PASSWORD:?Set FLOWOPS_ADMIN_PASSWORD in .env}
       - LLM_PROVIDER=custom
       - LLM_API_KEY=${LITELLM_MASTER_KEY:-sk-litellm-dev}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o}
       - LLM_BASE_URL=http://litellm:4000/v1
       - LLM_JSON_MODE=${LLM_JSON_MODE:-true}
     volumes:
+      - flowops-data:/app/data
       - flowops-spec:/app/spec
       - flowops-git:/app/.git
     depends_on:
-      postgres:
-        condition: service_healthy
       litellm:
         condition: service_healthy
     restart: unless-stopped
@@ -102,24 +105,6 @@ services:
   # ============================================================
   # Databases
   # ============================================================
-  postgres:
-    image: postgres:16-alpine
-    container_name: flowops-db
-    ports:
-      - "${DB_PORT:-5432}:5432"
-    environment:
-      - POSTGRES_USER=flowops
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-flowops}
-      - POSTGRES_DB=flowops
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U flowops"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   langfuse-db:
     image: postgres:16-alpine
     container_name: langfuse-db
@@ -139,7 +124,7 @@ services:
       retries: 5
 
 volumes:
-  postgres-data:
+  flowops-data:
     driver: local
   langfuse-db-data:
     driver: local

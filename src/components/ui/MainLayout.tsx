@@ -21,6 +21,7 @@ import {
   EyeOff,
   Sun,
   Moon,
+  BrainCircuit,
 } from 'lucide-react';
 import { WelcomeGuide, WelcomeGuideButton } from './WelcomeGuide';
 import { useSimpleMode } from '@/lib/simple-mode-context';
@@ -36,6 +37,7 @@ const navigation = [
   { name: '課題', href: '/issues', icon: AlertCircle, description: '課題・改善の管理' },
   { name: '承認待ち', href: '/approvals', icon: ClipboardCheck, description: '判断が必要な一覧' },
   { name: '監査ログ', href: '/audit', icon: ScrollText, description: '操作履歴・監査レポート' },
+  { name: 'AIMS証拠', href: '/aims', icon: BrainCircuit, description: '過去資料・複数AIレビュー' },
 ];
 
 export function MainLayout({ children }: MainLayoutProps) {

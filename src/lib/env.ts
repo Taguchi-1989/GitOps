@@ -7,8 +7,8 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().min(1),
-  AUTH_SECRET: z.string().min(1),
+  DATABASE_URL: z.string().startsWith('file:', 'SQLite DATABASE_URL must start with file:'),
+  AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 characters'),
 
   // optional
   LLM_PROVIDER: z.string().optional(),
@@ -16,6 +16,8 @@ const envSchema = z.object({
   LLM_MODEL: z.string().optional(),
   LLM_BASE_URL: z.string().url().optional(),
   ALLOWED_ORIGINS: z.string().optional(),
+  AUTH_DISABLED: z.enum(['true', 'false']).optional(),
+  AUTH_TRUST_HOST: z.enum(['true', 'false']).optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
 
@@ -52,12 +54,14 @@ export function validateEnv(): Env {
     // 開発環境: 必須フィールドにフォールバック値を設定
     cachedEnv = {
       DATABASE_URL: process.env.DATABASE_URL || 'file:./prisma/dev.db',
-      AUTH_SECRET: process.env.AUTH_SECRET || 'dev-secret-change-me',
+      AUTH_SECRET: process.env.AUTH_SECRET || 'dev-secret-change-me-at-least-32-chars',
       LLM_PROVIDER: process.env.LLM_PROVIDER,
       LLM_API_KEY: process.env.LLM_API_KEY,
       LLM_MODEL: process.env.LLM_MODEL,
       LLM_BASE_URL: process.env.LLM_BASE_URL,
       ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
+      AUTH_DISABLED: process.env.AUTH_DISABLED as Env['AUTH_DISABLED'],
+      AUTH_TRUST_HOST: process.env.AUTH_TRUST_HOST as Env['AUTH_TRUST_HOST'],
       LOG_LEVEL: (process.env.LOG_LEVEL as Env['LOG_LEVEL']) || undefined,
       NODE_ENV: (process.env.NODE_ENV as Env['NODE_ENV']) || 'development',
       FLOWS_DIR: process.env.FLOWS_DIR,

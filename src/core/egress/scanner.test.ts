@@ -36,6 +36,11 @@ describe('scanEgress', () => {
     expect(r.findings.some(f => f.category === 'command-injection')).toBe(true);
   });
 
+  it('shell command substitutionはblockし、JSテンプレート文字列は誤検知しない', () => {
+    expect(scanEgress('value=$(read-secret)').decision).toBe('block');
+    expect(scanEgress('const message = `hello ${name}`;').decision).toBe('pass');
+  });
+
   it('スクリプト注入(<script>)は block', () => {
     const r = scanEgress({ intent: 'x', patches: [{ value: '<script>alert(1)</script>' }] });
     expect(r.decision).toBe('block');
@@ -47,6 +52,11 @@ describe('scanEgress', () => {
     expect(r.decision).toBe('flag');
     expect(r.tier).toBe('thick');
     expect(r.findings.some(f => f.category === 'suspicious-url')).toBe(true);
+  });
+
+  it('ローカル開発用のloopback URLは疑わしい外部送信先として扱わない', () => {
+    expect(scanEgress('http://localhost:3000/health').decision).toBe('pass');
+    expect(scanEgress('http://127.0.0.1:3000/health').decision).toBe('pass');
   });
 
   it('high と medium が混在したら block が優先', () => {

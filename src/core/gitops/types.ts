@@ -28,6 +28,8 @@ export interface GovernanceGateInput {
   git: GitContext;
   /** 入口検査の対象テキスト（例: PR 差分）。機密混入を検出 */
   diffText?: string;
+  /** 入力用途に合わせた入口ポリシー。未指定時は外部入力向けの厳格な既定値。 */
+  ingressPolicyId?: string;
   /** 出口検査の対象（例: 生成成果物）。既知危険を検出 */
   artifact?: unknown;
   /** リスク等級（未指定は medium 相当として escalate 寄せ） */

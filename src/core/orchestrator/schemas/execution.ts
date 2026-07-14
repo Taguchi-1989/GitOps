@@ -24,7 +24,8 @@ export type WorkflowStatus = z.infer<typeof WorkflowStatusSchema>;
 // --------------------------------------------------------
 export const WorkflowExecutionRequestSchema = z.object({
   flowId: z.string().min(1),
-  initiatorId: z.string().min(1),
+  // Backward-compatible input only. The API replaces this with the authenticated actor.
+  initiatorId: z.string().min(1).optional(),
   inputData: z.record(z.string(), z.unknown()).default({}),
   options: z
     .object({
@@ -89,3 +90,7 @@ export const ApprovalDecisionSchema = z.object({
 });
 
 export type ApprovalDecision = z.infer<typeof ApprovalDecisionSchema>;
+
+/** Public API body. decidedBy is injected from the authenticated session. */
+export const ApprovalDecisionRequestSchema = ApprovalDecisionSchema.omit({ decidedBy: true });
+export type ApprovalDecisionRequest = z.infer<typeof ApprovalDecisionRequestSchema>;

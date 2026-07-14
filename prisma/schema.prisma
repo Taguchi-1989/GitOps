@@ -14,11 +14,11 @@ datasource db {
 // Authentication (認証)
 // --------------------------------------------------------
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
+  id             String  @id @default(cuid())
+  email          String  @unique
   name           String?
   hashedPassword String
-  role           String    @default("viewer") // admin, editor, viewer
+  role           String  @default("viewer") // admin, editor, viewer
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -40,8 +40,8 @@ model Session {
 // Issue Management
 // --------------------------------------------------------
 model Issue {
-  id          String   @id @default(cuid())
-  humanId     String   @unique // 表示用ID (例: ISS-001)
+  id          String @id @default(cuid())
+  humanId     String @unique // 表示用ID (例: ISS-001)
   title       String
   description String
 
@@ -62,21 +62,21 @@ model Issue {
   branchName String? // 作業用ブランチ (例: cr/ISS-001-fix-typo)
 
   // PDCA: Plan フェーズ（改善カード入力）
-  currentSituation String?   // 現状の困りごと
-  frequency        String?   // 発生頻度 (daily/weekly/monthly/irregular)
-  impact           String?   // 影響
-  expectedState    String?   // 期待する状態
-  hypothesisCause  String?   // 原因の仮説
-  successMetric    String?   // 効果を測る指標
+  currentSituation String? // 現状の困りごと
+  frequency        String? // 発生頻度 (daily/weekly/monthly/irregular)
+  impact           String? // 影響
+  expectedState    String? // 期待する状態
+  hypothesisCause  String? // 原因の仮説
+  successMetric    String? // 効果を測る指標
   checkDueDate     DateTime? // 効果確認の予定日
 
   // PDCA: Check フェーズ（効果確認）
-  metricBefore   String?   // 改善前の数値・状態
-  metricAfter    String?   // 改善後の数値・状態
+  metricBefore   String? // 改善前の数値・状態
+  metricAfter    String? // 改善後の数値・状態
   checkDate      DateTime? // 確認日
-  checkResult    String?   // effective | ineffective | pending
-  learning       String?   // 学び
-  nextAction     String?   // 次のアクション
+  checkResult    String? // effective | ineffective | pending
+  learning       String? // 学び
+  nextAction     String? // 次のアクション
   standardizedAt DateTime? // 標準化完了日時
 
   // Relationships
@@ -181,12 +181,12 @@ model AuditLog {
 // Workflow Execution（ワークフロー実行）
 // --------------------------------------------------------
 model WorkflowExecution {
-  id            String   @id @default(cuid())
+  id            String @id @default(cuid())
   flowId        String
-  traceId       String   @unique
-  status        String   @default("running") // running, paused-human-review, completed, failed, cancelled
+  traceId       String @unique
+  status        String @default("running") // running, paused-human-review, completed, failed, cancelled
   currentNodeId String
-  stateData     String   @default("{}")
+  stateData     String @default("{}")
   initiatorId   String
 
   taskExecutions   TaskExecution[]
@@ -213,7 +213,7 @@ model TaskExecution {
   taskVersion   String
   gitCommitHash String
 
-  status String @default("pending") // pending, running, success, failure
+  status String  @default("pending") // pending, running, success, failure
   input  String
   output String?
 
@@ -295,24 +295,24 @@ model DataObject {
   id       String @id @default(cuid())
   objectId String @unique // ビジネスID (e.g., "obj-2026-000123")
 
-  parentId        String? // 親DataObjectのobjectId
-  objectType      String // document, fragment, semantic-object, evidence-link, transformation-event
-  sensitivityLevel String @default("L1") // L0-L5
-  sourceHash      String?
-  owner           String?
-  version         String?
+  parentId         String? // 親DataObjectのobjectId
+  objectType       String // document, fragment, semantic-object, evidence-link, transformation-event
+  sensitivityLevel String  @default("L1") // L0-L5
+  sourceHash       String?
+  owner            String?
+  version          String?
 
   accessPolicyRef String? // access-policies.yaml のキー参照
   contentRef      String?
   exportPolicy    String  @default("unrestricted")
 
-  semanticTags    String? // String[] as JSON文字列
-  provenanceRef   String?
-  validationRef   String?
+  semanticTags     String? // String[] as JSON文字列
+  provenanceRef    String?
+  validationRef    String?
   validationStatus String? // unverified, machine-verified, human-verified, official
 
-  fragmentType       String?
-  semanticObjectType String?
+  fragmentType           String?
+  semanticObjectType     String?
   abstractionMetadata    String? // AbstractionMetadata as JSON文字列
   outputArtifactMetadata String? // OutputArtifactMetadata as JSON文字列
   meta                   String?
@@ -321,12 +321,12 @@ model DataObject {
   updatedAt DateTime @updatedAt
 
   // Relations
-  crossRefsAsSource      CrossReference[]      @relation("SourceObject")
-  crossRefsAsTarget      CrossReference[]      @relation("TargetObject")
-  evidenceLinksAsClaim   DataEvidenceLink[]    @relation("ClaimObject")
-  evidenceLinksAsEvidence DataEvidenceLink[]    @relation("EvidenceObject")
-  transformationInputs   TransformationInput[]
-  transformationOutputs  TransformationOutput[]
+  crossRefsAsSource       CrossReference[]       @relation("SourceObject")
+  crossRefsAsTarget       CrossReference[]       @relation("TargetObject")
+  evidenceLinksAsClaim    DataEvidenceLink[]     @relation("ClaimObject")
+  evidenceLinksAsEvidence DataEvidenceLink[]     @relation("EvidenceObject")
+  transformationInputs    TransformationInput[]
+  transformationOutputs   TransformationOutput[]
 
   @@index([objectType])
   @@index([sensitivityLevel])
@@ -339,8 +339,8 @@ model DataObject {
 // Cross Reference（GPTsiteki Section 10.6 横断参照）
 // --------------------------------------------------------
 model CrossReference {
-  id             String @id @default(cuid())
-  refId          String @unique // ビジネスID (e.g., "xref-001")
+  id             String  @id @default(cuid())
+  refId          String  @unique // ビジネスID (e.g., "xref-001")
   sourceObjectId String
   targetObjectId String
   referenceType  String // cites, derived-from, related-to, supersedes, contradicts, abstracts
@@ -360,8 +360,8 @@ model CrossReference {
 // Data Evidence Link（GPTsiteki Section 10.2 根拠リンク）
 // --------------------------------------------------------
 model DataEvidenceLink {
-  id               String @id @default(cuid())
-  linkId           String @unique // ビジネスID (e.g., "el-001")
+  id               String  @id @default(cuid())
+  linkId           String  @unique // ビジネスID (e.g., "el-001")
   claimObjectId    String
   evidenceObjectId String
   relationshipType String // supports, contradicts, supplements, derives-from, references
@@ -421,4 +421,93 @@ model TransformationOutput {
   dataObject            DataObject          @relation(fields: [dataObjectId], references: [objectId])
 
   @@unique([transformationEventId, dataObjectId])
+}
+
+// --------------------------------------------------------
+// AIMS Evidence Review (ISO/IEC 42001 operational evidence)
+//
+// The source text, each model opinion, the synthesized result, and the human
+// decision are deliberately stored separately. This keeps AI-generated
+// interpretations from becoming indistinguishable from the original record.
+// --------------------------------------------------------
+model AimsEvidence {
+  id               String    @id @default(cuid())
+  evidenceId       String    @unique
+  title            String
+  sourceType       String    @default("historical-text")
+  sourceLabel      String?
+  sourceText       String
+  sourceHash       String
+  sensitivityLevel String    @default("L2")
+  occurredAt       DateTime?
+  collectedBy      String
+  status           String    @default("imported") // imported, under-review, reviewed, approved, rejected
+  tagsJson         String    @default("[]")
+  metadataJson     String    @default("{}")
+
+  reviews AimsReviewRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sourceHash])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AimsReviewRun {
+  id                  String       @id @default(cuid())
+  evidenceId          String
+  evidence            AimsEvidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  traceId             String       @unique
+  status              String       @default("pending") // pending, running, completed, partial, failed
+  strategy            String       @default("independent-then-synthesis")
+  objective           String?
+  reviewerSetJson     String       @default("[]")
+  synthesisConfigJson String?
+  finalOutputJson     String?
+  finalOutputHash     String?
+  policyVersion       String?
+  initiatedBy         String
+
+  humanDecision       String? // approved, revise, rejected
+  humanDecisionReason String?
+  decidedBy           String?
+  decidedAt           DateTime?
+
+  modelReviews AimsModelReview[]
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([evidenceId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AimsModelReview {
+  id               String        @id @default(cuid())
+  runId            String
+  run              AimsReviewRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  reviewerId       String
+  role             String // summarizer, auditor, challenger, synthesizer
+  provider         String
+  model            String
+  promptVersion    String
+  status           String        @default("pending") // pending, running, success, partial, failed
+  inputHash        String?
+  outputJson       String?
+  chunkOutputsJson String?
+  outputHash       String?
+  error            String?
+  durationMs       Int?
+  chunkCount       Int           @default(0)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@unique([runId, reviewerId])
+  @@index([runId])
+  @@index([role])
+  @@index([status])
 }

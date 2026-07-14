@@ -26,6 +26,13 @@ if errorlevel 1 (
 )
 for /f "delims=" %%v in ('node -v') do set "NODEVER=%%v"
 echo [OK] Node.js !NODEVER!
+node -e "const [M,m]=process.versions.node.split('.').map(Number);process.exit(M>20||(M===20&&m>=19)?0:1)"
+if errorlevel 1 (
+  echo [エラー] FlowOps には Node.js 20.19 以上が必要です。
+  echo   https://nodejs.org/ から最新の LTS 版をインストールしてください。
+  pause
+  exit /b 1
+)
 
 REM --- 2) .env を SQLite 構成で用意 --------------------------
 REM    ※ DB も .env も git 管理外なので、無ければここで作る
@@ -71,7 +78,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-REM --- 5) データベース ^(無ければ作成して初期データ投入^) -----
+REM --- 5) データベース作成と初期データ投入 -------------------
 if not exist "prisma\dev.db" (
   echo [setup] データベースを作成中...
   call npx prisma db push
@@ -85,12 +92,12 @@ if not exist "prisma\dev.db" (
   echo [OK] データベースは既に存在します。
 )
 
-if defined DBCREATED (
-  echo [setup] 初期データ ^(管理者ユーザー/サンプル^) を投入中...
-  call npm run db:seed
-  if errorlevel 1 (
-    echo [警告] 初期データ投入に失敗しましたが、空のDBで続行します。
-  )
+echo [setup] 初期データ ^(管理者ユーザー/サンプル^) を確認中...
+call npm run db:seed
+if errorlevel 1 (
+  echo [エラー] 初期データ投入に失敗しました。
+  pause
+  exit /b 1
 )
 
 REM --- 6) ブラウザを少し待ってから開く ----------------------
