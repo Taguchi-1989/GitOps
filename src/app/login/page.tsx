@@ -103,9 +103,11 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-gray-400 dark:text-gray-500">
-            デフォルト: admin@flowops.local / admin
-          </p>
+          {process.env.NODE_ENV !== 'production' && (
+            <p className="mt-6 text-center text-xs text-gray-400 dark:text-gray-500">
+              start.bat の初期値: admin@flowops.local / admin
+            </p>
+          )}
         </div>
       </div>
     </div>

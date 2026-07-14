@@ -134,3 +134,9 @@ edges:
     id: e9
     from: follow_up
     to: complete
+
+  categorize_default:
+    id: categorize_default
+    from: categorize
+    to: escalate_technical
+    label: 分類不能（有人確認）

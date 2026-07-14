@@ -10,12 +10,6 @@ vi.mock('@prisma/client', () => ({
   }),
 }));
 
-vi.mock('@prisma/adapter-pg', () => ({
-  PrismaPg: vi.fn().mockImplementation(function () {
-    return {};
-  }),
-}));
-
 vi.mock('@prisma/adapter-better-sqlite3', () => ({
   PrismaBetterSqlite3: vi.fn().mockImplementation(function () {
     return {};
@@ -42,15 +36,9 @@ describe('prisma', () => {
     expect(PrismaClient).toHaveBeenCalled();
   });
 
-  it('should create a PrismaPg adapter with DATABASE_URL', async () => {
+  it('should reject a non-SQLite DATABASE_URL', async () => {
     process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
-
-    const { PrismaPg } = await import('@prisma/adapter-pg');
-    await import('@/lib/prisma');
-
-    expect(PrismaPg).toHaveBeenCalledWith({
-      connectionString: 'postgresql://test:test@localhost:5432/test',
-    });
+    await expect(import('@/lib/prisma')).rejects.toThrow('supports SQLite only');
   });
 
   it('should create a SQLite adapter by default', async () => {

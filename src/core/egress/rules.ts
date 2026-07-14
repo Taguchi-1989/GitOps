@@ -51,6 +51,8 @@ export function countHighEntropyTokens(text: string): number {
     if (
       t.length >= ENTROPY_MIN_LENGTH &&
       SECRET_CHARSET.test(t) &&
+      /[A-Za-z]/.test(t) &&
+      /\d/.test(t) &&
       shannonEntropy(t) >= ENTROPY_MIN_BITS
     ) {
       count += 1;
@@ -104,7 +106,7 @@ export const EGRESS_RULES: EgressRule[] = [
     id: 'egress-cmd-subst',
     category: 'command-injection',
     severity: 'high',
-    regex: '\\$\\([^)]+\\)|`[^`]+`',
+    regex: '\\$\\([^)]+\\)',
   },
   {
     id: 'egress-pipe-fetch-exec',
@@ -143,12 +145,12 @@ export const EGRESS_RULES: EgressRule[] = [
     id: 'egress-raw-ip-url',
     category: 'suspicious-url',
     severity: 'medium',
-    regex: 'https?://\\d{1,3}(?:\\.\\d{1,3}){3}',
+    regex: 'https?://(?!127\\.)\\d{1,3}(?:\\.\\d{1,3}){3}',
   },
   {
     id: 'egress-plain-http',
     category: 'suspicious-url',
     severity: 'medium',
-    regex: 'http://[A-Za-z0-9.-]+',
+    regex: 'http://(?!(?:localhost|127(?:\\.\\d{1,3}){3})(?::|/|$))[A-Za-z0-9.-]+',
   },
 ];

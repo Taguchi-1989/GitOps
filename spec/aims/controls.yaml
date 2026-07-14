@@ -12,7 +12,7 @@
 schemaVersion: 1
 standard: "ISO/IEC 42001:2023"
 scope: "FlowOps の AI 関連機能（Intake / Proposal 生成 / リスク・影響評価アシスト / Agent 説明）"
-lastReviewed: "2026-06-20"
+lastReviewed: "2026-07-14"
 owner: "product-owner"
 
 controls:
@@ -70,8 +70,8 @@ controls:
     title: システム・計算資源
     applicable: true
     status: partial
-    flowops: Docker / PostgreSQL 構成
-    evidence: docker-compose.yml
+    flowops: SQLite 正本（ローカル/CI/Docker共通）+ Node 22 コンテナ + LLMチャンク上限
+    evidence: docs/aims/llm-evidence-review.md
     gapIssue: "LLM コスト/計算資源の上限ガード未整備（backlog F-1）"
   - id: A.4.6
     title: 人的資源・力量
@@ -128,9 +128,9 @@ controls:
     title: 検証・妥当性確認
     applicable: true
     status: partial
-    flowops: vitest + 構造検証 + 受入ゲート
-    evidence: vitest.config.mts
-    gapIssue: "E2E クリティカルパス未自動化（backlog B-1）"
+    flowops: vitest + Playwright E2E + 構造検証 + 受入ゲート + AIMS出力スキーマ検証
+    evidence: playwright.config.ts
+    gapIssue: "AIMS画面を含むE2Eシナリオと実プロバイダ契約試験の拡張"
   - id: A.6.2.7
     title: 運用・監視
     applicable: true
@@ -142,8 +142,8 @@ controls:
     title: イベントログ・追跡可能性
     applicable: true
     status: met
-    flowops: AuditLog + traceId(AsyncLocalStorage) + GateEvaluation 二重記録
-    evidence: src/lib/trace-context.ts
+    flowops: AuditLog + traceId + GateEvaluation + AIMSモデル/プロンプト/入出力ハッシュ
+    evidence: src/core/aims/review-service.ts
   - id: A.7.2
     title: 開発用データの管理
     applicable: true
@@ -153,29 +153,27 @@ controls:
   - id: A.7.4
     title: データ品質
     applicable: true
-    status: partial
-    flowops: 辞書整合チェック（validateFlow）
-    evidence: src/core/orchestrator/
-    gapIssue: "辞書参照の不統一（backlog A-2）"
+    status: met
+    flowops: 辞書整合チェック（validateFlow）+ aims-review.v1 Zodスキーマ
+    evidence: src/core/aims/types.ts
   - id: A.7.5
     title: データの出所（来歴）
     applicable: true
     status: met
-    flowops: Git 履歴 + AuditLog による来歴記録
-    evidence: src/lib/trace-context.ts
+    flowops: Git履歴 + AuditLog + AimsEvidence原文ハッシュ + モデル別変換記録
+    evidence: docs/aims/llm-evidence-review.md
   - id: A.7.6
     title: データ準備
     applicable: true
     status: met
-    flowops: Intake による入力構造化（人レビュー前提）
-    evidence: docs/decisionops-operating-model.md
+    flowops: Intake + 過去テキスト正規化・行番号付きチャンク（人レビュー前提）
+    evidence: src/core/aims/source.ts
   - id: A.8.2
     title: システム文書
     applicable: true
-    status: partial
-    flowops: README + docs/**
-    evidence: README.md
-    gapIssue: "README 陳腐化（backlog C-1）"
+    status: met
+    flowops: README + docs/** + OpenAPI
+    evidence: docs/aims/README.md
   - id: A.8.3
     title: 外部への報告
     applicable: true
@@ -200,8 +198,8 @@ controls:
     title: 責任ある利用プロセス
     applicable: true
     status: met
-    flowops: Decision Card による人間監督（理由必須の承認/差し戻し）
-    evidence: docs/decisionops-operating-model.md
+    flowops: Decision Card + AIMSレビュー判断（理由必須、AI出力と分離、上書き不可）
+    evidence: src/app/api/aims/reviews/[id]/decision/route.ts
   - id: A.9.4
     title: 意図した利用
     applicable: true

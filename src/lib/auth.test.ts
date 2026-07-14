@@ -29,8 +29,9 @@ vi.mock('@/lib/prisma', () => ({
 }));
 
 // Helper to create a mock request object
-const makeRequest = (pathname: string) => ({
+const makeRequest = (pathname: string, method = 'GET') => ({
   nextUrl: new URL(`http://localhost${pathname}`),
+  method,
 });
 
 describe('auth', () => {
@@ -110,6 +111,14 @@ describe('auth', () => {
       const result = await config.callbacks.authorized({
         auth: null,
         request: makeRequest('/api/health'),
+      });
+      expect(result).toBe(true);
+    });
+
+    it('should allow API preflight regardless of login status', async () => {
+      const result = await config.callbacks.authorized({
+        auth: null,
+        request: makeRequest('/api/issues', 'OPTIONS'),
       });
       expect(result).toBe(true);
     });

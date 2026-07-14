@@ -157,9 +157,6 @@ export function DecisionCard({ data }: DecisionCardProps) {
         body: JSON.stringify({
           approved,
           reason: comment.trim(),
-          // MVP: 既存の AuditLog actor 規約に合わせ 'you' 固定。
-          // 認証導入後はセッションのユーザー識別子（email等）に置き換えること。
-          decidedBy: 'you',
         }),
       });
       const json = (await res.json()) as {

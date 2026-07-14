@@ -163,3 +163,9 @@ edges:
     id: e11
     from: send_response
     to: complete
+
+  route_default:
+    id: route_default
+    from: route
+    to: handle_technical
+    label: 分類不能（有人確認）

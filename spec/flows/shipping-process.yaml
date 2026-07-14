@@ -65,11 +65,6 @@ nodes:
     label: 出荷完了
     meta:
       description: 出荷処理完了
-  check_pick_items:
-    id: check_pick_items
-    type: decision
-    label: 確認完了？
-    role: warehouse
 edges:
   e1:
     id: e1
@@ -91,6 +86,11 @@ edges:
     to: recount
     label: NG
     condition: check_result == "ng"
+  e4_default:
+    id: e4_default
+    from: check_items
+    to: recount
+    label: 確認不能
   e5:
     id: e5
     from: recount

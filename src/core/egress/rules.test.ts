@@ -34,6 +34,10 @@ describe('countHighEntropyTokens', () => {
   it('短いトークンは閾値未満で検出しない', () => {
     expect(countHighEntropyTokens('abc123')).toBe(0);
   });
+
+  it('英字だけの長いコード識別子は秘密候補にしない', () => {
+    expect(countHighEntropyTokens('AimsEvidenceDetailClient')).toBe(0);
+  });
 });
 
 describe('EGRESS_RULES (独立性・健全性)', () => {

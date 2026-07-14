@@ -94,7 +94,8 @@ export class HumanLoopManager {
         decision: decision.approved ? 'approved' : 'rejected',
         reason: decision.reason,
         decidedBy: decision.decidedBy,
-      }
+      },
+      { actor: decision.decidedBy }
     );
 
     // ガバナンス・ハーネス §5.1/§5.3 Phase 0: 人手決定を「前例」として蓄積する。

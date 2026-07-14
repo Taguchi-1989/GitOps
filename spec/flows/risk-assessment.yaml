@@ -235,3 +235,15 @@ edges:
     to: usage_information
     label: ALARP
     condition: risk_level == "alarp"
+
+  evaluate_risk_default:
+    id: evaluate_risk_default
+    from: evaluate_risk
+    to: inherent_safe_design
+    label: 判定不能（安全側へ）
+
+  residual_risk_default:
+    id: residual_risk_default
+    from: risk_sufficient_check
+    to: implement_additional
+    label: 判定不能（追加対策）

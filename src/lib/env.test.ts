@@ -27,21 +27,21 @@ describe('validateEnv', () => {
   });
 
   it('returns validated env when all required vars are present', async () => {
-    process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
-    process.env.AUTH_SECRET = 'my-secret-key';
+    process.env.DATABASE_URL = 'file:./test.db';
+    process.env.AUTH_SECRET = 'test-secret-that-is-at-least-32-characters';
     (process.env as Record<string, string>).NODE_ENV = 'test';
 
     const { validateEnv } = await import('@/lib/env');
     const env = validateEnv();
 
-    expect(env.DATABASE_URL).toBe('postgresql://localhost:5432/testdb');
-    expect(env.AUTH_SECRET).toBe('my-secret-key');
+    expect(env.DATABASE_URL).toBe('file:./test.db');
+    expect(env.AUTH_SECRET).toBe('test-secret-that-is-at-least-32-characters');
     expect(env.NODE_ENV).toBe('test');
   });
 
   it('returns cached env on subsequent calls (same module instance)', async () => {
-    process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
-    process.env.AUTH_SECRET = 'my-secret-key';
+    process.env.DATABASE_URL = 'file:./test.db';
+    process.env.AUTH_SECRET = 'test-secret-that-is-at-least-32-characters';
     (process.env as Record<string, string>).NODE_ENV = 'test';
 
     const { validateEnv } = await import('@/lib/env');
@@ -52,7 +52,7 @@ describe('validateEnv', () => {
     const second = validateEnv();
 
     expect(second).toBe(first); // same reference (cached)
-    expect(second.DATABASE_URL).toBe('postgresql://localhost:5432/testdb');
+    expect(second.DATABASE_URL).toBe('file:./test.db');
   });
 
   it('falls back to defaults in development when required vars are missing', async () => {
@@ -64,7 +64,7 @@ describe('validateEnv', () => {
     const env = validateEnv();
 
     expect(env.DATABASE_URL).toBe('file:./prisma/dev.db');
-    expect(env.AUTH_SECRET).toBe('dev-secret-change-me');
+    expect(env.AUTH_SECRET).toBe('dev-secret-change-me-at-least-32-chars');
     expect(env.NODE_ENV).toBe('development');
     expect(console.error).toHaveBeenCalled();
   });
@@ -95,8 +95,8 @@ describe('validateEnv', () => {
   });
 
   it('handles optional LLM vars when present', async () => {
-    process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
-    process.env.AUTH_SECRET = 'my-secret-key';
+    process.env.DATABASE_URL = 'file:./test.db';
+    process.env.AUTH_SECRET = 'test-secret-that-is-at-least-32-characters';
     process.env.LLM_PROVIDER = 'openai';
     process.env.LLM_API_KEY = 'sk-test-key';
     process.env.LLM_MODEL = 'gpt-4';
@@ -113,8 +113,8 @@ describe('validateEnv', () => {
   });
 
   it('accepts valid LOG_LEVEL enum values', async () => {
-    process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
-    process.env.AUTH_SECRET = 'my-secret-key';
+    process.env.DATABASE_URL = 'file:./test.db';
+    process.env.AUTH_SECRET = 'test-secret-that-is-at-least-32-characters';
     process.env.LOG_LEVEL = 'warn';
     (process.env as Record<string, string>).NODE_ENV = 'test';
 
@@ -125,8 +125,8 @@ describe('validateEnv', () => {
   });
 
   it('rejects invalid LOG_LEVEL enum values and falls back', async () => {
-    process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
-    process.env.AUTH_SECRET = 'my-secret-key';
+    process.env.DATABASE_URL = 'file:./test.db';
+    process.env.AUTH_SECRET = 'test-secret-that-is-at-least-32-characters';
     process.env.LOG_LEVEL = 'verbose'; // invalid
     (process.env as Record<string, string>).NODE_ENV = 'development';
 
@@ -137,12 +137,12 @@ describe('validateEnv', () => {
     expect(console.error).toHaveBeenCalled();
     // The fallback casts LOG_LEVEL as-is, but it was invalid so it won't match the enum
     // The important thing is that console.error was called reporting the issue
-    expect(env.DATABASE_URL).toBe('postgresql://localhost:5432/testdb');
+    expect(env.DATABASE_URL).toBe('file:./test.db');
   });
 
   it('rejects LLM_BASE_URL when it is not a valid URL', async () => {
-    process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
-    process.env.AUTH_SECRET = 'my-secret-key';
+    process.env.DATABASE_URL = 'file:./test.db';
+    process.env.AUTH_SECRET = 'test-secret-that-is-at-least-32-characters';
     process.env.LLM_BASE_URL = 'not-a-url';
     (process.env as Record<string, string>).NODE_ENV = 'development';
 
@@ -158,8 +158,8 @@ describe('validateEnv', () => {
   });
 
   it('returns undefined for optional vars when they are not set', async () => {
-    process.env.DATABASE_URL = 'postgresql://localhost:5432/testdb';
-    process.env.AUTH_SECRET = 'my-secret-key';
+    process.env.DATABASE_URL = 'file:./test.db';
+    process.env.AUTH_SECRET = 'test-secret-that-is-at-least-32-characters';
     (process.env as Record<string, string>).NODE_ENV = 'test';
     delete process.env.LLM_PROVIDER;
     delete process.env.LLM_API_KEY;

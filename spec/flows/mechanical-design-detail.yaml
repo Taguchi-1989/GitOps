@@ -273,3 +273,9 @@ edges:
     id: e19
     from: checkin_pdm
     to: detail_complete
+
+  interference_default:
+    id: interference_default
+    from: interference_result
+    to: create_3d_model
+    label: 判定不能（再確認）

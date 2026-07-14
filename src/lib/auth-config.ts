@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from 'next-auth';
 import { API_ERROR_CODES } from '@/core/types/api';
+import { isAuthDisabled } from '@/lib/auth-mode';
 
 export const authConfig: NextAuthConfig = {
   providers: [],
@@ -27,13 +28,16 @@ export const authConfig: NextAuthConfig = {
     },
     async authorized({ auth, request }) {
       // ローカル開発時は認証をスキップ
-      if (process.env.AUTH_DISABLED === 'true') return true;
+      if (isAuthDisabled()) return true;
 
       const isLoggedIn = !!auth?.user;
       const isApiRoute = request.nextUrl.pathname.startsWith('/api');
       const isAuthRoute = request.nextUrl.pathname.startsWith('/api/auth');
       const isHealthRoute = request.nextUrl.pathname === '/api/health';
       const isLoginPage = request.nextUrl.pathname === '/login';
+
+      // CORS preflight must reach the proxy callback before authentication.
+      if (isApiRoute && request.method === 'OPTIONS') return true;
 
       if (isAuthRoute || isHealthRoute) return true;
 

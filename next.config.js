@@ -3,7 +3,9 @@ const nextPackage = require('next/package.json');
 const nextMajor = Number.parseInt(nextPackage.version.split('.')[0], 10);
 
 const sharedConfig = {
+  output: 'standalone',
   allowedDevOrigins: ['127.0.0.1'],
+  turbopack: {},
 
   images: {
     unoptimized: process.env.NODE_ENV === 'development',
@@ -39,7 +41,7 @@ const sharedConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net",
+              `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob:",

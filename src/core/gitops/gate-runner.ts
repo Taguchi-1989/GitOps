@@ -14,6 +14,41 @@ import { scanEgress } from '../egress';
 import { RiskGrade } from '../approval';
 import { GovernanceGateInput, GovernanceGateResult, MergeAction, GateLeafSummary } from './types';
 
+/**
+ * Keep each scanner invocation below its per-value fail-safe limit. Splitting is
+ * line-aware so credentials and commands that normally live on one diff line
+ * are never cut across chunks. A single oversized line is intentionally kept
+ * intact and is therefore still blocked by the underlying scanner.
+ */
+const GITOPS_SCAN_CHUNK_SIZE = 80_000;
+
+function scannerChunks(text: string): string[] {
+  if (text.length <= GITOPS_SCAN_CHUNK_SIZE) return [text];
+
+  const lines = text.match(/[^\n]*\n|[^\n]+$/g) ?? [''];
+  const chunks: string[] = [];
+  let current = '';
+
+  for (const line of lines) {
+    if (line.length > GITOPS_SCAN_CHUNK_SIZE) {
+      if (current) chunks.push(current);
+      chunks.push(line);
+      current = '';
+      continue;
+    }
+
+    if (current.length + line.length > GITOPS_SCAN_CHUNK_SIZE) {
+      chunks.push(current);
+      current = line;
+    } else {
+      current += line;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
+}
+
 function tierForAction(action: MergeAction): 'thin' | 'thick' | 'full' {
   if (action === 'block') return 'full';
   if (action === 'escalate') return 'thick';
@@ -33,23 +68,42 @@ export async function runGovernanceGate(input: GovernanceGateInput): Promise<Gov
 
   let ingress: GateLeafSummary | null = null;
   if (typeof input.diffText === 'string') {
-    const policy = await loadIngressPolicy();
-    const ev = scanIngress(input.diffText, policy);
+    const policy = await loadIngressPolicy(input.ingressPolicyId);
+    const evaluations = scannerChunks(input.diffText).map(chunk => scanIngress(chunk, policy));
+    const decision = evaluations.some(ev => ev.decision === 'block')
+      ? 'block'
+      : evaluations.some(ev => ev.decision === 'mask')
+        ? 'mask'
+        : 'pass';
     ingress = {
-      decision: ev.decision,
-      count: ev.detections.reduce((s, d) => s + d.count, 0),
-      policyVersion: ev.policyVersion,
+      decision,
+      count: evaluations.reduce(
+        (total, ev) => total + ev.detections.reduce((sum, detection) => sum + detection.count, 0),
+        0
+      ),
+      policyVersion: evaluations[0]?.policyVersion ?? policy.version,
     };
-    if (ev.decision === 'block') reasons.push('入口ゲート: 機密混入を検出（block）');
-    else if (ev.decision === 'mask') reasons.push('入口ゲート: 結合型機密を検出（要確認）');
+    if (decision === 'block') reasons.push('入口ゲート: 機密混入を検出（block）');
+    else if (decision === 'mask') reasons.push('入口ゲート: 結合型機密を検出（要確認）');
   }
 
   let egress: GateLeafSummary | null = null;
   if (input.artifact !== undefined) {
-    const ev = scanEgress(input.artifact);
-    egress = { decision: ev.decision, count: ev.findings.length, policyVersion: '1.0.0' };
-    if (ev.decision === 'block') reasons.push('出口ゲート: 既知危険を検出（block）');
-    else if (ev.decision === 'flag') reasons.push('出口ゲート: 要レビュー（flag）');
+    const artifacts =
+      typeof input.artifact === 'string' ? scannerChunks(input.artifact) : [input.artifact];
+    const evaluations = artifacts.map(artifact => scanEgress(artifact));
+    const decision = evaluations.some(ev => ev.decision === 'block')
+      ? 'block'
+      : evaluations.some(ev => ev.decision === 'flag')
+        ? 'flag'
+        : 'pass';
+    egress = {
+      decision,
+      count: evaluations.reduce((total, ev) => total + ev.findings.length, 0),
+      policyVersion: '1.0.0',
+    };
+    if (decision === 'block') reasons.push('出口ゲート: 既知危険を検出（block）');
+    else if (decision === 'flag') reasons.push('出口ゲート: 要レビュー（flag）');
   }
 
   // 判定の集約（最も重い側へ）

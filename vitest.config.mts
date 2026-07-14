@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -11,9 +11,11 @@ export default defineConfig({
     },
   },
   test: {
+    exclude: [...configDefaults.exclude, '.claude/**', '.agent/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
-      all: false,
+      all: true,
+      include: ['src/core/**/*.ts', 'src/lib/**/*.ts'],
       exclude: [
         '**/*.test.ts',
         '**/node_modules/**',
@@ -23,7 +25,8 @@ export default defineConfig({
       ],
       thresholds: {
         'src/core/**': {
-          branches: 80,
+          // all:true includes currently untested integration adapters; keep a truthful floor and raise it with B-1.
+          branches: 70,
           functions: 80,
           lines: 80,
           statements: 80,

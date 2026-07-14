@@ -54,12 +54,15 @@ fi
 # ── Step 4: Database setup ──────────────────────────────────
 echo "[init] Running Prisma DB push..."
 cd /app
-node ./node_modules/prisma/build/index.js db push --skip-generate 2>&1 || {
+node ./node_modules/prisma/build/index.js db push 2>&1 || {
   echo "[init] WARNING: prisma db push failed, retrying..."
   sleep 2
-  node ./node_modules/prisma/build/index.js db push --skip-generate
+  node ./node_modules/prisma/build/index.js db push
 }
 echo "[init] Database ready."
+echo "[init] Ensuring the admin user and demo data exist..."
+node ./seed-dist/prisma/seed.js
+echo "[init] Seed data ready."
 
 # ── Step 5: Start Next.js ──────────────────────────────────
 echo "[init] Starting Next.js server on port ${PORT:-3000}..."

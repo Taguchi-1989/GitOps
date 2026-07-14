@@ -94,7 +94,8 @@ describe('HumanLoopManager', () => {
           decision: 'approved',
           reason: 'Looks good',
           decidedBy: 'admin',
-        })
+        }),
+        { actor: 'admin' }
       );
     });
 
@@ -124,7 +125,8 @@ describe('HumanLoopManager', () => {
         expect.objectContaining({
           decision: 'rejected',
           reason: 'Not ready',
-        })
+        }),
+        { actor: 'admin' }
       );
     });
 

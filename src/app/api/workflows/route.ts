@@ -17,6 +17,7 @@ import {
   internalErrorResponse,
   parseBody,
   parsePaginationParams,
+  getAuditActor,
 } from '@/lib/api-utils';
 import { API_ERROR_CODES } from '@/core/types/api';
 import { generateTraceId } from '@/lib/trace-context';
@@ -25,6 +26,10 @@ export async function POST(request: Request) {
   try {
     const { data, error } = await parseBody(request, WorkflowExecutionRequestSchema);
     if (error) return error;
+    const initiatorId = getAuditActor(request);
+    if (!initiatorId) {
+      return errorResponse(API_ERROR_CODES.UNAUTHORIZED, 'Authentication required', 401);
+    }
 
     // フローYAMLを読み込み・パース
     const flowYaml = await getFlowYaml(data.flowId);
@@ -48,7 +53,7 @@ export async function POST(request: Request) {
     const state = await workflowEngine.startExecution(
       compiled,
       traceId,
-      data.initiatorId,
+      initiatorId,
       data.inputData
     );
 
