@@ -7,9 +7,16 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useSyncExternalStore,
+} from 'react';
 
 const STORAGE_KEY = 'flowops-theme';
+const CHANGE_EVENT = 'flowops-theme-change';
 
 type Theme = 'light' | 'dark';
 
@@ -53,25 +60,34 @@ function applyTheme(theme: Theme) {
   }
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => getInitialTheme());
+function subscribeTheme(callback: () => void): () => void {
+  window.addEventListener('storage', callback);
+  window.addEventListener(CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener(CHANGE_EVENT, callback);
+  };
+}
 
-  // クライアントで初期化
+function getServerTheme(): Theme {
+  return 'light';
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const theme = useSyncExternalStore(subscribeTheme, getInitialTheme, getServerTheme);
+
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    setTheme(prev => {
-      const next: Theme = prev === 'dark' ? 'light' : 'dark';
+    const next: Theme = getInitialTheme() === 'dark' ? 'light' : 'dark';
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+      window.dispatchEvent(new Event(CHANGE_EVENT));
+    } catch {
       applyTheme(next);
-      try {
-        localStorage.setItem(STORAGE_KEY, next);
-      } catch {
-        // localStorage unavailable
-      }
-      return next;
-    });
+    }
   }, []);
 
   return (

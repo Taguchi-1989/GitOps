@@ -22,6 +22,7 @@ import {
   Sun,
   Moon,
   BrainCircuit,
+  Network,
 } from 'lucide-react';
 import { WelcomeGuide, WelcomeGuideButton } from './WelcomeGuide';
 import { useSimpleMode } from '@/lib/simple-mode-context';
@@ -38,6 +39,7 @@ const navigation = [
   { name: '承認待ち', href: '/approvals', icon: ClipboardCheck, description: '判断が必要な一覧' },
   { name: '監査ログ', href: '/audit', icon: ScrollText, description: '操作履歴・監査レポート' },
   { name: 'AIMS証拠', href: '/aims', icon: BrainCircuit, description: '過去資料・複数AIレビュー' },
+  { name: 'DeXPI交換', href: '/dexpi', icon: Network, description: 'P&IDデータの変換・出力' },
 ];
 
 export function MainLayout({ children }: MainLayoutProps) {

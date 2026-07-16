@@ -135,6 +135,29 @@ const spec = {
           extensions: { type: 'object', additionalProperties: true },
         },
       },
+      DexpiDocument: {
+        type: 'object',
+        required: ['schemaVersion', 'standard', 'profile', 'model', 'rootObjectIds', 'objects'],
+        properties: {
+          schemaVersion: { type: 'string', enum: ['flowops-dexpi.v1'] },
+          standard: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', enum: ['DEXPI'] },
+              version: { type: 'string', enum: ['2.0.0'] },
+              serialization: { type: 'string', enum: ['DEXPI_XML'] },
+            },
+          },
+          profile: {
+            type: 'string',
+            enum: ['dexpi-2.0-structural', 'flowops-conceptual'],
+          },
+          model: { type: 'object', additionalProperties: true },
+          rootObjectIds: { type: 'array', items: { type: 'string' } },
+          objects: { type: 'object', additionalProperties: true },
+          metadata: { type: 'object', additionalProperties: { type: 'string' } },
+        },
+      },
     },
     securitySchemes: {
       session: {
@@ -256,6 +279,58 @@ const spec = {
         responses: {
           200: { description: '判断記録完了' },
           409: { description: '未完了または判断記録済み' },
+        },
+      },
+    },
+    '/dexpi/import': {
+      post: {
+        summary: 'JSON・Mermaid・DeXPI XML 2.0を正規化JSONへ取り込む',
+        description:
+          'DeXPI 2.0 DEXPI XMLを対象とする。Mermaid入力は概念接続プロファイルとして警告付きで変換する。',
+        tags: ['DeXPI'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['format', 'content'],
+                properties: {
+                  format: { type: 'string', enum: ['json', 'mermaid', 'dexpi-xml'] },
+                  content: { type: 'string', maxLength: 5000000 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: '正規化JSON、Mermaid、検証結果' },
+          400: { description: '構文・参照・形式エラー' },
+        },
+      },
+    },
+    '/dexpi/export': {
+      post: {
+        summary: '正規化JSONをJSON・Mermaid・DeXPI XML 2.0へ出力する',
+        tags: ['DeXPI'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['format', 'document'],
+                properties: {
+                  format: { type: 'string', enum: ['json', 'mermaid', 'dexpi-xml'] },
+                  document: { $ref: '#/components/schemas/DexpiDocument' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: '出力内容、MIME type、ファイル名' },
+          400: { description: '正規化JSONの検証エラー' },
         },
       },
     },

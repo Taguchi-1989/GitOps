@@ -9,6 +9,7 @@ export * from './git';
 
 // YAML Parser
 export * from './parser';
+export * from './dexpi';
 
 // JSON Patch
 export * from './patch';
