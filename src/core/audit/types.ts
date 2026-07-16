@@ -59,6 +59,10 @@ export const AuditActionSchema = z.enum([
   'AIMS_REVIEW_COMPLETE',
   'AIMS_REVIEW_DECISION',
 
+  // DEXPI 2.0 exchange lifecycle
+  'DEXPI_IMPORT',
+  'DEXPI_EXPORT',
+
   // GPTsiteki Section 8.6: データガバナンス監査アクション
   'DATA_ACCESS', // データオブジェクトへのアクセス
   'DATA_EXPORT', // データの外部持出/エクスポート
@@ -84,6 +88,7 @@ export const AuditEntityTypeSchema = z.enum([
   'DataObject',
   'AimsEvidence',
   'AimsReviewRun',
+  'DexpiDocument',
 ]);
 
 export type AuditEntityType = z.infer<typeof AuditEntityTypeSchema>;

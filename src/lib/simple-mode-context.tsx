@@ -8,9 +8,10 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useSyncExternalStore } from 'react';
 
 const STORAGE_KEY = 'flowops-simple-mode';
+const CHANGE_EVENT = 'flowops-simple-mode-change';
 
 interface SimpleModeContextValue {
   isSimpleMode: boolean;
@@ -27,27 +28,39 @@ export function useSimpleMode(): SimpleModeContextValue {
   return context;
 }
 
+function getSimpleModeSnapshot(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function subscribeSimpleMode(callback: () => void): () => void {
+  window.addEventListener('storage', callback);
+  window.addEventListener(CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener(CHANGE_EVENT, callback);
+  };
+}
+
 export function SimpleModeProvider({ children }: { children: React.ReactNode }) {
-  const [isSimpleMode, setIsSimpleMode] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const isSimpleMode = useSyncExternalStore(
+    subscribeSimpleMode,
+    getSimpleModeSnapshot,
+    () => false
+  );
 
   // localStorage から初期値を読み込み
   const toggleSimpleMode = useCallback(() => {
-    setIsSimpleMode(prev => {
-      const next = !prev;
-      try {
-        localStorage.setItem(STORAGE_KEY, String(next));
-      } catch {
-        // localStorage unavailable
-      }
-      return next;
-    });
+    const next = !getSimpleModeSnapshot();
+    try {
+      localStorage.setItem(STORAGE_KEY, String(next));
+      window.dispatchEvent(new Event(CHANGE_EVENT));
+    } catch {
+      // localStorage unavailable
+    }
   }, []);
 
   return (
