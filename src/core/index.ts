@@ -10,6 +10,7 @@ export * from './git';
 // YAML Parser
 export * from './parser';
 export * from './dexpi';
+export * from './bpmn';
 
 // JSON Patch
 export * from './patch';

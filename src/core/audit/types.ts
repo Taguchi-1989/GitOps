@@ -63,6 +63,10 @@ export const AuditActionSchema = z.enum([
   'DEXPI_IMPORT',
   'DEXPI_EXPORT',
 
+  // BPMN 2.0.2 exchange lifecycle
+  'BPMN_IMPORT',
+  'BPMN_EXPORT',
+
   // GPTsiteki Section 8.6: データガバナンス監査アクション
   'DATA_ACCESS', // データオブジェクトへのアクセス
   'DATA_EXPORT', // データの外部持出/エクスポート
@@ -89,6 +93,7 @@ export const AuditEntityTypeSchema = z.enum([
   'AimsEvidence',
   'AimsReviewRun',
   'DexpiDocument',
+  'BpmnDocument',
 ]);
 
 export type AuditEntityType = z.infer<typeof AuditEntityTypeSchema>;
