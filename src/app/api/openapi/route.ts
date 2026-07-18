@@ -158,6 +158,40 @@ const spec = {
           metadata: { type: 'object', additionalProperties: { type: 'string' } },
         },
       },
+      BpmnDocument: {
+        type: 'object',
+        required: [
+          'schemaVersion',
+          'standard',
+          'profile',
+          'definitions',
+          'processes',
+          'globalElements',
+          'collaborations',
+          'diagrams',
+        ],
+        properties: {
+          schemaVersion: { type: 'string', enum: ['flowops-bpmn.v1'] },
+          standard: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', enum: ['BPMN'] },
+              version: { type: 'string', enum: ['2.0.2'] },
+              serialization: { type: 'string', enum: ['BPMN_XML'] },
+            },
+          },
+          profile: {
+            type: 'string',
+            enum: ['bpmn-2.0-core', 'flowops-conceptual'],
+          },
+          definitions: { type: 'object', additionalProperties: true },
+          processes: { type: 'array', minItems: 1, items: { type: 'object' } },
+          globalElements: { type: 'array', items: { type: 'object' } },
+          collaborations: { type: 'array', items: { type: 'object' } },
+          diagrams: { type: 'array', items: { type: 'object' } },
+          metadata: { type: 'object', additionalProperties: { type: 'string' } },
+        },
+      },
     },
     securitySchemes: {
       session: {
@@ -323,6 +357,61 @@ const spec = {
                 properties: {
                   format: { type: 'string', enum: ['json', 'mermaid', 'dexpi-xml'] },
                   document: { $ref: '#/components/schemas/DexpiDocument' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: '出力内容、MIME type、ファイル名' },
+          400: { description: '正規化JSONの検証エラー' },
+        },
+      },
+    },
+    '/bpmn/import': {
+      post: {
+        summary: 'JSON・Mermaid・BPMN 2.0 XMLを正規化JSONへ取り込む',
+        description:
+          'OMG BPMN 2.0.2のコア要素を対象とする。Mermaid入力は概念制御フロープロファイルとして警告付きで変換する。',
+        tags: ['BPMN'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['format', 'content'],
+                properties: {
+                  format: { type: 'string', enum: ['json', 'mermaid', 'bpmn-xml'] },
+                  content: { type: 'string', maxLength: 5000000 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: '正規化JSON、Mermaid、LLM用プロンプト、検証結果' },
+          400: { description: '構文・参照・形式エラー' },
+        },
+      },
+    },
+    '/bpmn/export': {
+      post: {
+        summary: '正規化JSONをJSON・Mermaid・BPMN 2.0 XML・LLM用プロンプトへ出力する',
+        tags: ['BPMN'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['format', 'document'],
+                properties: {
+                  format: {
+                    type: 'string',
+                    enum: ['json', 'mermaid', 'bpmn-xml', 'llm-prompt'],
+                  },
+                  document: { $ref: '#/components/schemas/BpmnDocument' },
                 },
               },
             },
