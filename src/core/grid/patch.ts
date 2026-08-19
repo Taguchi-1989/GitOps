@@ -9,6 +9,12 @@
  *  - 既存 applyPatches(`replace` は path 存在を要求) と整合する。
  *
  * グリッドはフローメタデータ(title/layer等)を編集しないため nodes/edges のみ比較する。
+ *
+ * 【暗黙の依存】キャンバス編集(grid-proposal API の flow 形式)は、クライアントが
+ * 送ってきた Flow をそのまま newFlow として渡す。その Flow には businessPurpose /
+ * ownerOrg / accessControl 等のメタデータが含まれていないが、ここが /nodes と /edges
+ * しか差分化しないため YAML 側のメタデータは削除されない。比較対象を広げる場合は
+ * src/app/api/flows/[id]/grid-proposal/route.ts 側でメタデータのマージが必要になる。
  */
 
 import type { Flow } from '@/core/parser/schema';

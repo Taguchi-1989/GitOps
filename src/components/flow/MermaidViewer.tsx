@@ -10,6 +10,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mermaid from 'mermaid';
 import { ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
+import { useDisplayMode } from '@/lib/simple-mode-context';
 
 interface MermaidViewerProps {
   content: string;
@@ -66,6 +67,7 @@ export function MermaidViewer({
   selectedNodeId,
   className = '',
 }: MermaidViewerProps) {
+  const { isTechMode } = useDisplayMode();
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgContent, setSvgContent] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -256,8 +258,17 @@ export function MermaidViewer({
 
         {error && (
           <div className="p-4 text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400">
-            <strong>Render Error:</strong> {error}
-            <pre className="mt-2 text-xs overflow-x-auto">{content}</pre>
+            <strong>図の表示に失敗しました</strong>
+            {isTechMode ? (
+              <>
+                <p className="mt-1 text-sm">{error}</p>
+                <pre className="mt-2 text-xs overflow-x-auto">{content}</pre>
+              </>
+            ) : (
+              <p className="mt-1 text-sm">
+                図の定義に問題がある可能性があります。担当者に連絡してください。
+              </p>
+            )}
           </div>
         )}
 

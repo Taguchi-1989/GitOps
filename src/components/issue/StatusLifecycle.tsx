@@ -1,7 +1,8 @@
 /**
  * FlowOps - Status Lifecycle Visualization
  *
- * Issue詳細画面でステータスの流れと現在地を可視化する
+ * 改善カード詳細画面でステータスの流れと現在地を可視化する。
+ * PDCA（Plan/Do/Check/Act）はここでの補助表示にとどめ、バッジには出さない。
  */
 
 'use client';
@@ -18,10 +19,12 @@ import {
   XCircle,
   ArrowRight,
 } from 'lucide-react';
-import { useSimpleMode } from '@/lib/simple-mode-context';
+import { useDisplayMode } from '@/lib/simple-mode-context';
 
 interface StatusLifecycleProps {
   currentStatus: IssueStatus;
+  /** 効果確認の結果。rejected が「反映済みだが効果なし」かの判定に使う */
+  checkResult?: string | null;
   className?: string;
 }
 
@@ -39,7 +42,7 @@ const lifecycleSteps: LifecycleStep[] = [
   {
     status: 'new',
     label: 'Plan',
-    hint: '課題を整理する',
+    hint: '困りごとを整理する',
     simpleHint: '困りごとを記録する',
     icon: ClipboardList,
     color: 'text-gray-300 dark:text-gray-600',
@@ -95,13 +98,27 @@ const statusOrder: Record<string, number> = {
   proposed: 2,
   merged: 3,
   rejected: -1,
+  'closed-ineffective': -1,
   'merged-duplicate': -1,
 };
 
-export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecycleProps) {
-  const { isSimpleMode } = useSimpleMode();
+export function StatusLifecycle({
+  currentStatus,
+  checkResult,
+  className = '',
+}: StatusLifecycleProps) {
+  const { isSimpleMode } = useDisplayMode();
   const currentOrder = statusOrder[currentStatus] ?? -1;
-  const isTerminal = currentStatus === 'rejected' || currentStatus === 'merged-duplicate';
+  /**
+   * フローには反映済みだが、効果が確認できず見送りとして閉じたケース。
+   * 専用ステータス closed-ineffective が正。rejected + checkResult==='ineffective' は
+   * 専用ステータス導入前の旧データ互換。
+   */
+  const isMergedButIneffective =
+    currentStatus === 'closed-ineffective' ||
+    (currentStatus === 'rejected' && checkResult === 'ineffective');
+  const isRejected = currentStatus === 'rejected' || currentStatus === 'closed-ineffective';
+  const isTerminal = isRejected || currentStatus === 'merged-duplicate';
 
   if (isTerminal) {
     return (
@@ -111,35 +128,29 @@ export function StatusLifecycle({ currentStatus, className = '' }: StatusLifecyc
         <div className="flex items-center gap-3">
           <div
             className={`p-2 rounded-lg border ${
-              currentStatus === 'rejected'
+              isRejected
                 ? 'text-gray-500 bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-700'
                 : 'text-purple-500 bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800'
             }`}
           >
-            {currentStatus === 'rejected' ? (
-              <XCircle className="w-5 h-5" />
-            ) : (
-              <CheckCircle className="w-5 h-5" />
-            )}
+            {isRejected ? <XCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {currentStatus === 'rejected'
-                ? isSimpleMode
-                  ? 'この課題は見送りになりました'
-                  : 'このIssueは却下されました'
-                : isSimpleMode
-                  ? 'この課題は重複として統合されました'
-                  : 'このIssueは重複として統合されました'}
+              {isRejected
+                ? isMergedButIneffective
+                  ? 'フローに反映しましたが、効果が確認できなかったため見送りとして完了しました'
+                  : 'この改善カードは見送りになりました'
+                : 'この改善カードは重複として統合されました'}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {currentStatus === 'rejected'
-                ? isSimpleMode
-                  ? '必要に応じて新しい課題を報告できます'
-                  : '必要に応じて新しいIssueを作成できます'
-                : isSimpleMode
-                  ? '統合先の課題をご確認ください'
-                  : '統合先のIssueをご確認ください'}
+              {isRejected
+                ? isMergedButIneffective
+                  ? isSimpleMode
+                    ? '学びは記録されています。別のやり方で改善をやり直せます'
+                    : '効果確認（Check）の記録は保持されています。別アプローチで新しい改善カードを作成できます'
+                  : '必要に応じて新しい改善カードを作成できます'
+                : '統合先の改善カードをご確認ください'}
             </p>
           </div>
         </div>

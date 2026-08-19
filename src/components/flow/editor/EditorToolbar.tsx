@@ -104,38 +104,38 @@ export function EditorToolbar({
         {editable ? '編集中' : '閲覧'}
       </button>
 
-      {/* Template Gallery button */}
-      {onOpenTemplates && (
-        <button
-          type="button"
-          onClick={onOpenTemplates}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-          title="テンプレートギャラリー"
-        >
-          <Grid3x3 className="w-4 h-4" />
-          テンプレート
-        </button>
-      )}
-
-      {/* AI Assistant button */}
-      {onToggleAIPanel && (
-        <button
-          type="button"
-          onClick={onToggleAIPanel}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            isAIPanelOpen
-              ? 'bg-purple-600 text-white hover:bg-purple-700'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
-          title="AIアシスタント"
-        >
-          <Sparkles className="w-4 h-4" />
-          AI
-        </button>
-      )}
-
       {editable && (
         <>
+          {/* Template Gallery button (編集モードのみ) */}
+          {onOpenTemplates && (
+            <button
+              type="button"
+              onClick={onOpenTemplates}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+              title="テンプレートギャラリー"
+            >
+              <Grid3x3 className="w-4 h-4" />
+              テンプレート
+            </button>
+          )}
+
+          {/* AI Assistant button (編集モードのみ) */}
+          {onToggleAIPanel && (
+            <button
+              type="button"
+              onClick={onToggleAIPanel}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                isAIPanelOpen
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+              title="AIアシスタント"
+            >
+              <Sparkles className="w-4 h-4" />
+              AI
+            </button>
+          )}
+
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
 
           {/* ノード追加ボタン群 */}
@@ -208,10 +208,10 @@ export function EditorToolbar({
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
               }
             `}
-            title="保存"
+            title="保存して反映を申請"
           >
             <Save className="w-4 h-4" />
-            {isSaving ? '保存中...' : '保存'}
+            {isSaving ? '申請中...' : '保存して反映を申請'}
           </button>
         </>
       )}

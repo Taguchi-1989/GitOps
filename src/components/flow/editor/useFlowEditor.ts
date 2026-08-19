@@ -17,6 +17,37 @@ import type { FlowNode, FlowEdge, FlowNodeData } from './types';
 
 const MAX_UNDO = 20;
 
+/** 新規ノードの初期ラベル（NodeEditPanel の種別名と同じ語を使う） */
+const NODE_TYPE_LABELS: Record<NodeType, string> = {
+  start: '開始',
+  end: '終了',
+  process: '処理',
+  decision: '判断',
+  database: 'データベース',
+  'llm-task': 'LLMタスク',
+  'human-review': 'ヒューマンレビュー',
+};
+
+const NEW_NODE_ORIGIN = { x: 200, y: 200 };
+const NEW_NODE_OFFSET = 40;
+const OVERLAP_THRESHOLD = 30;
+
+/** 既存ノードと重ならない位置を、右下方向へカスケードして探す */
+function findFreePosition(existing: FlowNode[]): { x: number; y: number } {
+  let { x, y } = NEW_NODE_ORIGIN;
+  for (let i = 0; i < 50; i++) {
+    const overlaps = existing.some(
+      n =>
+        Math.abs(n.position.x - x) < OVERLAP_THRESHOLD &&
+        Math.abs(n.position.y - y) < OVERLAP_THRESHOLD
+    );
+    if (!overlaps) break;
+    x += NEW_NODE_OFFSET;
+    y += NEW_NODE_OFFSET;
+  }
+  return { x, y };
+}
+
 interface Snapshot {
   nodes: FlowNode[];
   edges: FlowEdge[];
@@ -122,9 +153,9 @@ export function useFlowEditor(initialFlow: Flow) {
         const newNode: FlowNode = {
           id: `node_${crypto.randomUUID()}`,
           type: 'customNode',
-          position: { x: 200, y: 200 },
+          position: findFreePosition(prevNodes),
           data: {
-            label: type,
+            label: NODE_TYPE_LABELS[type],
             nodeType: type,
           } satisfies FlowNodeData,
         };

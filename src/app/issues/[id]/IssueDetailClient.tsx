@@ -24,7 +24,7 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
   const { addToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
-    type: 'merge' | 'reject' | 'apply';
+    type: 'merge' | 'reject' | 'apply' | 'closeIneffective';
     proposalId?: string;
   } | null>(null);
 
@@ -129,13 +129,17 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
     }
   };
 
-  const handleReject = async () => {
+  /** ステータスを終端状態へ更新する（見送り / 効果なし完了） */
+  const updateStatus = async (
+    status: 'rejected' | 'closed-ineffective',
+    successMessage: string
+  ) => {
     setIsLoading(true);
     try {
       const res = await fetch(`/api/issues/${issue.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'rejected' }),
+        body: JSON.stringify({ status }),
       });
       const data = await res.json();
 
@@ -145,7 +149,7 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
         return;
       }
 
-      addToast('success', 'この課題を見送りにしました');
+      addToast('success', successMessage);
       router.refresh();
     } catch {
       addToast('error', '操作に失敗しました。もう一度お試しください。');
@@ -154,29 +158,46 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
     }
   };
 
+  const handleReject = () => updateStatus('rejected', 'この改善カードを見送りにしました');
+
+  const handleCloseIneffective = () =>
+    updateStatus('closed-ineffective', '見送り（効果なし）として完了しました');
+
   const confirmDialogConfig = {
     merge: {
       title: '変更を確定しますか？',
       description: 'この操作により改善内容が正式に反映されます。',
       whatHappens: [
         '改善内容が正式なフローに反映されます',
-        'この課題は「Check待ち」フェーズに移行します',
+        'この改善カードは「効果確認中」になります',
       ],
       confirmLabel: '変更を確定する',
       confirmColor: 'green' as const,
       onConfirm: handleMergeClose,
     },
     reject: {
-      title: 'この課題を見送りますか？',
-      description: 'この操作により課題が見送り（却下）になります。',
+      title: 'この改善カードを見送りますか？',
+      description: 'この操作により改善カードが見送りになります。',
       whatHappens: [
-        '改善案は反映されません',
-        'この課題は「見送り」になります',
-        '必要に応じて新しい課題を報告できます',
+        'この改善カードは「見送り」になります',
+        'これまでに記録した内容（Plan / Check）は残ります',
+        '必要に応じて新しい改善カードを作成できます',
       ],
       confirmLabel: '見送りにする',
       confirmColor: 'red' as const,
       onConfirm: handleReject,
+    },
+    closeIneffective: {
+      title: '見送り（効果なし）として完了しますか？',
+      description: 'フローに反映しましたが効果が確認できなかった、として完了します。',
+      whatHappens: [
+        'この改善カードは「見送り（効果なし）」になります',
+        '効果確認（Check）の記録と学びは残ります',
+        '別のアプローチで新しい改善カードを作成できます',
+      ],
+      confirmLabel: '見送りとして完了する',
+      confirmColor: 'red' as const,
+      onConfirm: handleCloseIneffective,
     },
     apply: {
       title: '改善案を反映しますか？',
@@ -207,6 +228,7 @@ export function IssueDetailClient({ issue }: IssueDetailClientProps) {
         onApplyProposal={proposalId => setConfirmDialog({ type: 'apply', proposalId })}
         onMergeClose={() => setConfirmDialog({ type: 'merge' })}
         onReject={() => setConfirmDialog({ type: 'reject' })}
+        onCloseIneffective={() => setConfirmDialog({ type: 'closeIneffective' })}
         isLoading={isLoading}
       />
 

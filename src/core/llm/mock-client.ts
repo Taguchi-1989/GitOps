@@ -7,10 +7,16 @@
  */
 
 import { ProposalOutput } from '../patch/types';
-import { LLMError, GenerateProposalParams } from './client';
+import { LLMError, GenerateProposalParams, GenerateTextParams } from './client';
 import { parseFlowYaml } from '../parser';
 
 export class MockLLMClient {
+  /** ローカル開発で回答欄の表示を確認するための固定応答 */
+  async generateText(_params: GenerateTextParams): Promise<string> {
+    await new Promise(r => setTimeout(r, 300));
+    return '（開発用モック回答）下の「関連ページ」のヘルプ記事に手順が書かれています。';
+  }
+
   async generateProposal(params: GenerateProposalParams): Promise<ProposalOutput> {
     await new Promise(r => setTimeout(r, 800)); // 思考中演出
 

@@ -12,11 +12,13 @@ import {
   successResponse,
   notFoundResponse,
   internalErrorResponse,
+  errorResponse,
   parseBody,
   getAuditActor,
 } from '@/lib/api-utils';
-import { UpdateIssueSchema } from '@/core/issue';
+import { UpdateIssueSchema, IssueStatus, validateStatusTransition } from '@/core/issue';
 import { auditLog } from '@/core/audit';
+import { API_ERROR_CODES } from '@/core/types/api';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -77,6 +79,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await parseBody(request, UpdateIssueSchema);
     if (error) return error;
 
+    // ステータス遷移のガード（closed-ineffective は merged からのみ）
+    if (data.status && data.status !== existing.status) {
+      const transition = validateStatusTransition(existing.status as IssueStatus, data.status);
+      if (!transition.allowed) {
+        return errorResponse(API_ERROR_CODES.INVALID_STATUS_TRANSITION, transition.reason);
+      }
+    }
+
     const before = {
       title: existing.title,
       description: existing.description,
@@ -105,13 +115,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // 監査ログ
+    // 監査ログ（効果なし終了は専用アクションで記録する）
+    const isCloseIneffective =
+      data.status === 'closed-ineffective' && existing.status !== 'closed-ineffective';
     await auditLog.record({
-      action: 'ISSUE_UPDATE',
+      action: isCloseIneffective ? 'ISSUE_CLOSE_INEFFECTIVE' : 'ISSUE_UPDATE',
       entityType: 'Issue',
       entityId: issue.id,
       actor: getAuditActor(request),
-      payload: { before, after: data },
+      payload: isCloseIneffective
+        ? {
+            before,
+            after: data,
+            checkResult: issue.checkResult,
+            learning: issue.learning,
+          }
+        : { before, after: data },
     });
 
     return successResponse(issue);

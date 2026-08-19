@@ -203,4 +203,74 @@ describe('POST /api/flows/[id]/grid-proposal', () => {
     expect(result.body.data.issueId).toBe('issue-9');
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
+
+  describe('canvas形式 (flow) の入力', () => {
+    it('グリッド非表現の変更(meta.position)も改善案になる', async () => {
+      vi.mocked(prisma.issue.findUnique).mockResolvedValue({
+        id: 'issue-9',
+        status: 'in-progress',
+        targetFlowId: 'flow-1',
+      } as any);
+      vi.mocked(prisma.proposal.create).mockResolvedValue({ id: 'prop-3' } as any);
+      vi.mocked(prisma.issue.update).mockResolvedValue({} as any);
+
+      const flow = sampleFlow();
+      flow.nodes.n2.meta = { position: { x: 120, y: 40 } };
+
+      const result: any = await POST(
+        makeRequest({ flow, baseHash: BASE_HASH, issueId: 'issue-9' }),
+        { params }
+      );
+
+      expect(result.status).toBe(201);
+      const patch = JSON.parse(vi.mocked(prisma.proposal.create).mock.calls[0][0].data.jsonPatch);
+      expect(JSON.stringify(patch)).toContain('position');
+    });
+
+    it('検証エラー(dangling edge)はグリッドと同じ 400 になる', async () => {
+      const flow = sampleFlow();
+      flow.edges.e1.to = 'ghost';
+
+      const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+      expect(result.status).toBe(400);
+      expect(result.body.errorCode).toBe('VALIDATION_ERROR');
+    });
+
+    it('flow.id が URL と一致しないと 400', async () => {
+      const flow = sampleFlow();
+      flow.id = 'other-flow';
+
+      const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+      expect(result.status).toBe(400);
+      expect(result.body.details).toContain('flow.id');
+    });
+
+    it('nodes のキーと node.id が食い違うと 400', async () => {
+      const flow = sampleFlow();
+      flow.nodes.n2.id = 'n9'; // レコードキー n2 と不一致
+
+      const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+      expect(result.status).toBe(400);
+      expect(result.body.errorCode).toBe('VALIDATION_ERROR');
+      expect(result.body.details).toContain('一致しません');
+    });
+
+    it('空白だけの label は 400', async () => {
+      const flow = sampleFlow();
+      flow.nodes.n2.label = '   ';
+
+      const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+      expect(result.status).toBe(400);
+      expect(result.body.errorCode).toBe('VALIDATION_ERROR');
+    });
+
+    it('flow も nodeRows も無いと 400', async () => {
+      const result: any = await POST(makeRequest({ baseHash: BASE_HASH }), { params });
+      expect(result.status).toBe(400);
+    });
+  });
 });

@@ -12,7 +12,8 @@ import { prisma } from '@/lib/prisma';
 import { listFlows } from '@/lib/flow-service';
 import { TaskQueue } from '@/components/ui/TaskQueue';
 import { formatDate } from '@/lib/format-date';
-import { getStatusBadgeClass, getStatusLabel } from '@/lib/issue-status-ui';
+import { getIssueDisplayBadgeClass, getIssueDisplayLabel } from '@/lib/issue-status-ui';
+import { getActionLabel, NAV_LABELS } from '@/lib/ui-labels';
 import {
   FileText,
   AlertCircle,
@@ -40,52 +41,64 @@ async function getDashboardStats() {
   startOfWeek.setDate(now.getDate() - now.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
 
-  const [issueStats, recentIssues, flows, standardizedCount, checkDueSoon, staleIssues] =
-    await Promise.all([
-      prisma.issue.groupBy({
-        by: ['status'],
-        where: { deletedAt: null },
-        _count: { id: true },
-      }),
-      prisma.issue.findMany({
-        where: { deletedAt: null, updatedAt: { gte: startOfWeek } },
-        orderBy: { updatedAt: 'desc' },
-        take: 8,
-        select: {
-          id: true,
-          humanId: true,
-          title: true,
-          status: true,
-          updatedAt: true,
-          standardizedAt: true,
-        },
-      }),
-      listFlows(),
-      prisma.issue.count({
-        where: { deletedAt: null, standardizedAt: { not: null } },
-      }),
-      prisma.issue.findMany({
-        where: {
-          deletedAt: null,
-          status: 'merged',
-          standardizedAt: null,
-          checkDueDate: { lte: sevenDaysFromNow, not: null },
-        },
-        orderBy: { checkDueDate: 'asc' },
-        take: 5,
-        select: { id: true, humanId: true, title: true, checkDueDate: true },
-      }),
-      prisma.issue.findMany({
-        where: {
-          deletedAt: null,
-          status: { in: ['in-progress', 'proposed'] },
-          updatedAt: { lte: fourteenDaysAgo },
-        },
-        orderBy: { updatedAt: 'asc' },
-        take: 5,
-        select: { id: true, humanId: true, title: true, status: true, updatedAt: true },
-      }),
-    ]);
+  const [
+    issueStats,
+    recentIssues,
+    flows,
+    standardizedCount,
+    checkingCount,
+    checkDueSoon,
+    staleIssues,
+  ] = await Promise.all([
+    prisma.issue.groupBy({
+      by: ['status'],
+      where: { deletedAt: null },
+      _count: { id: true },
+    }),
+    prisma.issue.findMany({
+      where: { deletedAt: null, updatedAt: { gte: startOfWeek } },
+      orderBy: { updatedAt: 'desc' },
+      take: 8,
+      select: {
+        id: true,
+        humanId: true,
+        title: true,
+        status: true,
+        updatedAt: true,
+        standardizedAt: true,
+      },
+    }),
+    listFlows(),
+    prisma.issue.count({
+      where: { deletedAt: null, standardizedAt: { not: null } },
+    }),
+    // 「効果確認中」は標準化前の merged のみ。standardizedAt 済みは「完了」に数えるため
+    // groupBy(status) では出せず、専用の count が要る。
+    prisma.issue.count({
+      where: { deletedAt: null, status: 'merged', standardizedAt: null },
+    }),
+    prisma.issue.findMany({
+      where: {
+        deletedAt: null,
+        status: 'merged',
+        standardizedAt: null,
+        checkDueDate: { lte: sevenDaysFromNow, not: null },
+      },
+      orderBy: { checkDueDate: 'asc' },
+      take: 5,
+      select: { id: true, humanId: true, title: true, checkDueDate: true },
+    }),
+    prisma.issue.findMany({
+      where: {
+        deletedAt: null,
+        status: { in: ['in-progress', 'proposed'] },
+        updatedAt: { lte: fourteenDaysAgo },
+      },
+      orderBy: { updatedAt: 'asc' },
+      take: 5,
+      select: { id: true, humanId: true, title: true, status: true, updatedAt: true },
+    }),
+  ]);
 
   const statusCounts: Record<string, number> = {};
   issueStats.forEach(s => {
@@ -98,7 +111,7 @@ async function getDashboardStats() {
     inProgress: statusCounts['in-progress'] ?? 0,
     proposed: statusCounts['proposed'] ?? 0,
     do: (statusCounts['in-progress'] ?? 0) + (statusCounts['proposed'] ?? 0),
-    check: statusCounts['merged'] ?? 0,
+    check: checkingCount,
     standardized: standardizedCount,
   };
 
@@ -171,16 +184,18 @@ function GettingStartedChecklist({
     },
     {
       done: hasIssues,
-      label: '課題を報告する',
-      description: '改善したい点や課題を記録します',
+      label: '改善カードを作る',
+      description: '改善したい点や困りごとを記録します',
       href: '/issues/new',
       icon: Plus,
       color: 'text-red-600 bg-red-50 dark:bg-red-900/30',
     },
     {
       done: hasInProgress,
-      label: '改善を始める',
-      description: '課題の詳細画面で「改善を始める」を押すと作業スペースが準備されます',
+      // サーバコンポーネントからは表示モードを取得できないが、既定表示（詳細モードOFF）の
+      // simple ラベルが実際のボタン表記と一致するため引数なしで正しい
+      label: getActionLabel('start'),
+      description: `改善カードの詳細画面で「${getActionLabel('start')}」を押すと作業スペースが準備されます`,
       href: hasIssues ? '/issues' : undefined,
       icon: Play,
       color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/30',
@@ -293,7 +308,12 @@ function GettingStartedChecklist({
 function WorkflowOverview() {
   const steps = [
     { icon: Eye, label: 'フロー確認', color: 'bg-indigo-500', description: '業務フローを可視化' },
-    { icon: AlertCircle, label: '課題報告', color: 'bg-red-500', description: '課題を記録' },
+    {
+      icon: AlertCircle,
+      label: '改善カード作成',
+      color: 'bg-red-500',
+      description: '困りごとを記録',
+    },
     { icon: Play, label: '改善開始', color: 'bg-blue-500', description: '作業準備' },
     { icon: Sparkles, label: 'AI提案', color: 'bg-purple-500', description: '改善案を生成' },
     { icon: GitMerge, label: '確定', color: 'bg-green-500', description: '変更を確定' },
@@ -336,8 +356,10 @@ export default async function DashboardPage() {
 
   const hasFlows = flows.length > 0;
   const hasIssues = stats.total > 0;
-  const hasInProgress = stats.do > 0 || stats.check > 0;
-  const hasProposed = stats.check > 0;
+  // 「効果確認中」から標準化済みを外したので、先に進んだカードでも
+  // 手前のステップが未完に見えないよう standardized を含めて判定する
+  const hasProposed = stats.check > 0 || stats.standardized > 0;
+  const hasInProgress = stats.do > 0 || hasProposed;
   const hasMerged = stats.standardized > 0;
   const isNewUser = !hasFlows && !hasIssues;
 
@@ -345,7 +367,9 @@ export default async function DashboardPage() {
     <div className="p-6 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">ダッシュボード</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          {NAV_LABELS.dashboard}
+        </h1>
         <p className="mt-1 text-gray-500 dark:text-gray-400">FlowOps プロジェクトの概要</p>
       </div>
 
@@ -376,38 +400,39 @@ export default async function DashboardPage() {
       {/* ワークフロー概要図 - 新規ユーザーの場合に表示 */}
       {isNewUser && <WorkflowOverview />}
 
-      {/* PDCA Stats Grid */}
+      {/* 改善カードの状況（語彙は @/lib/issue-status-ui と揃える） */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-          PDCAボード
+          改善カードの状況
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="📋 Plan中"
+            title="📋 起票済み"
             value={stats.plan}
             icon={AlertCircle}
             color="bg-red-500"
-            href="/issues?status=new"
+            href="/issues?tab=open"
           />
           <StatCard
-            title="▶️ Do中"
+            title="▶️ 対応中"
             value={stats.do}
             icon={Play}
             color="bg-blue-500"
-            href="/issues?status=in-progress"
+            href="/issues?tab=open"
           />
           <StatCard
-            title="🔍 Check待ち"
+            title="🔍 効果確認中"
             value={stats.check}
             icon={Search}
             color="bg-teal-500"
-            href="/issues?status=merged"
+            href="/issues?tab=checking"
           />
           <StatCard
-            title="⭐ 標準化済み"
+            title="⭐ 完了"
             value={stats.standardized}
             icon={Star}
             color="bg-purple-500"
+            href="/issues?tab=closed"
           />
         </div>
       </div>
@@ -463,9 +488,9 @@ export default async function DashboardPage() {
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span
-                          className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${getStatusBadgeClass(issue.status)}`}
+                          className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${getIssueDisplayBadgeClass(issue.status)}`}
                         >
-                          {getStatusLabel(issue.status)}
+                          {getIssueDisplayLabel(issue.status)}
                         </span>
                         <span className="text-xs text-orange-600 dark:text-orange-400">
                           最終更新: {formatDate(issue.updatedAt)}
@@ -517,9 +542,9 @@ export default async function DashboardPage() {
                         {issue.humanId}
                       </span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${issue.standardizedAt ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : getStatusBadgeClass(issue.status)}`}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${getIssueDisplayBadgeClass(issue.status, issue.standardizedAt)}`}
                       >
-                        {issue.standardizedAt ? '標準化済み' : getStatusLabel(issue.status)}
+                        {getIssueDisplayLabel(issue.status, issue.standardizedAt)}
                       </span>
                     </div>
                     <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -575,7 +600,7 @@ export default async function DashboardPage() {
                     <span className="text-xs text-gray-400 dark:text-gray-500">{flow.layer}</span>
                   </div>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {flow.nodeCount} ノード / {flow.edgeCount} エッジ
+                    {flow.nodeCount} ステップ
                   </p>
                 </Link>
               ))

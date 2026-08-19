@@ -1,19 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Trash2, X } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { FlowNode, FlowNodeData } from './types';
 import type { NodeType } from '@/core/parser/schema';
+import { NODE_TYPE_LABELS } from './node-styles';
 
-const NODE_TYPE_OPTIONS: { value: NodeType; label: string }[] = [
-  { value: 'start', label: '開始 (start)' },
-  { value: 'end', label: '終了 (end)' },
-  { value: 'process', label: '処理 (process)' },
-  { value: 'decision', label: '判断 (decision)' },
-  { value: 'database', label: 'データベース (database)' },
-  { value: 'llm-task', label: 'LLMタスク (llm-task)' },
-  { value: 'human-review', label: 'ヒューマンレビュー (human-review)' },
-];
+const NODE_TYPE_OPTIONS: { value: NodeType; label: string }[] = (
+  Object.keys(NODE_TYPE_LABELS) as NodeType[]
+).map(value => ({ value, label: `${NODE_TYPE_LABELS[value]} (${value})` }));
 
 interface NodeEditPanelProps {
   node: FlowNode | null;
@@ -32,6 +28,8 @@ export function NodeEditPanel({
   roles,
   systems,
 }: NodeEditPanelProps) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   if (!node) return null;
 
   const { data } = node;
@@ -168,13 +166,30 @@ export function NodeEditPanel({
         {/* 削除ボタン */}
         <button
           type="button"
-          onClick={() => onDeleteNode(node.id)}
+          onClick={() => setConfirmDelete(true)}
           className="mt-6 w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-md text-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
         >
           <Trash2 className="w-4 h-4" />
           ノードを削除
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        onConfirm={() => {
+          setConfirmDelete(false);
+          onDeleteNode(node.id);
+        }}
+        onCancel={() => setConfirmDelete(false)}
+        title="このステップを削除しますか？"
+        description={`「${data.label || node.id}」をこの図から削除します。`}
+        whatHappens={[
+          'このステップにつながっている線もいっしょに消えます',
+          'まだ申請していないので、元に戻す（Undo）で戻せます',
+        ]}
+        confirmLabel="削除する"
+        confirmColor="red"
+      />
     </div>
   );
 }

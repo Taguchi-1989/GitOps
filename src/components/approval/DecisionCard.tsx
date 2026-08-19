@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { GateOutcomeBadge, type GateOutcome } from './GateOutcomeBadge';
 import { useToast } from '@/components/ui/Toast';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getFriendlyError, formatFriendlyToast } from '@/lib/friendly-errors';
 
 // --------------------------------------------------------
@@ -144,6 +145,7 @@ export function DecisionCard({ data }: DecisionCardProps) {
 
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<'approve' | 'reject' | null>(null);
 
   const canSubmit = comment.trim().length > 0 && !isSubmitting;
 
@@ -179,8 +181,38 @@ export function DecisionCard({ data }: DecisionCardProps) {
       addToast('error', '操作に失敗しました。もう一度お試しください。');
     } finally {
       setIsSubmitting(false);
+      setConfirmDialog(null);
     }
   };
+
+  const confirmDialogConfig = {
+    approve: {
+      title: 'この内容を承認しますか？',
+      description: '承認するとワークフローが次の工程へ進みます。',
+      whatHappens: [
+        'AIの出力内容が承認済みとして記録されます',
+        'ワークフローが次の工程へ進みます',
+        '判断コメントと担当者が監査ログに残ります',
+      ],
+      confirmLabel: '承認する',
+      confirmColor: 'green' as const,
+      onConfirm: () => void submit(true),
+    },
+    reject: {
+      title: 'この内容を差し戻しますか？',
+      description: '差し戻すとワークフローは先へ進まず、やり直しになります。',
+      whatHappens: [
+        'AIの出力内容は採用されません',
+        'ワークフローはこの工程で止まります',
+        '差し戻し理由と担当者が監査ログに残ります',
+      ],
+      confirmLabel: '差し戻す',
+      confirmColor: 'red' as const,
+      onConfirm: () => void submit(false),
+    },
+  };
+
+  const currentConfig = confirmDialog ? confirmDialogConfig[confirmDialog] : null;
 
   // 不足証跡を集約
   const allMissing = (data.gate?.results ?? []).flatMap(r => r.details.missing);
@@ -474,7 +506,7 @@ export function DecisionCard({ data }: DecisionCardProps) {
             {/* 承認ボタン */}
             <button
               type="button"
-              onClick={() => void submit(true)}
+              onClick={() => setConfirmDialog('approve')}
               disabled={!canSubmit}
               className="
                 flex items-center gap-2 px-4 py-2
@@ -494,7 +526,7 @@ export function DecisionCard({ data }: DecisionCardProps) {
             {/* 差し戻しボタン */}
             <button
               type="button"
-              onClick={() => void submit(false)}
+              onClick={() => setConfirmDialog('reject')}
               disabled={!canSubmit}
               className="
                 flex items-center gap-2 px-4 py-2
@@ -519,6 +551,20 @@ export function DecisionCard({ data }: DecisionCardProps) {
           </div>
         </div>
       </div>
+
+      {currentConfig && (
+        <ConfirmDialog
+          isOpen={confirmDialog !== null}
+          onConfirm={currentConfig.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+          title={currentConfig.title}
+          description={currentConfig.description}
+          whatHappens={currentConfig.whatHappens}
+          confirmLabel={currentConfig.confirmLabel}
+          confirmColor={currentConfig.confirmColor}
+          isLoading={isSubmitting}
+        />
+      )}
     </div>
   );
 }

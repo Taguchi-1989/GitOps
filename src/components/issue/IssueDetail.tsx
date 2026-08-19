@@ -1,7 +1,7 @@
 /**
  * FlowOps - Issue Detail Component
  *
- * Issue詳細画面のメインコンポーネント
+ * 改善カード詳細画面のメインコンポーネント
  * - ステータスライフサイクルの可視化
  * - 日本語のアクションボタン
  * - コンテキストヘルプ
@@ -31,10 +31,14 @@ import {
   Search,
   Star,
   Save,
+  RotateCcw,
+  CalendarClock,
 } from 'lucide-react';
-import { useSimpleMode } from '@/lib/simple-mode-context';
+import Link from 'next/link';
+import { useDisplayMode } from '@/lib/simple-mode-context';
 import { GuidedWorkflow } from '@/components/ui/GuidedWorkflow';
 import { formatDateWithYear as formatDate } from '@/lib/format-date';
+import { getActionLabel, ISSUE_TAB_LABELS } from '@/lib/ui-labels';
 
 interface IssueDetailProps {
   issue: IssueCardData & {
@@ -46,6 +50,8 @@ interface IssueDetailProps {
   onApplyProposal?: (proposalId: string) => void;
   onMergeClose?: () => void;
   onReject?: () => void;
+  /** 反映済みだが効果なしとして完了する（closed-ineffective への遷移） */
+  onCloseIneffective?: () => void;
   isLoading?: boolean;
 }
 
@@ -54,6 +60,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   ISSUE_UPDATE: '改善カードを更新',
   ISSUE_START: 'Do フェーズを開始',
   ISSUE_CLOSE: 'Check フェーズへ移行',
+  ISSUE_CLOSE_INEFFECTIVE: '見送りとして完了（効果なし）',
   ISSUE_DELETE: '改善カードを削除',
   ISSUE_STANDARDIZE: '標準化して完了（Act）',
   PROPOSAL_GENERATE: '改善案を生成',
@@ -96,6 +103,7 @@ export function IssueDetail({
   onApplyProposal,
   onMergeClose,
   onReject,
+  onCloseIneffective,
   isLoading = false,
 }: IssueDetailProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'proposals' | 'check' | 'history'>(
@@ -115,12 +123,15 @@ export function IssueDetail({
     checkResult: issue.checkResult ?? '',
     learning: issue.learning ?? '',
     nextAction: issue.nextAction ?? '',
+    checkDueDate: issue.checkDueDate
+      ? new Date(issue.checkDueDate as string).toISOString().split('T')[0]
+      : '',
   });
   const [checkSaving, setCheckSaving] = useState(false);
   const [checkSaved, setCheckSaved] = useState(false);
   const [checkSaveError, setCheckSaveError] = useState(false);
 
-  const { isSimpleMode } = useSimpleMode();
+  const { isSimpleMode } = useDisplayMode();
   const router = useRouter();
 
   const fetchAuditLogs = useCallback(async () => {
@@ -149,7 +160,8 @@ export function IssueDetail({
     }
   }, [activeTab, fetchAuditLogs]);
 
-  const saveCheck = async () => {
+  /** Check フォームを保存する。成功したら true を返す */
+  const saveCheck = async (): Promise<boolean> => {
     setCheckSaving(true);
     setCheckSaveError(false);
     try {
@@ -160,6 +172,8 @@ export function IssueDetail({
       if (checkForm.checkResult) body.checkResult = checkForm.checkResult;
       if (checkForm.learning) body.learning = checkForm.learning;
       if (checkForm.nextAction) body.nextAction = checkForm.nextAction;
+      if (checkForm.checkDueDate)
+        body.checkDueDate = new Date(checkForm.checkDueDate).toISOString();
       const res = await fetch(`/api/issues/${issue.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -167,15 +181,25 @@ export function IssueDetail({
       });
       if (!res.ok) {
         setCheckSaveError(true);
-        return;
+        return false;
       }
       setCheckSaved(true);
       setTimeout(() => setCheckSaved(false), 3000);
+      router.refresh();
+      return true;
     } catch {
       setCheckSaveError(true);
+      return false;
     } finally {
       setCheckSaving(false);
     }
+  };
+
+  /** Check の記録を保存してから「見送り（効果なし）」として閉じる */
+  const handleSaveAndCloseIneffective = async () => {
+    const saved = await saveCheck();
+    if (!saved) return;
+    onCloseIneffective?.();
   };
 
   const handleStandardize = async () => {
@@ -194,6 +218,8 @@ export function IssueDetail({
   const canStart = issue.status === 'new' || issue.status === 'triage';
   const canGenerateProposal = issue.status === 'in-progress';
   const canMergeOrReject = issue.status === 'proposed';
+  /** Check フェーズから改善カードを閉じられる状態か（どの結果でも終端に進めるようにする） */
+  const canCloseFromCheck = issue.status === 'merged' && !issue.standardizedAt;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -205,7 +231,7 @@ export function IssueDetail({
             className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            課題一覧に戻る
+            改善カード一覧に戻る
           </button>
         )}
 
@@ -215,7 +241,7 @@ export function IssueDetail({
               <span className="text-lg font-mono text-gray-500 dark:text-gray-400">
                 {issue.humanId}
               </span>
-              <StatusBadge status={issue.status} />
+              <StatusBadge status={issue.status} standardizedAt={issue.standardizedAt} />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{issue.title}</h1>
           </div>
@@ -244,9 +270,7 @@ export function IssueDetail({
                   <Play className="w-4 h-4" />
                 )}
                 <span>
-                  <span className="font-medium">
-                    {isSimpleMode ? '改善に取り組む' : '作業を開始（Do フェーズへ）'}
-                  </span>
+                  <span className="font-medium">{getActionLabel('start', isSimpleMode)}</span>
                   {!isSimpleMode && (
                     <span className="block text-xs text-blue-200">ブランチを作成</span>
                   )}
@@ -272,7 +296,9 @@ export function IssueDetail({
                   <Sparkles className="w-4 h-4" />
                 )}
                 <span>
-                  <span className="font-medium">AIに改善案を考えてもらう</span>
+                  <span className="font-medium">
+                    {getActionLabel('generateProposal', isSimpleMode)}
+                  </span>
                   {!isSimpleMode && (
                     <span className="block text-xs text-purple-200">LLMが変更を提案</span>
                   )}
@@ -298,7 +324,7 @@ export function IssueDetail({
                     title={
                       isSimpleMode
                         ? '改善内容を確定します'
-                        : '変更をメインブランチに統合してIssueを完了にします'
+                        : '変更をメインブランチに統合して効果確認フェーズへ進みます'
                     }
                   >
                     {isLoading ? (
@@ -308,9 +334,7 @@ export function IssueDetail({
                     )}
                     <span>
                       <span className="font-medium">
-                        {isSimpleMode
-                          ? 'フローに反映して Check へ'
-                          : 'フローに反映 → Check フェーズへ'}
+                        {getActionLabel('mergeClose', isSimpleMode)}
                       </span>
                       {!isSimpleMode && (
                         <span className="block text-xs text-green-200">ブランチをメインに統合</span>
@@ -335,7 +359,7 @@ export function IssueDetail({
                     ) : (
                       <XCircle className="w-4 h-4" />
                     )}
-                    却下
+                    {getActionLabel('reject', isSimpleMode)}
                   </button>
                 )}
               </>
@@ -350,12 +374,17 @@ export function IssueDetail({
           currentStatus={issue.status}
           hasProposals={!!issue.proposals && issue.proposals.length > 0}
           hasAppliedProposal={!!issue.proposals?.some(p => p.isApplied)}
+          isStandardized={!!issue.standardizedAt}
           className="mb-4"
         />
       )}
 
       {/* Status Lifecycle */}
-      <StatusLifecycle currentStatus={issue.status} className="mb-6" />
+      <StatusLifecycle
+        currentStatus={issue.status}
+        checkResult={issue.checkResult}
+        className="mb-6"
+      />
 
       {/* Meta Info */}
       <div className="flex flex-wrap gap-4 mb-6 text-sm text-gray-600 dark:text-gray-400">
@@ -375,7 +404,7 @@ export function IssueDetail({
           <span className="flex items-center gap-1.5">
             <GitBranch className="w-4 h-4" />
             <span className="font-mono">{issue.branchName}</span>
-            <HelpTooltip content="このIssueの変更はこのGitブランチで管理されています" />
+            <HelpTooltip content="この改善カードの変更はこのGitブランチで管理されています" />
           </span>
         )}
 
@@ -394,12 +423,7 @@ export function IssueDetail({
       <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
         <nav className="flex gap-4" aria-label="Tabs">
           {(['details', 'proposals', 'check', 'history'] as const).map(tab => {
-            const tabLabels = {
-              details: '詳細',
-              proposals: '改善案',
-              check: 'Check（効果確認）',
-              history: '履歴',
-            };
+            const tabLabels = ISSUE_TAB_LABELS;
             const isActive = activeTab === tab;
             return (
               <button
@@ -543,7 +567,7 @@ export function IssueDetail({
               {canGenerateProposal && onGenerateProposal ? (
                 <div className="mt-3">
                   <p className="text-sm text-gray-400 dark:text-gray-500 mb-2">
-                    AIがフロー定義を分析し、この課題に対する改善案を自動生成します
+                    AIがフロー定義を分析し、この改善カードに対する改善案を自動生成します
                   </p>
                   <button
                     onClick={onGenerateProposal}
@@ -551,7 +575,7 @@ export function IssueDetail({
                     className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
                   >
                     <Sparkles className="w-4 h-4" />
-                    AIで改善案を生成
+                    {getActionLabel('generateProposal', isSimpleMode)}
                   </button>
 
                   <div className="flex items-center gap-3 my-6 max-w-md mx-auto">
@@ -566,7 +590,7 @@ export function IssueDetail({
                 </div>
               ) : issue.status === 'new' || issue.status === 'triage' ? (
                 <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                  まず「作業を開始」を押してから、改善案を生成できます
+                  まず「{getActionLabel('start', isSimpleMode)}」を押してから、改善案を生成できます
                 </p>
               ) : null}
             </div>
@@ -578,7 +602,7 @@ export function IssueDetail({
         <div className="space-y-6">
           {issue.status !== 'merged' && !issue.standardizedAt && (
             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg px-4 py-3 text-sm text-yellow-800 dark:text-yellow-200">
-              Check フェーズは改善をフローに反映（merged）してから行います。
+              効果確認は、改善をフローに反映してから行います。
             </div>
           )}
 
@@ -587,7 +611,7 @@ export function IssueDetail({
               <Star className="w-5 h-5 text-purple-600" />
               <div>
                 <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                  標準化済み
+                  完了（標準化済み）
                 </p>
                 <p className="text-xs text-purple-600 dark:text-purple-400">
                   {formatDate(issue.standardizedAt)}
@@ -694,7 +718,7 @@ export function IssueDetail({
 
             <div className="flex items-center gap-3">
               <button
-                onClick={saveCheck}
+                onClick={() => void saveCheck()}
                 disabled={checkSaving}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium"
               >
@@ -703,7 +727,7 @@ export function IssueDetail({
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                効果確認を保存
+                {getActionLabel('saveCheck', isSimpleMode)}
               </button>
               {checkSaved && (
                 <span className="text-sm text-green-600 font-medium">保存しました</span>
@@ -714,18 +738,80 @@ export function IssueDetail({
                 </span>
               )}
 
-              {issue.status === 'merged' &&
-                !issue.standardizedAt &&
-                checkForm.checkResult === 'effective' && (
-                  <button
-                    onClick={handleStandardize}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                  >
-                    <Star className="w-4 h-4" />
-                    標準化して完了（Act）
-                  </button>
-                )}
+              {canCloseFromCheck && checkForm.checkResult === 'effective' && (
+                <button
+                  onClick={handleStandardize}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                >
+                  <Star className="w-4 h-4" />
+                  {getActionLabel('standardize', isSimpleMode)}
+                </button>
+              )}
             </div>
+
+            {/* 効果なし: 見送りとして閉じる / やり直す */}
+            {canCloseFromCheck && checkForm.checkResult === 'ineffective' && (
+              <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  効果が出なかった改善も、記録して閉じることで次に活かせます。ボタンを押すと、この画面の記録を保存してから見送りとして完了します。
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  {onCloseIneffective && (
+                    <button
+                      onClick={() => void handleSaveAndCloseIneffective()}
+                      disabled={isLoading || checkSaving}
+                      title="効果確認の記録を保存してから、見送りとして完了します"
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      {getActionLabel('closeAsRejected', isSimpleMode)}
+                    </button>
+                  )}
+                  <Link
+                    href="/issues/new"
+                    className="flex items-center gap-2 px-4 py-2 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    {getActionLabel('retryImprovement', isSimpleMode)}
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* 判断保留: 次の確認予定日を決めて後で戻ってくる */}
+            {canCloseFromCheck && checkForm.checkResult === 'pending' && (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  まだ判断できない場合は、次に確認する日を決めておきましょう。予定日になったら「
+                  {ISSUE_TAB_LABELS.check}」タブに戻って結果を記録してください。
+                </p>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      次の確認予定日
+                    </label>
+                    <input
+                      type="date"
+                      value={checkForm.checkDueDate}
+                      onChange={e => setCheckForm(f => ({ ...f, checkDueDate: e.target.value }))}
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    onClick={() => void saveCheck()}
+                    disabled={checkSaving || !checkForm.checkDueDate}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                  >
+                    {checkSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CalendarClock className="w-4 h-4" />
+                    )}
+                    {getActionLabel('updateCheckDueDate', isSimpleMode)}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

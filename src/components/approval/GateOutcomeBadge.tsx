@@ -9,15 +9,21 @@ import React from 'react';
 export type GateOutcome = 'go' | 'revise' | 'hold' | 'stop' | 'watch';
 
 interface GateOutcomeBadgeProps {
-  outcome: GateOutcome;
+  /** 未知の値が来てもクラッシュしないよう string も受ける */
+  outcome: GateOutcome | string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
-const outcomeConfig: Record<
-  GateOutcome,
-  { label: string; sublabel: string; color: string; bg: string; emoji: string }
-> = {
+interface OutcomeUiConfig {
+  label: string;
+  sublabel: string;
+  color: string;
+  bg: string;
+  emoji: string;
+}
+
+const outcomeConfig: Record<GateOutcome, OutcomeUiConfig> = {
   go: {
     label: '進行可',
     sublabel: 'go',
@@ -55,6 +61,14 @@ const outcomeConfig: Record<
   },
 };
 
+const FALLBACK: OutcomeUiConfig = {
+  label: '不明',
+  sublabel: 'unknown',
+  color: 'text-gray-700 dark:text-gray-300',
+  bg: 'bg-gray-100 dark:bg-gray-700',
+  emoji: '❔',
+};
+
 const sizeClasses = {
   sm: 'px-2 py-0.5 text-xs',
   md: 'px-2.5 py-1 text-sm',
@@ -62,7 +76,11 @@ const sizeClasses = {
 };
 
 export function GateOutcomeBadge({ outcome, size = 'md', className = '' }: GateOutcomeBadgeProps) {
-  const config = outcomeConfig[outcome];
+  // 未知の outcome でもクラッシュしないようフォールバックする
+  const config = outcomeConfig[outcome as GateOutcome] ?? {
+    ...FALLBACK,
+    sublabel: outcome || FALLBACK.sublabel,
+  };
 
   return (
     <span

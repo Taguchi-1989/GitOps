@@ -1,42 +1,56 @@
 /**
- * FlowOps - Simple Mode Context
+ * FlowOps - Display Mode Context
  *
- * 「かんたんモード」のON/OFF状態を管理するContext。
- * ON時はGit用語・JSON Patch等の技術詳細を非表示にし、
- * ITリテラシーの低いユーザーにも分かりやすいUIを提供する。
+ * 「詳細モード（技術情報を表示）」のON/OFF状態を管理するContext。
+ * デフォルトはOFF（＝簡単な表示）で、ONにすると
+ * Git用語・JSON Patch・ベースハッシュ等の技術詳細が表示される。
+ *
+ * 旧「かんたんモード」からの反転:
+ *   旧 flowops-simple-mode === 'false'（かんたんモードOFF＝技術者向け表示）だった利用者のみ
+ *   詳細モードONへ移行し、それ以外（未設定 / 'true'）は詳細モードOFFで始まる。
  */
 
 'use client';
 
 import React, { createContext, useContext, useCallback, useSyncExternalStore } from 'react';
 
-const STORAGE_KEY = 'flowops-simple-mode';
-const CHANGE_EVENT = 'flowops-simple-mode-change';
+const STORAGE_KEY = 'flowops-tech-mode';
+/** 旧「かんたんモード」のキー（移行判定にのみ使用） */
+const LEGACY_STORAGE_KEY = 'flowops-simple-mode';
+const CHANGE_EVENT = 'flowops-tech-mode-change';
 
-interface SimpleModeContextValue {
+interface DisplayModeContextValue {
+  /** 技術情報を表示するか */
+  isTechMode: boolean;
+  toggleTechMode: () => void;
+  /** isTechMode の反転。簡単表示かどうかの判定に使う */
   isSimpleMode: boolean;
-  toggleSimpleMode: () => void;
 }
 
-const SimpleModeContext = createContext<SimpleModeContextValue | null>(null);
+const DisplayModeContext = createContext<DisplayModeContextValue | null>(null);
 
-export function useSimpleMode(): SimpleModeContextValue {
-  const context = useContext(SimpleModeContext);
+export function useDisplayMode(): DisplayModeContextValue {
+  const context = useContext(DisplayModeContext);
   if (!context) {
-    throw new Error('useSimpleMode must be used within a SimpleModeProvider');
+    throw new Error('useDisplayMode must be used within a DisplayModeProvider');
   }
   return context;
 }
 
-function getSimpleModeSnapshot(): boolean {
+function getTechModeSnapshot(): boolean {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'true';
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) {
+      return stored === 'true';
+    }
+    // 旧「かんたんモード」利用者の移行: 明示的にOFFにしていた人だけ詳細モードON
+    return localStorage.getItem(LEGACY_STORAGE_KEY) === 'false';
   } catch {
     return false;
   }
 }
 
-function subscribeSimpleMode(callback: () => void): () => void {
+function subscribeTechMode(callback: () => void): () => void {
   window.addEventListener('storage', callback);
   window.addEventListener(CHANGE_EVENT, callback);
   return () => {
@@ -45,16 +59,11 @@ function subscribeSimpleMode(callback: () => void): () => void {
   };
 }
 
-export function SimpleModeProvider({ children }: { children: React.ReactNode }) {
-  const isSimpleMode = useSyncExternalStore(
-    subscribeSimpleMode,
-    getSimpleModeSnapshot,
-    () => false
-  );
+export function DisplayModeProvider({ children }: { children: React.ReactNode }) {
+  const isTechMode = useSyncExternalStore(subscribeTechMode, getTechModeSnapshot, () => false);
 
-  // localStorage から初期値を読み込み
-  const toggleSimpleMode = useCallback(() => {
-    const next = !getSimpleModeSnapshot();
+  const toggleTechMode = useCallback(() => {
+    const next = !getTechModeSnapshot();
     try {
       localStorage.setItem(STORAGE_KEY, String(next));
       window.dispatchEvent(new Event(CHANGE_EVENT));
@@ -64,8 +73,8 @@ export function SimpleModeProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   return (
-    <SimpleModeContext.Provider value={{ isSimpleMode, toggleSimpleMode }}>
+    <DisplayModeContext.Provider value={{ isTechMode, toggleTechMode, isSimpleMode: !isTechMode }}>
       {children}
-    </SimpleModeContext.Provider>
+    </DisplayModeContext.Provider>
   );
 }

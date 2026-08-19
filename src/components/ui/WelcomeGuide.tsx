@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   X,
   ArrowRight,
@@ -18,84 +18,102 @@ import {
   GitMerge,
   Rocket,
   HelpCircle,
+  Search,
 } from 'lucide-react';
+import { getActionLabel, NAV_LABELS, ISSUE_TAB_LABELS } from '@/lib/ui-labels';
+import { useDisplayMode } from '@/lib/simple-mode-context';
 
 const STORAGE_KEY = 'flowops-welcome-dismissed';
 
-const steps = [
-  {
-    icon: Rocket,
-    color: 'bg-blue-500',
-    title: 'FlowOpsへようこそ',
-    description: '業務フローをコード（YAML）として管理し、AIの力で改善するプラットフォームです。',
-    details: [
-      '業務フローを可視化して全体像を把握',
-      '課題をIssueとして記録・追跡',
-      'AIが改善提案を自動生成',
-      'Git管理で変更履歴を完全追跡',
-    ],
-  },
-  {
-    icon: FileText,
-    color: 'bg-indigo-500',
-    title: 'Step 1: フローを確認する',
-    description: 'サイドバーの「Flows」から、登録されている業務フローを閲覧できます。',
-    details: [
-      'フロー図（ダイアグラム）で全体像を把握',
-      'ノードをクリックして詳細を確認',
-      '各ステップの担当者・使用システムを確認',
-    ],
-  },
-  {
-    icon: AlertCircle,
-    color: 'bg-red-500',
-    title: 'Step 2: Issueを作成する',
-    description: 'フローに改善点や問題を見つけたら、Issueとして記録します。',
-    details: [
-      'フロー画面から直接、対象ノードを指定して作成',
-      'またはIssue一覧の「新規作成」ボタンから',
-      'タイトルと説明で課題の内容を記述',
-    ],
-  },
-  {
-    icon: Play,
-    color: 'bg-blue-600',
-    title: 'Step 3: 作業を開始する',
-    description: 'Issue詳細画面で「作業を開始」を押すと、Gitブランチが自動作成されます。',
-    details: [
-      '変更は独立したブランチで安全に管理',
-      'メインのフロー定義に影響しない',
-      'ブランチ名は自動生成（cr/ISS-001-...）',
-    ],
-  },
-  {
-    icon: Sparkles,
-    color: 'bg-purple-600',
-    title: 'Step 4: AIで改善案を生成',
-    description: '「AIで改善案を生成」ボタンを押すと、LLMがフローの改善提案を作成します。',
-    details: [
-      'AIがIssueの内容とフロー定義を分析',
-      '具体的なYAML変更案を自動生成',
-      'Diff（差分）プレビューで変更内容を確認',
-      '納得できたら「適用」で変更をコミット',
-    ],
-  },
-  {
-    icon: GitMerge,
-    color: 'bg-green-600',
-    title: 'Step 5: マージして完了',
-    description: '改善案を適用したら「マージして完了」で、変更をメインブランチに統合します。',
-    details: [
-      '変更内容がメインのフロー定義に反映',
-      'Issueは自動的にクローズ',
-      '全ての操作は監査ログに記録',
-    ],
-  },
-];
+function buildSteps(isSimpleMode: boolean) {
+  return [
+    {
+      icon: Rocket,
+      color: 'bg-blue-500',
+      title: 'FlowOpsへようこそ',
+      description: '業務フローをコード（YAML）として管理し、AIの力で改善するプラットフォームです。',
+      details: [
+        '業務フローを可視化して全体像を把握',
+        '困りごとを改善カードとして記録・追跡',
+        'AIが改善提案を自動生成',
+        'Git管理で変更履歴を完全追跡',
+      ],
+    },
+    {
+      icon: FileText,
+      color: 'bg-indigo-500',
+      title: 'Step 1: フローを確認する',
+      description: `サイドバーの「${NAV_LABELS.flows}」から、登録されている業務フローを閲覧できます。`,
+      details: [
+        'フロー図（ダイアグラム）で全体像を把握',
+        'ノードをクリックして詳細を確認',
+        '各ステップの担当者・使用システムを確認',
+      ],
+    },
+    {
+      icon: AlertCircle,
+      color: 'bg-red-500',
+      title: 'Step 2: 改善カードを作成する',
+      description: 'フローに改善点や問題を見つけたら、改善カードとして記録します。',
+      details: [
+        'フロー画面から直接、対象ノードを指定して作成',
+        `または「${NAV_LABELS.issues}」一覧の「新規作成」ボタンから`,
+        'タイトルと説明で改善カードの内容を記述',
+      ],
+    },
+    {
+      icon: Play,
+      color: 'bg-blue-600',
+      title: 'Step 3: 作業を開始する',
+      description: `改善カードの詳細画面で「${getActionLabel('start', isSimpleMode)}」を押すと、作業スペースが自動で準備されます。`,
+      details: [
+        '変更は独立したブランチで安全に管理',
+        'メインのフロー定義に影響しない',
+        'ブランチ名は自動生成（cr/ISS-001-...）',
+      ],
+    },
+    {
+      icon: Sparkles,
+      color: 'bg-purple-600',
+      title: 'Step 4: AIで改善案を生成',
+      description: `「${getActionLabel('generateProposal', isSimpleMode)}」ボタンを押すと、LLMがフローの改善提案を作成します。`,
+      details: [
+        'AIが改善カードの内容とフロー定義を分析',
+        '具体的なYAML変更案を自動生成',
+        'Diff（差分）プレビューで変更内容を確認',
+        `納得できたら「${getActionLabel('applyProposal', isSimpleMode)}」で変更をコミット`,
+      ],
+    },
+    {
+      icon: GitMerge,
+      color: 'bg-green-600',
+      title: 'Step 5: フローに反映する',
+      description: `改善案を反映したら「${getActionLabel('mergeClose', isSimpleMode)}」で、変更をメインブランチに統合します。`,
+      details: [
+        '変更内容がメインのフロー定義に反映',
+        '改善カードは「効果確認中」になります',
+        '全ての操作は監査ログに記録',
+      ],
+    },
+    {
+      icon: Search,
+      color: 'bg-teal-600',
+      title: 'Step 6: 効果を確認して完了',
+      description: `「${ISSUE_TAB_LABELS.check}」タブで改善前後の状態を記録し、効果を判定します。`,
+      details: [
+        `改善前後の数値を入力して「${getActionLabel('saveCheck', isSimpleMode)}」`,
+        `効果ありなら「${getActionLabel('standardize', isSimpleMode)}」で完了`,
+        `効果なしなら「${getActionLabel('closeAsRejected', isSimpleMode)}」で閉じて、改善をやり直せます`,
+      ],
+    },
+  ];
+}
 
 export function WelcomeGuide() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const { isSimpleMode } = useDisplayMode();
+  const steps = useMemo(() => buildSteps(isSimpleMode), [isSimpleMode]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -246,6 +264,8 @@ export function WelcomeGuideButton() {
 
 function WelcomeGuideReopen({ onClose }: { onClose: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const { isSimpleMode } = useDisplayMode();
+  const steps = useMemo(() => buildSteps(isSimpleMode), [isSimpleMode]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {

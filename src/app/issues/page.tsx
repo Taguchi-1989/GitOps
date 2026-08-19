@@ -1,7 +1,7 @@
 /**
  * FlowOps - Issues List Page
  *
- * Issue一覧ページ
+ * 改善カード一覧ページ
  */
 
 import { prisma } from '@/lib/prisma';
@@ -11,8 +11,8 @@ import { IssueStatus } from '@/core/issue';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Issues - FlowOps',
-  description: 'Issue一覧',
+  title: '改善カード - FlowOps',
+  description: '改善カード一覧',
 };
 
 async function getIssues() {
@@ -36,6 +36,8 @@ async function getIssues() {
     branchName: issue.branchName,
     createdAt: issue.createdAt,
     updatedAt: issue.updatedAt,
+    // 一覧でも「完了（標準化済み）」を判別できるようにする
+    standardizedAt: issue.standardizedAt,
   }));
 }
 
