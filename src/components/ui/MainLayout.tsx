@@ -37,6 +37,9 @@ import { GlobalSearch } from './GlobalSearch';
 import { useDisplayMode } from '@/lib/simple-mode-context';
 import { useTheme } from '@/lib/theme-context';
 import { ADVANCED_NAV_GROUP_LABEL, NAV_LABELS } from '@/lib/ui-labels';
+import { useExtensionTools, usePermissions } from '@/lib/use-permissions';
+import { isExtensionToolVisible, type ExtensionToolKey } from '@/lib/extension-tools';
+import { ROLE_LABELS } from '@/lib/user-role';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -89,22 +92,39 @@ const navigation: NavItem[] = [
   { name: NAV_LABELS.help, href: '/help', icon: BookOpen, description: '使い方と用語集' },
 ];
 
-/** 管理者・専門家向け（デフォルトは折りたたみ） */
-const advancedNavigation: NavItem[] = [
+/**
+ * 管理者・専門家向け（拡張ツール）。
+ * 設定画面でONにした人にだけ出す（初期状態は全てOFF）。
+ */
+const advancedNavigation: (NavItem & { tool: ExtensionToolKey })[] = [
   {
+    tool: 'audit',
     name: NAV_LABELS.audit,
     href: '/audit',
     icon: ScrollText,
     description: '操作履歴・監査レポート',
   },
   {
+    tool: 'aims',
     name: NAV_LABELS.aims,
     href: '/aims',
     icon: BrainCircuit,
     description: '過去資料・複数AIレビュー',
   },
-  { name: NAV_LABELS.dexpi, href: '/dexpi', icon: Network, description: 'P&IDデータの変換・出力' },
-  { name: NAV_LABELS.bpmn, href: '/bpmn', icon: Workflow, description: '業務プロセスの変換・出力' },
+  {
+    tool: 'dexpi',
+    name: NAV_LABELS.dexpi,
+    href: '/dexpi',
+    icon: Network,
+    description: 'P&IDデータの変換・出力',
+  },
+  {
+    tool: 'bpmn',
+    name: NAV_LABELS.bpmn,
+    href: '/bpmn',
+    icon: Workflow,
+    description: '業務プロセスの変換・出力',
+  },
 ];
 
 export function MainLayout({ children }: MainLayoutProps) {
@@ -112,6 +132,18 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { isTechMode, toggleTechMode } = useDisplayMode();
   const { isDark, toggleTheme } = useTheme();
   const { data: session } = useSession();
+  const { role } = usePermissions();
+  const { tools } = useExtensionTools();
+
+  // 設定でONにした拡張ツールだけ出す。ただし表示中のページのリンクは
+  // OFFでも残す（消すと現在地が分からなくなるため）。
+  const visibleAdvancedNavigation = useMemo(
+    () =>
+      advancedNavigation.filter(
+        item => isExtensionToolVisible(item.tool, tools, role) || pathname.startsWith(item.href)
+      ),
+    [tools, role, pathname]
+  );
 
   const isAdvancedActive = useMemo(
     () => advancedNavigation.some(item => pathname.startsWith(item.href)),
@@ -204,32 +236,34 @@ export function MainLayout({ children }: MainLayoutProps) {
           </p>
           <ul className="space-y-1">{navigation.map(renderNavItem)}</ul>
 
-          {/* 管理・専門ツール（デフォルト折りたたみ） */}
-          <div className="mt-4 border-t border-gray-800 pt-4">
-            <button
-              type="button"
-              onClick={toggleAdvanced}
-              aria-expanded={isAdvancedOpen}
-              disabled={isAdvancedLocked}
-              title={
-                isAdvancedLocked
-                  ? 'このグループのページを表示中のため開いたままになります'
-                  : undefined
-              }
-              className="flex min-h-11 w-full items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 transition-colors hover:bg-gray-800 hover:text-white disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-gray-400"
-            >
-              <Settings2 className="w-4 h-4" />
-              <span className="font-medium">{ADVANCED_NAV_GROUP_LABEL}</span>
-              {isAdvancedLocked ? null : isAdvancedOpen ? (
-                <ChevronDown className="w-4 h-4 ml-auto" />
-              ) : (
-                <ChevronRight className="w-4 h-4 ml-auto" />
+          {/* 管理・専門ツール（設定でONにした人だけ。既定では丸ごと出ない） */}
+          {visibleAdvancedNavigation.length > 0 && (
+            <div className="mt-4 border-t border-gray-800 pt-4">
+              <button
+                type="button"
+                onClick={toggleAdvanced}
+                aria-expanded={isAdvancedOpen}
+                disabled={isAdvancedLocked}
+                title={
+                  isAdvancedLocked
+                    ? 'このグループのページを表示中のため開いたままになります'
+                    : undefined
+                }
+                className="flex min-h-11 w-full items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 transition-colors hover:bg-gray-800 hover:text-white disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-gray-400"
+              >
+                <Settings2 className="w-4 h-4" />
+                <span className="font-medium">{ADVANCED_NAV_GROUP_LABEL}</span>
+                {isAdvancedLocked ? null : isAdvancedOpen ? (
+                  <ChevronDown className="w-4 h-4 ml-auto" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                )}
+              </button>
+              {isAdvancedOpen && (
+                <ul className="mt-1 space-y-1">{visibleAdvancedNavigation.map(renderNavItem)}</ul>
               )}
-            </button>
-            {isAdvancedOpen && (
-              <ul className="mt-1 space-y-1">{advancedNavigation.map(renderNavItem)}</ul>
-            )}
-          </div>
+            </div>
+          )}
         </nav>
 
         {/* Footer */}
@@ -289,12 +323,22 @@ export function MainLayout({ children }: MainLayoutProps) {
             </div>
           </button>
           <WelcomeGuideButton />
+          <Link
+            href="/settings"
+            className="flex min-h-11 items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
+          >
+            <Settings2 className="w-4 h-4" />
+            <span>{NAV_LABELS.settings}</span>
+          </Link>
           {/* ログイン中のユーザーとログアウト */}
           {session?.user && (
             <div className="border-t border-gray-800 pt-2 space-y-1">
               <div className="flex items-center gap-2 px-3 py-1.5 text-gray-400 text-xs">
                 <User className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="truncate">{session.user.name || session.user.email}</span>
+                <span className="ml-auto flex-shrink-0 rounded-full bg-gray-800 px-2 py-0.5">
+                  {ROLE_LABELS[role]}
+                </span>
               </div>
               <button
                 type="button"

@@ -7,3 +7,4 @@ export { PageHeader } from './PageHeader';
 export { Spinner, LoadingOverlay } from './Spinner';
 export { ToastProvider, useToast } from './Toast';
 export { AskAIAnswer, AskAIBox } from './AskAI';
+export { NextStepCard, clearDismissedNextSteps } from './NextStepCard';

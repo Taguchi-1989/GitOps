@@ -39,6 +39,7 @@ import { useDisplayMode } from '@/lib/simple-mode-context';
 import { GuidedWorkflow } from '@/components/ui/GuidedWorkflow';
 import { formatDateWithYear as formatDate } from '@/lib/format-date';
 import { getActionLabel, ISSUE_TAB_LABELS } from '@/lib/ui-labels';
+import { usePermissions } from '@/lib/use-permissions';
 
 interface IssueDetailProps {
   issue: IssueCardData & {
@@ -89,10 +90,22 @@ const FREQUENCY_LABELS: Record<string, string> = {
   irregular: '不定期',
 };
 
-const CHECK_RESULT_LABELS: Record<string, { label: string; color: string }> = {
-  effective: { label: '効果あり', color: 'text-green-700 bg-green-100' },
-  ineffective: { label: '効果なし', color: 'text-red-700 bg-red-100' },
-  pending: { label: '判断保留', color: 'text-yellow-700 bg-yellow-100' },
+const CHECK_RESULT_LABELS: Record<string, { label: string; color: string; hint: string }> = {
+  effective: {
+    label: '効果あり',
+    color: 'text-green-700 bg-green-100',
+    hint: '前よりよくなった。このやり方を続けたい',
+  },
+  ineffective: {
+    label: '効果なし',
+    color: 'text-red-700 bg-red-100',
+    hint: '変わらなかった、または前より悪くなった',
+  },
+  pending: {
+    label: '判断保留',
+    color: 'text-yellow-700 bg-yellow-100',
+    hint: 'まだ分からない。もう少し様子を見たい',
+  },
 };
 
 export function IssueDetail({
@@ -127,11 +140,23 @@ export function IssueDetail({
       ? new Date(issue.checkDueDate as string).toISOString().split('T')[0]
       : '',
   });
+  // 詳しい記録は既定で畳む。既に何か書かれている場合だけ開いた状態で始める
+  const [isCheckDetailsOpen, setIsCheckDetailsOpen] = useState(
+    Boolean(
+      issue.metricBefore ||
+      issue.metricAfter ||
+      issue.checkDate ||
+      issue.learning ||
+      issue.nextAction
+    )
+  );
   const [checkSaving, setCheckSaving] = useState(false);
   const [checkSaved, setCheckSaved] = useState(false);
   const [checkSaveError, setCheckSaveError] = useState(false);
 
   const { isSimpleMode } = useDisplayMode();
+  // 権限の正本はサーバ(proxy.ts)。ここでは押しても403になる操作を出さないためだけに使う
+  const { canWrite } = usePermissions();
   const router = useRouter();
 
   const fetchAuditLogs = useCallback(async () => {
@@ -215,11 +240,11 @@ export function IssueDetail({
     }
   };
 
-  const canStart = issue.status === 'new' || issue.status === 'triage';
-  const canGenerateProposal = issue.status === 'in-progress';
-  const canMergeOrReject = issue.status === 'proposed';
+  const canStart = canWrite && (issue.status === 'new' || issue.status === 'triage');
+  const canGenerateProposal = canWrite && issue.status === 'in-progress';
+  const canMergeOrReject = canWrite && issue.status === 'proposed';
   /** Check フェーズから改善カードを閉じられる状態か（どの結果でも終端に進めるようにする） */
-  const canCloseFromCheck = issue.status === 'merged' && !issue.standardizedAt;
+  const canCloseFromCheck = canWrite && issue.status === 'merged' && !issue.standardizedAt;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -620,103 +645,138 @@ export function IssueDetail({
             </div>
           )}
 
-          {/* Check フォーム */}
+          {/* Check フォーム。必須は「どうだったか」の1問だけで、残りは任意 */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  改善前の数値・状態
-                </label>
-                <textarea
-                  rows={3}
-                  value={checkForm.metricBefore}
-                  onChange={e => setCheckForm(f => ({ ...f, metricBefore: e.target.value }))}
-                  placeholder="例: 手作業で月3時間かかっていた"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  改善後の数値・状態
-                </label>
-                <textarea
-                  rows={3}
-                  value={checkForm.metricAfter}
-                  onChange={e => setCheckForm(f => ({ ...f, metricAfter: e.target.value }))}
-                  placeholder="例: 自動化で30分に削減"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  確認日
-                </label>
-                <input
-                  type="date"
-                  value={checkForm.checkDate}
-                  onChange={e => setCheckForm(f => ({ ...f, checkDate: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  結果
-                </label>
-                <div className="flex gap-3">
-                  {(['effective', 'ineffective', 'pending'] as const).map(result => {
-                    const cfg = CHECK_RESULT_LABELS[result];
-                    return (
-                      <label key={result} className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="checkResult"
-                          value={result}
-                          checked={checkForm.checkResult === result}
-                          onChange={e => setCheckForm(f => ({ ...f, checkResult: e.target.value }))}
-                          className="text-blue-600"
-                        />
+            <fieldset>
+              <legend className="text-base font-bold text-gray-900 dark:text-gray-100">
+                やってみて、どうでしたか？
+              </legend>
+              <p className="mt-1 mb-3 text-sm text-gray-500 dark:text-gray-400">
+                答えるのはこの1問だけで大丈夫です。詳しい記録は下の「くわしく記録する」に任意で書けます。
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {(['effective', 'ineffective', 'pending'] as const).map(result => {
+                  const cfg = CHECK_RESULT_LABELS[result];
+                  const isSelected = checkForm.checkResult === result;
+                  return (
+                    <label
+                      key={result}
+                      className={`
+                        flex flex-1 cursor-pointer items-start gap-2 rounded-lg border p-3 transition-colors
+                        ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/30'
+                            : 'border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700/50'
+                        }
+                      `}
+                    >
+                      <input
+                        type="radio"
+                        name="checkResult"
+                        value={result}
+                        checked={isSelected}
+                        onChange={e => setCheckForm(f => ({ ...f, checkResult: e.target.value }))}
+                        className="mt-0.5 text-blue-600"
+                      />
+                      <span className="min-w-0">
                         <span
-                          className={`text-xs font-medium px-2 py-0.5 rounded-full ${cfg.color}`}
+                          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${cfg.color}`}
                         >
                           {cfg.label}
                         </span>
-                      </label>
-                    );
-                  })}
+                        <span className="mt-1 block text-xs text-gray-600 dark:text-gray-400">
+                          {cfg.hint}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <details
+              open={isCheckDetailsOpen}
+              onToggle={e => setIsCheckDetailsOpen(e.currentTarget.open)}
+              className="rounded-lg border border-gray-200 dark:border-gray-700"
+            >
+              <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                くわしく記録する（任意）
+              </summary>
+              <div className="space-y-4 border-t border-gray-200 px-4 py-4 dark:border-gray-700">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      改善前の数値・状態
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={checkForm.metricBefore}
+                      onChange={e => setCheckForm(f => ({ ...f, metricBefore: e.target.value }))}
+                      placeholder="例: 手作業で月3時間かかっていた"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      改善後の数値・状態
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={checkForm.metricAfter}
+                      onChange={e => setCheckForm(f => ({ ...f, metricAfter: e.target.value }))}
+                      placeholder="例: 自動化で30分に削減"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    確認日
+                  </label>
+                  <input
+                    type="date"
+                    value={checkForm.checkDate}
+                    onChange={e => setCheckForm(f => ({ ...f, checkDate: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:w-1/2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    学び
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={checkForm.learning}
+                    onChange={e => setCheckForm(f => ({ ...f, learning: e.target.value }))}
+                    placeholder="この改善から得られた気づきや学び"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    次のアクション
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={checkForm.nextAction}
+                    onChange={e => setCheckForm(f => ({ ...f, nextAction: e.target.value }))}
+                    placeholder="次に取り組む改善や展開すること"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
               </div>
-            </div>
+            </details>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                学び
-              </label>
-              <textarea
-                rows={3}
-                value={checkForm.learning}
-                onChange={e => setCheckForm(f => ({ ...f, learning: e.target.value }))}
-                placeholder="この改善から得られた気づきや学び"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+            {!canWrite && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                あなたの権限は閲覧のみです。記録の保存や完了の操作はできません。
+              </p>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                次のアクション
-              </label>
-              <textarea
-                rows={2}
-                value={checkForm.nextAction}
-                onChange={e => setCheckForm(f => ({ ...f, nextAction: e.target.value }))}
-                placeholder="次に取り組む改善や展開すること"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-3 ${canWrite ? '' : 'hidden'}`}>
               <button
                 onClick={() => void saveCheck()}
                 disabled={checkSaving}

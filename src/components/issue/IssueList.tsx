@@ -9,8 +9,10 @@
 
 import React, { useState } from 'react';
 import { IssueCard, IssueCardData, IssueCardSkeleton } from './IssueCard';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, MousePointerClick, Sparkles } from 'lucide-react';
 import { getIssueTab, ISSUE_TAB_CONFIG, IssueTabValue } from '@/lib/issue-status-ui';
+import { NextStepCard } from '@/components/ui/NextStepCard';
+import { usePermissions } from '@/lib/use-permissions';
 
 interface IssueListProps {
   issues: IssueCardData[];
@@ -26,6 +28,7 @@ export function IssueList({
   onCreateClick,
   initialTab = 'open',
 }: IssueListProps) {
+  const { canWrite } = usePermissions();
   const [activeTab, setActiveTab] = useState<IssueTabValue>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -64,7 +67,7 @@ export function IssueList({
             現場の困りごとと改善の管理
           </p>
         </div>
-        {onCreateClick && (
+        {onCreateClick && canWrite && (
           <button
             type="button"
             onClick={onCreateClick}
@@ -80,6 +83,54 @@ export function IssueList({
           </button>
         )}
       </div>
+
+      {/* 「次にすること」は常に1つだけ出す（読み込み中は状態が確定しないので出さない） */}
+      {!isLoading &&
+        (issues.length === 0 ? (
+          <NextStepCard
+            icon={Plus}
+            title={
+              canWrite
+                ? '「新規作成」を押して、最初の改善カードを作りましょう'
+                : 'まだ改善カードがありません'
+            }
+            description={
+              canWrite
+                ? 'いま困っていること・やりにくいことを書くだけで大丈夫です。あとからAIが改善案を考えてくれます。'
+                : 'あなたの権限は閲覧のみです。改善カードを作るには、管理者に権限の変更を依頼してください。'
+            }
+            action={
+              onCreateClick && canWrite ? { label: '新規作成', onClick: onCreateClick } : undefined
+            }
+            dismissKey="issue-list-empty"
+          />
+        ) : counts.open > 0 || counts.checking > 0 ? (
+          <NextStepCard
+            icon={MousePointerClick}
+            title="対応中の改善カードを開いて、次の作業を進めてください"
+            description={
+              canWrite
+                ? `「${ISSUE_TAB_CONFIG.open.label}」と「${ISSUE_TAB_CONFIG.checking.label}」のカードには、まだやることが残っています。開くと「次にすること」が表示されます。`
+                : `「${ISSUE_TAB_CONFIG.open.label}」と「${ISSUE_TAB_CONFIG.checking.label}」のカードは対応中です。あなたの権限は閲覧のみなので、内容の確認だけできます。`
+            }
+            hint="下の一覧から、カードの見出しをクリックしてください"
+            dismissKey="issue-list"
+          />
+        ) : (
+          <NextStepCard
+            icon={Sparkles}
+            title={
+              canWrite
+                ? 'やることは残っていません。次の困りごとがあれば「新規作成」へ'
+                : 'やることは残っていません'
+            }
+            description="すべての改善カードが完了・見送りになりました。"
+            action={
+              onCreateClick && canWrite ? { label: '新規作成', onClick: onCreateClick } : undefined
+            }
+            dismissKey="issue-list-done"
+          />
+        ))}
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
@@ -140,7 +191,7 @@ export function IssueList({
             <div className="text-gray-400 dark:text-gray-500 text-lg mb-2">
               {searchQuery ? '該当する改善カードがありません' : 'まだ改善カードがありません'}
             </div>
-            {!searchQuery && onCreateClick && (
+            {!searchQuery && onCreateClick && canWrite && (
               <button
                 type="button"
                 onClick={onCreateClick}

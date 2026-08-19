@@ -80,11 +80,11 @@ export function FlowViewerClient({
   }, []);
 
   /**
-   * キャンバス編集の保存。グリッド編集と同じ Proposal(改善案) 経由に統一し、
-   * 確認なしの即時上書きは行わない。
+   * フロー編集の保存。キャンバス編集・YAMLインポートとも、グリッド編集と同じ
+   * Proposal(改善案) 経由に統一し、確認なしの即時上書きは行わない。
    */
   const handleSave = useCallback(
-    async (updatedFlow: Flow) => {
+    async (updatedFlow: Flow, options?: { intent?: string }) => {
       if (!baseHash) {
         throw new Error('このフローは申請できません。ページを更新してからやり直してください');
       }
@@ -95,7 +95,7 @@ export function FlowViewerClient({
         body: JSON.stringify({
           flow: updatedFlow,
           baseHash,
-          intent: '図の編集によるフロー更新',
+          intent: options?.intent ?? '図の編集によるフロー更新',
         }),
       });
 
