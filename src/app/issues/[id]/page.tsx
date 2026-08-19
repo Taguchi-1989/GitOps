@@ -1,7 +1,7 @@
 /**
  * FlowOps - Issue Detail Page
  *
- * Issue詳細ページ
+ * 改善カード詳細ページ
  */
 
 import { notFound } from 'next/navigation';
@@ -44,6 +44,22 @@ async function getIssue(id: string) {
     branchName: issue.branchName,
     createdAt: issue.createdAt,
     updatedAt: issue.updatedAt,
+    // PDCA: Plan フェーズ
+    currentSituation: issue.currentSituation,
+    frequency: issue.frequency,
+    impact: issue.impact,
+    expectedState: issue.expectedState,
+    hypothesisCause: issue.hypothesisCause,
+    successMetric: issue.successMetric,
+    checkDueDate: issue.checkDueDate,
+    // PDCA: Check / Act フェーズ
+    metricBefore: issue.metricBefore,
+    metricAfter: issue.metricAfter,
+    checkDate: issue.checkDate,
+    checkResult: issue.checkResult,
+    learning: issue.learning,
+    nextAction: issue.nextAction,
+    standardizedAt: issue.standardizedAt,
     proposals: issue.proposals.map(p => ({
       id: p.id,
       intent: p.intent,
@@ -64,7 +80,7 @@ export async function generateMetadata({ params }: PageProps) {
   const issue = await getIssue(id);
 
   if (!issue) {
-    return { title: 'Issue Not Found - FlowOps' };
+    return { title: '改善カードが見つかりません - FlowOps' };
   }
 
   return {

@@ -15,6 +15,7 @@ export const AuditActionSchema = z.enum([
   'ISSUE_UPDATE',
   'ISSUE_START',
   'ISSUE_CLOSE',
+  'ISSUE_CLOSE_INEFFECTIVE', // 反映済みだが効果が確認できず見送りとして完了
   'ISSUE_DELETE',
   'ISSUE_STANDARDIZE',
 
@@ -51,6 +52,7 @@ export const AuditActionSchema = z.enum([
 
   // System operations
   'BACKUP_CREATE',
+  'HELP_ASK', // AIヘルプ: ヘルプ記事を根拠にLLMへ問い合わせた
 
   // AIMS evidence and multi-model review lifecycle
   'AIMS_EVIDENCE_IMPORT',

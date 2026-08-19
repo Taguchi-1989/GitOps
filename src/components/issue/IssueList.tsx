@@ -1,53 +1,44 @@
 /**
  * FlowOps - Issue List Component
  *
- * Issue一覧表示（タブ付き）
+ * 改善カード一覧表示（タブ付き）。
+ * タブの語彙はバッジと同じ（@/lib/issue-status-ui が正本）。
  */
 
 'use client';
 
 import React, { useState } from 'react';
 import { IssueCard, IssueCardData, IssueCardSkeleton } from './IssueCard';
-import { IssueStatus } from '@/core/issue';
 import { Plus, Search } from 'lucide-react';
+import { getIssueTab, ISSUE_TAB_CONFIG, IssueTabValue } from '@/lib/issue-status-ui';
 
 interface IssueListProps {
   issues: IssueCardData[];
   isLoading?: boolean;
   onCreateClick?: () => void;
+  /** 初期表示タブ（ダッシュボードの統計カードから ?tab= で指定される） */
+  initialTab?: IssueTabValue;
 }
 
-type TabValue = 'open' | 'proposed' | 'closed';
-
-const tabConfig: Record<TabValue, { label: string; statuses: IssueStatus[] }> = {
-  open: {
-    label: '未対応',
-    statuses: ['new', 'triage', 'in-progress'],
-  },
-  proposed: {
-    label: '提案済',
-    statuses: ['proposed'],
-  },
-  closed: {
-    label: '完了',
-    statuses: ['merged', 'rejected', 'merged-duplicate'],
-  },
-};
-
-export function IssueList({ issues, isLoading = false, onCreateClick }: IssueListProps) {
-  const [activeTab, setActiveTab] = useState<TabValue>('open');
+export function IssueList({
+  issues,
+  isLoading = false,
+  onCreateClick,
+  initialTab = 'open',
+}: IssueListProps) {
+  const [activeTab, setActiveTab] = useState<IssueTabValue>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const counts = Object.entries(tabConfig).reduce(
-    (acc, [key, config]) => {
-      acc[key as TabValue] = issues.filter(i => config.statuses.includes(i.status)).length;
+  const counts = (Object.keys(ISSUE_TAB_CONFIG) as IssueTabValue[]).reduce(
+    (acc, key) => {
+      acc[key] = issues.filter(i => getIssueTab(i.status, i.standardizedAt) === key).length;
       return acc;
     },
-    {} as Record<TabValue, number>
+    {} as Record<IssueTabValue, number>
   );
 
   const filteredIssues = issues.filter(issue => {
-    if (!tabConfig[activeTab].statuses.includes(issue.status)) {
+    if (getIssueTab(issue.status, issue.standardizedAt) !== activeTab) {
       return false;
     }
 
@@ -68,8 +59,10 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Issue</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">課題や改善点の管理</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">改善カード</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            現場の困りごとと改善の管理
+          </p>
         </div>
         {onCreateClick && (
           <button
@@ -91,11 +84,11 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex flex-wrap gap-2 sm:gap-4" aria-label="Tabs">
-          {Object.entries(tabConfig).map(([key, config]) => (
+          {Object.entries(ISSUE_TAB_CONFIG).map(([key, config]) => (
             <button
               type="button"
               key={key}
-              onClick={() => setActiveTab(key as TabValue)}
+              onClick={() => setActiveTab(key as IssueTabValue)}
               className={`
                 min-h-11 px-3 py-2 text-sm font-medium border-b-2 -mb-px
                 transition-colors
@@ -113,7 +106,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
                 ${activeTab === key ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}
               `}
               >
-                {counts[key as TabValue]}
+                {counts[key as IssueTabValue]}
               </span>
             </button>
           ))}
@@ -125,7 +118,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
-          placeholder="Issueを検索..."
+          placeholder="改善カードを検索..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           className="
@@ -145,7 +138,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
         ) : filteredIssues.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 dark:text-gray-500 text-lg mb-2">
-              {searchQuery ? '該当するIssueがありません' : 'まだIssueがありません'}
+              {searchQuery ? '該当する改善カードがありません' : 'まだ改善カードがありません'}
             </div>
             {!searchQuery && onCreateClick && (
               <button
@@ -153,7 +146,7 @@ export function IssueList({ issues, isLoading = false, onCreateClick }: IssueLis
                 onClick={onCreateClick}
                 className="text-blue-600 hover:text-blue-700"
               >
-                最初のIssueを作成する
+                最初の改善カードを作る
               </button>
             )}
           </div>

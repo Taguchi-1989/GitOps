@@ -34,10 +34,20 @@ vi.mock('@/lib/flow-service', () => ({
 }));
 
 vi.mock('@/core/audit', () => ({
-  auditLog: { logProposalAction: vi.fn(), record: vi.fn() },
+  auditLog: {
+    logProposalAction: vi.fn(),
+    logGitAction: vi.fn(),
+    logIssueAction: vi.fn(),
+    record: vi.fn(),
+  },
+}));
+
+vi.mock('@/core/git', () => ({
+  getGitManager: vi.fn(() => ({ createBranch: vi.fn() })),
 }));
 
 import { POST } from './route';
+import { getGitManager } from '@/core/git';
 import { prisma } from '@/lib/prisma';
 import { getFlow, getFlowYaml, getDictionary } from '@/lib/flow-service';
 import { sha256 } from '@/core/patch';
@@ -84,6 +94,7 @@ describe('POST /api/flows/[id]/grid-proposal', () => {
     } as any);
     vi.mocked(getFlowYaml).mockResolvedValue(YAML);
     vi.mocked(getDictionary).mockResolvedValue({ roles: [], systems: [] });
+    vi.mocked(getGitManager).mockReturnValue({ createBranch: vi.fn() } as any);
   });
 
   it('returns 409 when baseHash is stale', async () => {
@@ -132,7 +143,7 @@ describe('POST /api/flows/[id]/grid-proposal', () => {
   });
 
   it('creates an auto-issue and proposal on success (201)', async () => {
-    const txIssue = { id: 'issue-1', humanId: 'ISS-001' };
+    const txIssue = { id: 'issue-1', humanId: 'ISS-001', title: 'グリッド編集: テストフロー' };
     vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) =>
       cb({
         issue: {
@@ -176,6 +187,59 @@ describe('POST /api/flows/[id]/grid-proposal', () => {
     });
   });
 
+  it('自動作成したIssueにブランチを作る(merge-close できるようにするため)', async () => {
+    const txIssue = { id: 'issue-1', humanId: 'ISS-001', title: '図の編集: テストフロー' };
+    vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) =>
+      cb({
+        issue: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue(txIssue),
+        },
+      })
+    );
+    vi.mocked(prisma.proposal.create).mockResolvedValue({ id: 'prop-1' } as any);
+    vi.mocked(prisma.issue.update).mockResolvedValue({} as any);
+    const createBranch = vi.fn();
+    vi.mocked(getGitManager).mockReturnValue({ createBranch } as any);
+
+    const flow = sampleFlow();
+    flow.nodes.n2.label = '処理(改)';
+
+    const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+    expect(result.status).toBe(201);
+    const branchName = createBranch.mock.calls[0][0];
+    expect(branchName).toContain('ISS-001');
+    // Git-first: ブランチ作成が成功してから DB に branchName を記録する
+    expect(prisma.issue.update).toHaveBeenCalledWith({
+      where: { id: 'issue-1' },
+      data: { status: 'in-progress', branchName },
+    });
+  });
+
+  it('ブランチ作成に失敗したら Proposal を作らない(500)', async () => {
+    const txIssue = { id: 'issue-1', humanId: 'ISS-001', title: '図の編集: テストフロー' };
+    vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) =>
+      cb({
+        issue: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue(txIssue),
+        },
+      })
+    );
+    vi.mocked(getGitManager).mockReturnValue({
+      createBranch: vi.fn().mockRejectedValue(new Error('git failed')),
+    } as any);
+
+    const flow = sampleFlow();
+    flow.nodes.n2.label = '処理(改)';
+
+    const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+    expect(result.status).toBe(500);
+    expect(prisma.proposal.create).not.toHaveBeenCalled();
+  });
+
   it('uses an existing issue when issueId is provided and valid', async () => {
     vi.mocked(prisma.issue.findUnique).mockResolvedValue({
       id: 'issue-9',
@@ -202,5 +266,75 @@ describe('POST /api/flows/[id]/grid-proposal', () => {
     expect(result.status).toBe(201);
     expect(result.body.data.issueId).toBe('issue-9');
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  describe('canvas形式 (flow) の入力', () => {
+    it('グリッド非表現の変更(meta.position)も改善案になる', async () => {
+      vi.mocked(prisma.issue.findUnique).mockResolvedValue({
+        id: 'issue-9',
+        status: 'in-progress',
+        targetFlowId: 'flow-1',
+      } as any);
+      vi.mocked(prisma.proposal.create).mockResolvedValue({ id: 'prop-3' } as any);
+      vi.mocked(prisma.issue.update).mockResolvedValue({} as any);
+
+      const flow = sampleFlow();
+      flow.nodes.n2.meta = { position: { x: 120, y: 40 } };
+
+      const result: any = await POST(
+        makeRequest({ flow, baseHash: BASE_HASH, issueId: 'issue-9' }),
+        { params }
+      );
+
+      expect(result.status).toBe(201);
+      const patch = JSON.parse(vi.mocked(prisma.proposal.create).mock.calls[0][0].data.jsonPatch);
+      expect(JSON.stringify(patch)).toContain('position');
+    });
+
+    it('検証エラー(dangling edge)はグリッドと同じ 400 になる', async () => {
+      const flow = sampleFlow();
+      flow.edges.e1.to = 'ghost';
+
+      const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+      expect(result.status).toBe(400);
+      expect(result.body.errorCode).toBe('VALIDATION_ERROR');
+    });
+
+    it('flow.id が URL と一致しないと 400', async () => {
+      const flow = sampleFlow();
+      flow.id = 'other-flow';
+
+      const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+      expect(result.status).toBe(400);
+      expect(result.body.details).toContain('flow.id');
+    });
+
+    it('nodes のキーと node.id が食い違うと 400', async () => {
+      const flow = sampleFlow();
+      flow.nodes.n2.id = 'n9'; // レコードキー n2 と不一致
+
+      const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+      expect(result.status).toBe(400);
+      expect(result.body.errorCode).toBe('VALIDATION_ERROR');
+      expect(result.body.details).toContain('一致しません');
+    });
+
+    it('空白だけの label は 400', async () => {
+      const flow = sampleFlow();
+      flow.nodes.n2.label = '   ';
+
+      const result: any = await POST(makeRequest({ flow, baseHash: BASE_HASH }), { params });
+
+      expect(result.status).toBe(400);
+      expect(result.body.errorCode).toBe('VALIDATION_ERROR');
+    });
+
+    it('flow も nodeRows も無いと 400', async () => {
+      const result: any = await POST(makeRequest({ baseHash: BASE_HASH }), { params });
+      expect(result.status).toBe(400);
+    });
   });
 });

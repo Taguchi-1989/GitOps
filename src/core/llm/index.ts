@@ -12,6 +12,7 @@ export {
   resetLLMClient,
   type LLMClientConfig,
   type GenerateProposalParams,
+  type GenerateTextParams,
 } from './client';
 
 export { AnthropicLLMClient } from './anthropic-client';

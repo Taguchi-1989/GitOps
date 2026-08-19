@@ -63,6 +63,10 @@ COPY --from=builder /app/seed-dist ./seed-dist
 # Copy spec directory as default seed data
 COPY --from=builder /app/spec ./spec.default
 
+# Copy help articles. src/lib/help-content.ts reads these from process.cwd() at runtime,
+# and standalone output does not include src/, so they must be copied explicitly.
+COPY --from=builder /app/src/content ./src/content
+
 # Copy entrypoint script (fix Windows CRLF line endings)
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN sed -i 's/\r$//' ./docker-entrypoint.sh && chmod +x ./docker-entrypoint.sh

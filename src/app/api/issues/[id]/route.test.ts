@@ -69,8 +69,9 @@ vi.mock('@/core/audit', () => ({
 
 // issue types のモックは実際のスキーマを使用
 vi.mock('@/core/issue', async () => {
-  const actual = await vi.importActual('@/core/issue/types');
-  return actual;
+  const types = await vi.importActual('@/core/issue/types');
+  const status = await vi.importActual('@/core/issue/status');
+  return { ...types, ...status };
 });
 
 import { prisma } from '@/lib/prisma';
@@ -396,6 +397,77 @@ describe('PATCH /api/issues/[id]', () => {
 
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe('in-progress');
+  });
+
+  it('should close as closed-ineffective from merged and record dedicated audit action', async () => {
+    const mockExisting = {
+      id: 'issue-1',
+      humanId: 'ISS-001',
+      title: 'Test Title',
+      description: 'Test description',
+      status: 'merged',
+      deletedAt: null,
+    };
+
+    const mockUpdated = {
+      ...mockExisting,
+      status: 'closed-ineffective',
+      checkResult: 'ineffective',
+      learning: '別の原因だった',
+    };
+
+    vi.mocked(prisma.issue.findUnique).mockResolvedValue(mockExisting as any);
+    vi.mocked(prisma.issue.update).mockResolvedValue(mockUpdated as any);
+    vi.mocked(auditLog.record).mockResolvedValue(null);
+
+    const request = new Request('http://localhost:3000/api/issues/issue-1', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'closed-ineffective' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
+    const body = getBody(result);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe('closed-ineffective');
+    expect(auditLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ISSUE_CLOSE_INEFFECTIVE',
+        entityId: 'issue-1',
+        payload: expect.objectContaining({
+          checkResult: 'ineffective',
+          learning: '別の原因だった',
+        }),
+      })
+    );
+  });
+
+  it('should reject closed-ineffective transition from a non-merged status', async () => {
+    const mockExisting = {
+      id: 'issue-1',
+      humanId: 'ISS-001',
+      title: 'Test Title',
+      description: 'Test description',
+      status: 'proposed',
+      deletedAt: null,
+    };
+
+    vi.mocked(prisma.issue.findUnique).mockResolvedValue(mockExisting as any);
+
+    const request = new Request('http://localhost:3000/api/issues/issue-1', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'closed-ineffective' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const result = await PATCH(request as any, { params: Promise.resolve({ id: 'issue-1' }) });
+    const body = getBody(result);
+
+    expect(body.ok).toBe(false);
+    expect(body.errorCode).toBe('INVALID_STATUS_TRANSITION');
+    expect(result.status).toBe(400);
+    expect(prisma.issue.update).not.toHaveBeenCalled();
   });
 
   it('should update multiple fields at once', async () => {

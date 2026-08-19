@@ -1,11 +1,14 @@
 /**
- * FlowOps - Grid Edit Proposal API
+ * FlowOps - Flow Edit Proposal API (グリッド / キャンバス共通)
  *
  * POST /api/flows/[id]/grid-proposal
- * グリッド編集(nodes/edges)を JSON Patch 化し、既存の Proposal→apply
- * パイプラインに合流させる。正本は YAML/Git のまま。
+ * フロー編集を JSON Patch 化し、既存の Proposal→apply パイプラインに
+ * 合流させる。正本は YAML/Git のまま。
  *
- * body: { nodeRows, edgeRows, baseHash, intent?, issueId? }
+ * body(2形式。どちらか一方):
+ *  - グリッド編集: { nodeRows, edgeRows, baseHash, intent?, issueId? }
+ *  - キャンバス編集: { flow, baseHash, intent?, issueId? }
+ *    (flow は完全な Flow。meta.position 等グリッド非表現の変更も反映される)
  * - baseHash 不一致 → 409 (他で更新された)
  * - 検証エラー → 400 (details に CellError[] を JSON で格納しセルハイライトに使う)
  * - 成功 → 201 { proposal, issueId } (適用は POST /api/proposals/[id]/apply)
@@ -27,10 +30,19 @@ import { API_ERROR_CODES } from '@/core/types/api';
 import { getFlow, getFlowYaml, getDictionary } from '@/lib/flow-service';
 import { sha256, diffFlows, formatDiffAsHtml } from '@/core/patch';
 import { FlowSchema } from '@/core/parser/schema';
-import { rowsToFlow, validateRows, hasBlockingErrors, buildJsonPatch } from '@/core/grid';
-import { generateHumanId } from '@/core/issue/humanId';
+import {
+  rowsToFlow,
+  validateRows,
+  hasBlockingErrors,
+  buildJsonPatch,
+  flowToNodeRows,
+  flowToEdgeRows,
+} from '@/core/grid';
+import { generateHumanId, generateBranchName, titleToSlug } from '@/core/issue/humanId';
+import { getGitManager } from '@/core/git';
 import { auditLog } from '@/core/audit';
 import { logger } from '@/lib/logger';
+import type { Flow, Node, Edge } from '@/core/parser/schema';
 
 const NodeRowSchema = z.object({
   id: z.string(),
@@ -51,16 +63,86 @@ const EdgeRowSchema = z.object({
   dataLayer: z.string(),
 });
 
-const GridProposalBodySchema = z.object({
-  nodeRows: z.array(NodeRowSchema),
-  edgeRows: z.array(EdgeRowSchema),
-  baseHash: z.string().min(1),
-  intent: z.string().min(1).default('グリッド編集によるフロー更新'),
-  issueId: z.string().optional(),
-});
+/**
+ * グリッド形式(nodeRows/edgeRows)とキャンバス形式(flow)の両方を受け付ける。
+ * 既存クライアント(グリッドエディタ)との後方互換のため nodeRows/edgeRows は
+ * そのまま維持し、flow を追加の入力形式として許容する。
+ */
+const GridProposalBodySchema = z
+  .object({
+    nodeRows: z.array(NodeRowSchema).optional(),
+    edgeRows: z.array(EdgeRowSchema).optional(),
+    flow: FlowSchema.optional(),
+    baseHash: z.string().min(1),
+    intent: z.string().min(1).default('グリッド編集によるフロー更新'),
+    issueId: z.string().optional(),
+  })
+  .refine(body => Boolean(body.flow) || Boolean(body.nodeRows && body.edgeRows), {
+    message: 'flow か nodeRows/edgeRows のいずれかを指定してください',
+  });
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+/** 空白除去し、空なら undefined を返す(rowsToFlow の opt と同じ規則)。 */
+function opt(value: string | undefined): string | undefined {
+  const t = value?.trim();
+  return t ? t : undefined;
+}
+
+/**
+ * キャンバス形式(flow)を rowsToFlow と同じ不変条件へ正規化する。
+ * グリッド形式は rowsToFlow が下記を保証するが、flow は直採用のため
+ * ここで同じ保証を明示的にかけないと YAML にそのままコミットされてしまう。
+ *  - nodes/edges のレコードキーと要素の id が一致すること
+ *  - 文字列フィールドを trim し、必須項目は trim 後も非空であること
+ *  - 空文字になった任意項目は省略する(undefined 化)
+ */
+function normalizeCanvasFlow(flow: Flow): { flow: Flow } | { error: string } {
+  const nodes: Record<string, Node> = {};
+  for (const [key, node] of Object.entries(flow.nodes)) {
+    if (key !== node.id) {
+      return { error: `nodes のキー "${key}" と node.id "${node.id}" が一致しません` };
+    }
+    const id = node.id.trim();
+    const label = node.label.trim();
+    const type = node.type.trim();
+    if (!id) return { error: `nodes のキー "${key}": IDは必須です` };
+    if (!label) return { error: `ノード ${id}: ラベルは必須です` };
+    if (!type) return { error: `ノード ${id}: タイプは必須です` };
+    if (nodes[id]) return { error: `ノードIDが重複しています: ${id}` };
+    const normalized: Node = { ...node, id, type: type as Node['type'], label };
+    // 空文字になった任意項目はキーごと落とす(YAML に空値を残さない)
+    for (const field of ['role', 'system', 'taskId'] as const) {
+      const value = opt(normalized[field]);
+      if (value) normalized[field] = value;
+      else delete normalized[field];
+    }
+    nodes[id] = normalized;
+  }
+
+  const edges: Record<string, Edge> = {};
+  for (const [key, edge] of Object.entries(flow.edges)) {
+    if (key !== edge.id) {
+      return { error: `edges のキー "${key}" と edge.id "${edge.id}" が一致しません` };
+    }
+    const id = edge.id.trim();
+    const from = edge.from.trim();
+    const to = edge.to.trim();
+    if (!id) return { error: `edges のキー "${key}": IDは必須です` };
+    if (!from || !to) return { error: `エッジ ${id}: from/to は必須です` };
+    if (edges[id]) return { error: `エッジIDが重複しています: ${id}` };
+    const normalized: Edge = { ...edge, id, from, to };
+    for (const field of ['label', 'condition'] as const) {
+      const value = opt(normalized[field]);
+      if (value) normalized[field] = value;
+      else delete normalized[field];
+    }
+    edges[id] = normalized;
+  }
+
+  return { flow: { ...flow, id: flow.id.trim(), nodes, edges } };
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
@@ -90,8 +172,32 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 2) 行 -> Flow 再構築 + セル単位検証
-    const cellErrors = validateRows(data.nodeRows, data.edgeRows);
+    // 2) 入力 -> Flow 再構築 + セル単位検証
+    //    キャンバス形式は flow をそのまま採用する(meta.position 等を保つため)。
+    //    検証は flow から導出した行に対して行い、グリッドと同じルールを共有する。
+    const source = data.flow ? 'canvas-editor' : 'grid-editor';
+    if (data.flow && data.flow.id !== safeId) {
+      return errorResponse(
+        API_ERROR_CODES.VALIDATION_ERROR,
+        'flow.id がURLのフローIDと一致しません',
+        400
+      );
+    }
+
+    // flow 直採用は rowsToFlow を通らないため、同じ不変条件をここで担保する
+    let canvasFlow: Flow | null = null;
+    if (data.flow) {
+      const normalized = normalizeCanvasFlow(data.flow);
+      if ('error' in normalized) {
+        return errorResponse(API_ERROR_CODES.VALIDATION_ERROR, normalized.error, 400);
+      }
+      canvasFlow = normalized.flow;
+    }
+
+    const nodeRows = canvasFlow ? flowToNodeRows(canvasFlow) : data.nodeRows!;
+    const edgeRows = canvasFlow ? flowToEdgeRows(canvasFlow) : data.edgeRows!;
+
+    const cellErrors = validateRows(nodeRows, edgeRows);
     if (hasBlockingErrors(cellErrors)) {
       // details に CellError[] を JSON 格納(クライアントがセルをハイライト)
       return errorResponse(
@@ -101,7 +207,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const newFlow = rowsToFlow(flowData.flow, data.nodeRows, data.edgeRows);
+    // canvasFlow は現行フローのメタデータ(businessPurpose 等)を持たない可能性があるが、
+    // buildJsonPatch が /nodes と /edges しか差分化しないため YAML 上のメタデータは
+    // 失われない。この暗黙依存に乗っているので、patch 側の粒度を変えるときは要見直し。
+    const newFlow = canvasFlow ?? rowsToFlow(flowData.flow, nodeRows, edgeRows);
 
     // 3) スキーマのバックストップ検証
     const schemaResult = FlowSchema.safeParse(newFlow);
@@ -168,7 +277,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
       issueId = issue.id;
     } else {
-      const created = await createGridIssue(safeId, flowData.flow.title, data, actor);
+      const created = await createFlowEditIssue(
+        safeId,
+        flowData.flow.title,
+        { source, nodeCount: nodeRows.length, edgeCount: edgeRows.length },
+        actor
+      );
       issueId = created.id;
     }
 
@@ -197,7 +311,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         baseHash: data.baseHash,
         intent: data.intent,
         patchCount: patches.length,
-        source: 'grid-editor',
+        source,
       },
       actor
     );
@@ -208,13 +322,47 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-/** グリッド編集用の軽量Issueを humanId 重複リトライ付きで作成する。 */
-async function createGridIssue(
+/**
+ * フロー編集(グリッド/キャンバス)用の軽量Issueを humanId 重複リトライ付きで作成する。
+ *
+ * 作成後は POST /api/issues/[id]/start と同じ手順でブランチを切る。
+ * ブランチが無いと適用後の merge-close が「Issue has no branch to merge」で
+ * 弾かれ、キャンバス/グリッド発の改善が完了できないため必須。
+ * 順序も start と同じ Git-first(ブランチ作成が成功してから DB に branchName を記録)。
+ * ブランチ作成に失敗した場合、Issue は status='new' のまま残るので、
+ * 通常の「作業を開始」からやり直せる。
+ */
+async function createFlowEditIssue(
   flowId: string,
   flowTitle: string,
-  data: z.infer<typeof GridProposalBodySchema>,
+  origin: { source: string; nodeCount: number; edgeCount: number },
   actor: string | undefined
-): Promise<{ id: string; humanId: string }> {
+): Promise<{ id: string; humanId: string; branchName: string }> {
+  const editorLabel = origin.source === 'canvas-editor' ? '図の編集' : 'グリッド編集';
+  const issue = await createIssueRecord(flowId, flowTitle, editorLabel, origin, actor);
+
+  const branchName = generateBranchName(issue.humanId, titleToSlug(issue.title));
+  await getGitManager().createBranch(branchName);
+
+  await prisma.issue.update({
+    where: { id: issue.id },
+    data: { status: 'in-progress', branchName },
+  });
+
+  await auditLog.logGitAction('GIT_BRANCH_CREATE', issue.id, { branchName }, actor);
+  await auditLog.logIssueAction('ISSUE_START', issue.id, { branchName }, actor);
+
+  return { id: issue.id, humanId: issue.humanId, branchName };
+}
+
+/** humanId の採番と Issue レコード作成(重複時は最大3回リトライ)。 */
+async function createIssueRecord(
+  flowId: string,
+  flowTitle: string,
+  editorLabel: string,
+  origin: { source: string; nodeCount: number; edgeCount: number },
+  actor: string | undefined
+): Promise<{ id: string; humanId: string; title: string }> {
   const MAX_RETRIES = 3;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
@@ -232,10 +380,10 @@ async function createGridIssue(
         return tx.issue.create({
           data: {
             humanId,
-            title: `グリッド編集: ${flowTitle}`,
-            description: `グリッドエディタによるフロー更新 (ノード${data.nodeRows.length}件 / エッジ${data.edgeRows.length}件)`,
+            title: `${editorLabel}: ${flowTitle}`,
+            description: `${editorLabel}によるフロー更新 (ノード${origin.nodeCount}件 / エッジ${origin.edgeCount}件)`,
             targetFlowId: flowId,
-            status: 'in-progress',
+            status: 'new',
           },
         });
       });
@@ -245,19 +393,19 @@ async function createGridIssue(
         entityType: 'Issue',
         entityId: issue.id,
         actor,
-        payload: { humanId: issue.humanId, source: 'grid-editor', targetFlowId: flowId },
+        payload: { humanId: issue.humanId, source: origin.source, targetFlowId: flowId },
       });
 
-      return { id: issue.id, humanId: issue.humanId };
+      return { id: issue.id, humanId: issue.humanId, title: issue.title };
     } catch (e: unknown) {
       const isUniqueViolation =
         e instanceof Error && 'code' in e && (e as { code: string }).code === 'P2002';
       if (isUniqueViolation && attempt < MAX_RETRIES - 1) {
-        logger.warn({ attempt }, 'humanId conflict, retrying grid issue creation');
+        logger.warn({ attempt }, 'humanId conflict, retrying flow edit issue creation');
         continue;
       }
       throw e;
     }
   }
-  throw new Error('Failed to create grid issue after retries');
+  throw new Error('Failed to create flow edit issue after retries');
 }

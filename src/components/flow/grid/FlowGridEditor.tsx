@@ -8,9 +8,11 @@
 
 'use client';
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2, Download, Upload, Save, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useDisplayMode } from '@/lib/simple-mode-context';
 import type { Flow } from '@/core/parser';
 import { NodeTypeSchema, DataLayerSchema } from '@/core/parser/schema';
 import {
@@ -57,13 +59,23 @@ const EDGE_COLUMNS: GridColumn<EdgeRow>[] = [
 interface FlowGridEditorProps {
   flow: Flow;
   baseHash: string;
+  /**
+   * 未保存状態の変化を親に伝える。タブ切替でこのコンポーネントは
+   * アンマウントされ編集内容が失われるため、親側で離脱ガードに使う。
+   */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 type SubTab = 'nodes' | 'edges';
 
-export function FlowGridEditor({ flow, baseHash }: FlowGridEditorProps) {
+export function FlowGridEditor({ flow, baseHash, onDirtyChange }: FlowGridEditorProps) {
   const { addToast } = useToast();
+  const { isTechMode } = useDisplayMode();
   const [subTab, setSubTab] = useState<SubTab>('nodes');
+  /** 参照エッジがあるノード削除の確認（確認後に実行する削除内容を保持） */
+  const [pendingNodeDelete, setPendingNodeDelete] = useState<{ edgeIds: string[] } | null>(null);
+  /** 作成済み改善案を今すぐ適用するかの確認 */
+  const [pendingApplyId, setPendingApplyId] = useState<string | null>(null);
   const [nodeRows, setNodeRows] = useState<NodeRow[]>(() => flowToNodeRows(flow));
   const [edgeRows, setEdgeRows] = useState<EdgeRow[]>(() => flowToEdgeRows(flow));
   const [cellErrors, setCellErrors] = useState<CellError[]>([]);
@@ -72,6 +84,11 @@ export function FlowGridEditor({ flow, baseHash }: FlowGridEditorProps) {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 未保存状態を親に同期する（アンマウントで消える編集内容のガードに使う）
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   const nodeErrors = useMemo(() => cellErrors.filter(e => e.scope === 'node'), [cellErrors]);
   const edgeErrors = useMemo(() => cellErrors.filter(e => e.scope === 'edge'), [cellErrors]);
@@ -104,25 +121,25 @@ export function FlowGridEditor({ flow, baseHash }: FlowGridEditorProps) {
     setDirty(true);
   };
 
+  const applyNodeDelete = () => {
+    const next = nodeRows.filter((_, i) => !selectedNodes.has(i));
+    setNodeRows(next);
+    setSelectedNodes(new Set());
+    setDirty(true);
+    revalidate(next, edgeRows);
+  };
+
   const handleDeleteSelected = () => {
     if (subTab === 'nodes') {
       if (selectedNodes.size === 0) return;
-      // 削除されるノードを参照するエッジを警告
+      // 削除されるノードを参照するエッジがあれば確認する
       const deletedIds = new Set([...selectedNodes].map(i => nodeRows[i]?.id).filter(Boolean));
       const referencing = edgeRows.filter(e => deletedIds.has(e.from) || deletedIds.has(e.to));
       if (referencing.length > 0) {
-        const ok = window.confirm(
-          `削除するノードを参照するエッジが ${referencing.length} 件あります(${referencing
-            .map(e => e.id)
-            .join(', ')})。\n削除後はエッジの始点/終点を修正する必要があります。続行しますか?`
-        );
-        if (!ok) return;
+        setPendingNodeDelete({ edgeIds: referencing.map(e => e.id) });
+        return;
       }
-      const next = nodeRows.filter((_, i) => !selectedNodes.has(i));
-      setNodeRows(next);
-      setSelectedNodes(new Set());
-      setDirty(true);
-      revalidate(next, edgeRows);
+      applyNodeDelete();
     } else {
       if (selectedEdges.size === 0) return;
       const next = edgeRows.filter((_, i) => !selectedEdges.has(i));
@@ -219,7 +236,10 @@ export function FlowGridEditor({ flow, baseHash }: FlowGridEditorProps) {
       const json = await res.json().catch(() => null);
 
       if (res.status === 409) {
-        addToast('error', 'フローが他で更新されています。ページを再読込してやり直してください。');
+        addToast(
+          'error',
+          '他の人が先にこのフローを更新しました。ページを更新してもう一度編集してください'
+        );
         return;
       }
       if (!res.ok || !json?.ok) {
@@ -239,29 +259,38 @@ export function FlowGridEditor({ flow, baseHash }: FlowGridEditorProps) {
           addToast('error', details);
           return;
         }
-        addToast('error', `保存に失敗しました (HTTP ${res.status})`);
+        addToast('error', `保存に失敗しました${isTechMode ? ` (HTTP ${res.status})` : ''}`);
         return;
       }
 
       const proposalId: string | undefined = json.data?.proposal?.id;
       setDirty(false);
-      addToast('success', '改善案を作成しました');
+      // 改善案は Issue(改善カード)に紐づく。承認待ち一覧(ApprovalRequest)には出ない。
+      addToast('success', '改善案を作成しました。改善カードの一覧から確認できます。');
 
-      if (proposalId && window.confirm('改善案を作成しました。今すぐ適用(コミット)しますか?')) {
-        const applyRes = await fetch(`/api/proposals/${proposalId}/apply`, { method: 'POST' });
-        if (applyRes.ok) {
-          addToast('success', '適用しました。コミットされました。');
-          window.location.reload();
-        } else {
-          addToast('error', '適用に失敗しました。承認待ち一覧から再試行してください。');
-        }
-      } else {
-        addToast('info', '改善案は承認待ちに保存されました。');
+      if (proposalId) {
+        setPendingApplyId(proposalId);
       }
     } catch {
       addToast('error', '保存中にエラーが発生しました');
     } finally {
       setSaving(false);
+    }
+  };
+
+  /** 作成済みの改善案を即時適用する(確認ダイアログの確定時に呼ぶ)。 */
+  const handleApplyNow = async (proposalId: string) => {
+    setPendingApplyId(null);
+    try {
+      const applyRes = await fetch(`/api/proposals/${proposalId}/apply`, { method: 'POST' });
+      if (applyRes.ok) {
+        addToast('success', '反映しました。');
+        window.location.reload();
+      } else {
+        addToast('error', '反映に失敗しました。改善カードから再試行してください。');
+      }
+    } catch {
+      addToast('error', '反映に失敗しました。改善カードから再試行してください。');
     }
   };
 
@@ -344,14 +373,15 @@ export function FlowGridEditor({ flow, baseHash }: FlowGridEditorProps) {
           className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg"
         >
           <Save className="w-4 h-4" />
-          {saving ? '保存中...' : '変更を保存'}
+          {saving ? '申請中...' : '保存して反映を申請'}
         </button>
       </div>
 
       {/* 注意書き */}
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        正本は YAML/Git です。保存すると改善案(Proposal)が作成され、適用時に Git
-        コミットされます。CSVは Excel で編集できます(UTF-8 BOM付き)。
+        {isTechMode
+          ? '正本は YAML/Git です。保存すると改善案(Proposal)が作成され、適用時に Git コミットされます。CSVは Excel で編集できます(UTF-8 BOM付き)。'
+          : '保存すると改善カードに改善案として登録されます。CSVは Excel で編集できます。'}
       </p>
 
       {/* 警告 / エラー件数 */}
@@ -397,6 +427,42 @@ export function FlowGridEditor({ flow, baseHash }: FlowGridEditorProps) {
           onBlur={() => revalidate(nodeRows, edgeRows)}
         />
       )}
+
+      {/* 参照エッジがあるノード削除の確認 */}
+      <ConfirmDialog
+        isOpen={pendingNodeDelete !== null}
+        onConfirm={() => {
+          setPendingNodeDelete(null);
+          applyNodeDelete();
+        }}
+        onCancel={() => setPendingNodeDelete(null)}
+        title="選択したステップを削除しますか？"
+        description={`削除するステップにつながっている線が ${pendingNodeDelete?.edgeIds.length ?? 0} 件あります。`}
+        whatHappens={[
+          `つながりが残ったままになります（${(pendingNodeDelete?.edgeIds ?? []).join(', ')}）`,
+          '削除後に、線の始点/終点を直す必要があります',
+          'まだ申請していないので、保存しなければ元のままです',
+        ]}
+        confirmLabel="削除する"
+        confirmColor="red"
+      />
+
+      {/* 改善案の即時反映確認 */}
+      <ConfirmDialog
+        isOpen={pendingApplyId !== null}
+        onConfirm={() => {
+          if (pendingApplyId) void handleApplyNow(pendingApplyId);
+        }}
+        onCancel={() => setPendingApplyId(null)}
+        title="今すぐ反映しますか？"
+        description="改善案を作成しました。承認を待たずに今すぐ反映することもできます。"
+        whatHappens={[
+          '「あとで」を選ぶと、改善カードに未反映のまま残ります',
+          '「今すぐ反映」を選ぶと、この場でフローが更新されます',
+        ]}
+        confirmLabel="今すぐ反映"
+        confirmColor="green"
+      />
     </div>
   );
 }

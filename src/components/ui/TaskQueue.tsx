@@ -2,7 +2,7 @@
  * FlowOps - Task Queue Component
  *
  * ダッシュボードに表示する「やることリスト」。
- * 現在のIssue状況に応じて、次にやるべきアクションを
+ * 現在の改善カードの状況に応じて、次にやるべきアクションを
  * 優先度順に表示する。
  */
 
@@ -72,17 +72,17 @@ export function TaskQueue({ recentIssues, stats }: TaskQueueProps) {
     });
   });
 
-  // 優先度3: 新しい課題を報告（アクティブな課題が少ない場合）
+  // 優先度3: 新しい改善カードを作る（アクティブな改善カードが少ない場合）
   if (stats.open === 0 && stats.inProgress === 0 && stats.proposed === 0) {
     actions.push({
       priority: 3,
       icon: Plus,
       iconColor: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-50 dark:bg-blue-900/30',
-      label: '新しい課題を報告しましょう',
-      description: '改善したい業務フローの課題を報告して、改善を始めましょう',
+      label: '新しい改善カードを作りましょう',
+      description: '業務フローの困りごとを記録して、改善を始めましょう',
       href: '/issues/new',
-      actionLabel: '報告する',
+      actionLabel: '作る',
     });
   }
 

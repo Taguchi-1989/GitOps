@@ -8,7 +8,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FileText, Eye, ArrowRight } from 'lucide-react';
+import { FileText, Eye, ArrowRight, Plus } from 'lucide-react';
+import { useDisplayMode } from '@/lib/simple-mode-context';
+import { EDGE_TERM, getNodeTerm } from '@/lib/ui-labels';
 
 interface FlowSummary {
   id: string;
@@ -37,6 +39,8 @@ const layerLabels: Record<string, string> = {
 };
 
 function FlowCard({ flow }: { flow: FlowSummary }) {
+  const { isTechMode } = useDisplayMode();
+
   return (
     <Link
       href={`/flows/${flow.id}`}
@@ -51,9 +55,12 @@ function FlowCard({ flow }: { flow: FlowSummary }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <FileText className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
-              {flow.id}.yaml
-            </span>
+            {/* ファイル名は技術情報。詳細モードのときだけ見せる */}
+            {isTechMode && (
+              <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
+                {flow.id}.yaml
+              </span>
+            )}
             <span
               className={`px-2 py-0.5 rounded-full text-xs font-medium ${layerColors[flow.layer] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}
             >
@@ -69,9 +76,9 @@ function FlowCard({ flow }: { flow: FlowSummary }) {
       <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
         <span className="flex items-center gap-1">
           <Eye className="w-3.5 h-3.5" />
-          {flow.nodeCount} ノード
+          {`${flow.nodeCount} ${getNodeTerm(isTechMode)}`}
         </span>
-        <span>{flow.edgeCount} エッジ</span>
+        {isTechMode && <span>{`${flow.edgeCount} ${EDGE_TERM.standard}`}</span>}
         <span className="ml-auto">
           更新: {new Date(flow.updatedAt).toLocaleDateString('ja-JP')}
         </span>
@@ -112,6 +119,17 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
             業務フローの一覧（{flows.length}件）
           </p>
         </div>
+        <Link
+          href="/flows/new"
+          className="
+            inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2
+            text-sm font-medium text-white hover:bg-blue-700
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+          "
+        >
+          <Plus className="w-4 h-4" />
+          新しいフローを作る
+        </Link>
       </div>
 
       <div className="space-y-3">
@@ -120,13 +138,20 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
         ) : flows.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-            <div className="text-gray-500 dark:text-gray-400">フローがまだありません</div>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-              <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
-                spec/flows/
-              </code>{' '}
-              にYAMLファイルを追加すると、ここに表示されます
-            </p>
+            <div className="text-gray-500 dark:text-gray-400">
+              まだフローがありません。テンプレートから作成できます
+            </div>
+            <Link
+              href="/flows/new"
+              className="
+                mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2
+                text-sm font-medium text-white hover:bg-blue-700
+                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+              "
+            >
+              <Plus className="w-4 h-4" />
+              新しいフローを作る
+            </Link>
           </div>
         ) : (
           flows.map(flow => <FlowCard key={flow.id} flow={flow} />)

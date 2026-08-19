@@ -6,7 +6,7 @@ export { EdgeEditPanel } from './EdgeEditPanel';
 export { useFlowEditor } from './useFlowEditor';
 export { flowToReactFlow, reactFlowToFlow } from './converters';
 export { applyDagreLayout } from './layout';
-export { NODE_STYLE_MAP } from './node-styles';
+export { NODE_STYLE_MAP, NODE_TYPE_LABELS } from './node-styles';
 export type { FlowNode, FlowEdge, FlowNodeData } from './types';
 export { AIChatPanel } from './AIChatPanel';
 export { DiffPreview } from './DiffPreview';

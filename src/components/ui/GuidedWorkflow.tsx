@@ -1,7 +1,7 @@
 /**
  * FlowOps - Guided Workflow Component
  *
- * シンプルモード時にIssue詳細ページに表示する
+ * 改善カード詳細ページに表示する
  * 「今何をすればいいか」ガイドパネル。
  * 現在のステップに応じた具体的なアクション指示を提供する。
  */
@@ -9,13 +9,17 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, Play, Sparkles, Eye, CheckCircle, Lightbulb } from 'lucide-react';
+import { Play, Sparkles, Eye, CheckCircle, Lightbulb, Search, Star } from 'lucide-react';
 import { IssueStatus } from '@/core/issue';
+import { useDisplayMode } from '@/lib/simple-mode-context';
+import { getActionLabel, ISSUE_TAB_LABELS } from '@/lib/ui-labels';
 
 interface GuidedWorkflowProps {
   currentStatus: IssueStatus;
   hasProposals: boolean;
   hasAppliedProposal: boolean;
+  /** Act フェーズ（標準化）まで完了しているか */
+  isStandardized?: boolean;
   className?: string;
 }
 
@@ -32,7 +36,9 @@ interface GuideStep {
 function getGuideForStatus(
   status: IssueStatus,
   hasProposals: boolean,
-  hasAppliedProposal: boolean
+  hasAppliedProposal: boolean,
+  isSimpleMode: boolean,
+  isStandardized: boolean
 ): GuideStep | null {
   switch (status) {
     case 'new':
@@ -42,9 +48,9 @@ function getGuideForStatus(
         iconColor: 'text-blue-600 dark:text-blue-400',
         bgColor: 'bg-blue-50 dark:bg-blue-900/30',
         borderColor: 'border-blue-200 dark:border-blue-800',
-        title: 'まず「改善を始める」を押してください',
+        title: `まず「${getActionLabel('start', isSimpleMode)}」を押してください`,
         description: '安全な作業スペースが自動的に準備されます。元のフローには影響しません。',
-        actionHint: '上部の青いボタンを押してください',
+        actionHint: `画面上部の「${getActionLabel('start', isSimpleMode)}」ボタンを押してください`,
       };
     case 'in-progress':
       if (hasProposals) {
@@ -54,8 +60,7 @@ function getGuideForStatus(
           bgColor: 'bg-purple-50 dark:bg-purple-900/30',
           borderColor: 'border-purple-200 dark:border-purple-800',
           title: '改善案を確認してください',
-          description:
-            '「改善案」タブを開いて、AIが提案した内容を確認し「反映する」を押してください。',
+          description: `「${ISSUE_TAB_LABELS.proposals}」タブを開いて、AIが提案した内容を確認し「${getActionLabel('applyProposal', isSimpleMode)}」を押してください。`,
         };
       }
       return {
@@ -63,9 +68,9 @@ function getGuideForStatus(
         iconColor: 'text-purple-600 dark:text-purple-400',
         bgColor: 'bg-purple-50 dark:bg-purple-900/30',
         borderColor: 'border-purple-200 dark:border-purple-800',
-        title: '「AIで改善案を生成」を押してください',
-        description: 'AIが課題の内容とフローを分析して、具体的な改善案を自動作成します。',
-        actionHint: '上部の紫色のボタンを押してください',
+        title: `「${getActionLabel('generateProposal', isSimpleMode)}」を押してください`,
+        description: 'AIが改善カードの内容とフローを分析して、具体的な改善案を自動作成します。',
+        actionHint: `画面上部の「${getActionLabel('generateProposal', isSimpleMode)}」ボタンを押してください`,
       };
     case 'proposed':
       if (!hasAppliedProposal) {
@@ -75,7 +80,7 @@ function getGuideForStatus(
           bgColor: 'bg-yellow-50 dark:bg-yellow-900/30',
           borderColor: 'border-yellow-200 dark:border-yellow-800',
           title: '改善案を確認して反映してください',
-          description: '「改善案」タブを開いて内容を確認し、「反映する」ボタンを押してください。',
+          description: `「${ISSUE_TAB_LABELS.proposals}」タブを開いて内容を確認し、「${getActionLabel('applyProposal', isSimpleMode)}」ボタンを押してください。`,
         };
       }
       return {
@@ -83,19 +88,30 @@ function getGuideForStatus(
         iconColor: 'text-green-600 dark:text-green-400',
         bgColor: 'bg-green-50 dark:bg-green-900/30',
         borderColor: 'border-green-200 dark:border-green-800',
-        title: '「変更を確定する」で完了できます',
-        description:
-          '改善案が反映されています。問題なければ「変更を確定する」を押して完了してください。',
-        actionHint: '上部の緑色のボタンを押してください',
+        title: `「${getActionLabel('mergeClose', isSimpleMode)}」に進めます`,
+        description: `改善案が反映されています。問題なければ「${getActionLabel('mergeClose', isSimpleMode)}」を押してください。`,
+        actionHint: `画面上部の「${getActionLabel('mergeClose', isSimpleMode)}」ボタンを押してください`,
       };
     case 'merged':
+      if (isStandardized) {
+        return {
+          icon: Star,
+          iconColor: 'text-purple-600 dark:text-purple-400',
+          bgColor: 'bg-purple-50 dark:bg-purple-900/30',
+          borderColor: 'border-purple-200 dark:border-purple-800',
+          title: 'この改善は標準化されて完了しました。お疲れ様でした！',
+          description: isSimpleMode
+            ? '新しいやり方が定着しました。ほかに気になることがあれば、また改善カードを作りましょう。'
+            : '効果が確認され、Act フェーズ（標準化）まで完了しています。この改善カードで行うことはありません。',
+        };
+      }
       return {
-        icon: CheckCircle,
-        iconColor: 'text-green-600 dark:text-green-400',
-        bgColor: 'bg-green-50 dark:bg-green-900/30',
-        borderColor: 'border-green-200 dark:border-green-800',
-        title: 'この課題は完了しました',
-        description: '改善内容が正式にフローに反映されています。お疲れ様でした！',
+        icon: Search,
+        iconColor: 'text-teal-600 dark:text-teal-400',
+        bgColor: 'bg-teal-50 dark:bg-teal-900/30',
+        borderColor: 'border-teal-200 dark:border-teal-800',
+        title: 'フローに反映されました。次は効果を確認しましょう',
+        description: `「${ISSUE_TAB_LABELS.check}」タブで改善前後の状態を記録し、「${getActionLabel('saveCheck', isSimpleMode)}」を押してください。効果ありなら「${getActionLabel('standardize', isSimpleMode)}」で完了です。`,
       };
     default:
       return null;
@@ -106,9 +122,17 @@ export function GuidedWorkflow({
   currentStatus,
   hasProposals,
   hasAppliedProposal,
+  isStandardized = false,
   className = '',
 }: GuidedWorkflowProps) {
-  const guide = getGuideForStatus(currentStatus, hasProposals, hasAppliedProposal);
+  const { isSimpleMode } = useDisplayMode();
+  const guide = getGuideForStatus(
+    currentStatus,
+    hasProposals,
+    hasAppliedProposal,
+    isSimpleMode,
+    isStandardized
+  );
   if (!guide) return null;
 
   const Icon = guide.icon;

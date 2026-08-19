@@ -16,6 +16,9 @@ export const IssueStatusSchema = z.enum([
   'proposed',
   'merged',
   'rejected',
+  // フローに反映したが効果が確認できず、見送りとして完了したもの。
+  // 「未着手のまま却下（rejected）」と監査上区別するための専用ステータス。
+  'closed-ineffective',
   'merged-duplicate',
 ]);
 

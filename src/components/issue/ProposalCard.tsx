@@ -9,8 +9,9 @@
 import React, { useState } from 'react';
 import { Check, ChevronDown, ChevronUp, Clock, Code } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
-import { useSimpleMode } from '@/lib/simple-mode-context';
+import { useDisplayMode } from '@/lib/simple-mode-context';
 import { formatDate } from '@/lib/format-date';
+import { getActionLabel } from '@/lib/ui-labels';
 
 export interface ProposalData {
   id: string;
@@ -30,7 +31,7 @@ interface ProposalCardProps {
 }
 
 export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalCardProps) {
-  const { isSimpleMode } = useSimpleMode();
+  const { isSimpleMode } = useDisplayMode();
   const [showPatch, setShowPatch] = useState(false);
 
   return (
@@ -76,7 +77,7 @@ export function ProposalCard({ proposal, onApply, isLoading = false }: ProposalC
             >
               <Check className="w-4 h-4" />
               <span>
-                <span className="font-medium">{isSimpleMode ? '反映する' : '適用する'}</span>
+                <span className="font-medium">{getActionLabel('applyProposal', isSimpleMode)}</span>
                 {!isSimpleMode && (
                   <span className="block text-xs text-green-200">ブランチにコミット</span>
                 )}

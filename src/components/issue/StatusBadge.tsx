@@ -1,15 +1,17 @@
 /**
  * FlowOps - Status Badge Component
  *
- * Issueステータスを色分けして表示（定義は @/lib/issue-status-ui に集約）
+ * 改善カードのステータスを色分けして表示（定義は @/lib/issue-status-ui に集約）
  */
 
 import React from 'react';
 import { IssueStatus } from '@/core/issue';
-import { getStatusUi } from '@/lib/issue-status-ui';
+import { getIssueDisplayUi, getStatusUi } from '@/lib/issue-status-ui';
 
 interface StatusBadgeProps {
   status: IssueStatus;
+  /** 標準化済みなら「完了⭐」として表示する */
+  standardizedAt?: Date | string | null;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -20,8 +22,13 @@ const sizeClasses = {
   lg: 'px-3 py-1.5 text-base',
 };
 
-export function StatusBadge({ status, size = 'md', className = '' }: StatusBadgeProps) {
-  const config = getStatusUi(status);
+export function StatusBadge({
+  status,
+  standardizedAt,
+  size = 'md',
+  className = '',
+}: StatusBadgeProps) {
+  const config = getIssueDisplayUi(status, standardizedAt);
 
   return (
     <span

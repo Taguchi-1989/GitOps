@@ -87,6 +87,12 @@ export const RATE_LIMITS = {
   api: { windowMs: 60_000, maxRequests: 60 },
   /** LLM生成: 10req/min（コスト保護） */
   llm: { windowMs: 60_000, maxRequests: 10 },
+  /**
+   * AIヘルプ質問: 20req/min
+   * 改善案生成より軽く回数も出るため、llm バケットとは分ける。
+   * 共有すると同一拠点（NAT配下）でヘルプ質問が改善案生成を429にしてしまう。
+   */
+  helpAsk: { windowMs: 60_000, maxRequests: 20 },
   /** 認証: 10req/min（ブルートフォース対策） */
   auth: { windowMs: 60_000, maxRequests: 10 },
 } as const;

@@ -1,15 +1,15 @@
 /**
  * FlowOps - New Issue Page
  *
- * Issue作成ページ
+ * 改善カード作成ページ
  */
 
 import { listFlows, getFlow } from '@/lib/flow-service';
 import { NewIssueForm } from './NewIssueForm';
 
 export const metadata = {
-  title: 'New Issue - FlowOps',
-  description: '新しいIssueを作成',
+  title: '改善カードを作る - FlowOps',
+  description: '新しい改善カードを作成',
 };
 
 interface PageProps {

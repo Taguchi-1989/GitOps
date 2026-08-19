@@ -42,6 +42,19 @@ export interface GenerateProposalParams {
   systems?: string[];
 }
 
+/**
+ * generateText のリクエストタイムアウト（ミリ秒）。
+ * SDK 既定は10分＋内部リトライで、ヘルプ回答の待ち時間としては長すぎる。
+ */
+export const GENERATE_TEXT_TIMEOUT_MS = 15_000;
+
+/** 自由文の回答を得るための最小パラメータ（JSON構造を要求しない用途向け） */
+export interface GenerateTextParams {
+  system: string;
+  user: string;
+  maxTokens?: number;
+}
+
 class LLMClient {
   private client: OpenAI;
   private model: string;
@@ -94,6 +107,45 @@ class LLMClient {
     }
 
     throw lastError ?? new LLMError('API_ERROR', 'Unknown error after retries');
+  }
+
+  /**
+   * 自由文を生成する（JSON mode なし）
+   * ヘルプ回答のように「失敗したら出さない」で済む用途に使うため、
+   * SDK 既定の10分タイムアウト・内部リトライを明示的に無効化し、
+   * 15秒で打ち切って1回だけ試す（画面が待ち続けないようにする）。
+   */
+  async generateText(params: GenerateTextParams): Promise<string> {
+    const traceId = getTraceId();
+    const traceMetadata = traceId ? { extra_headers: { 'X-Trace-Id': traceId } } : {};
+
+    let response;
+    try {
+      response = await this.client.chat.completions.create(
+        {
+          model: this.model,
+          messages: [
+            { role: 'system', content: params.system },
+            { role: 'user', content: params.user },
+          ],
+          max_tokens: params.maxTokens ?? this.maxTokens,
+          temperature: this.temperature,
+          ...traceMetadata,
+        } as OpenAI.ChatCompletionCreateParamsNonStreaming,
+        { timeout: GENERATE_TEXT_TIMEOUT_MS, maxRetries: 0 }
+      );
+    } catch (error) {
+      throw new LLMError(
+        'API_ERROR',
+        `LLM API error: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    const content = response.choices[0]?.message?.content?.trim();
+    if (!content) {
+      throw new LLMError('API_ERROR', 'Empty response from LLM');
+    }
+    return content;
   }
 
   private async callLLM(params: GenerateProposalParams): Promise<ProposalOutput> {

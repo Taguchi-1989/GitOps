@@ -65,6 +65,8 @@ export default auth(async function proxy(request) {
       WRITE_METHODS.has(request.method) &&
       !pathname.startsWith('/api/auth') &&
       pathname !== '/api/health' &&
+      // AIヘルプは読み取り相当（何も書き換えない）。viewer も質問できるようにする
+      pathname !== '/api/help/ask' &&
       !WRITE_ROLES.has(actorRole)
     ) {
       const response = NextResponse.json(
@@ -83,13 +85,30 @@ export default auth(async function proxy(request) {
     }
 
     const clientIp = getClientIp(request);
+    // AIヘルプは llm バケットと分ける。共有すると同一拠点（NAT配下）からのヘルプ質問が
+    // 改善案生成を429にしてしまうため。識別できるなら利用者単位で数える。
+    const isHelpAskRoute = pathname === '/api/help/ask';
     const isLlmRoute =
       pathname.includes('/proposals/generate') ||
       /^\/api\/aims\/evidence\/[^/]+\/reviews$/.test(pathname);
     const isAuthRoute = pathname.startsWith('/api/auth');
-    const config = isAuthRoute ? RATE_LIMITS.auth : isLlmRoute ? RATE_LIMITS.llm : RATE_LIMITS.api;
-    const rateLimitKey = isAuthRoute ? 'auth' : isLlmRoute ? 'llm' : 'api';
-    const result = checkRateLimit(`${clientIp}:${rateLimitKey}`, config);
+
+    let config: { windowMs: number; maxRequests: number } = RATE_LIMITS.api;
+    let rateLimitSubject = clientIp;
+    let rateLimitBucket = 'api';
+    if (isAuthRoute) {
+      config = RATE_LIMITS.auth;
+      rateLimitBucket = 'auth';
+    } else if (isHelpAskRoute) {
+      config = RATE_LIMITS.helpAsk;
+      rateLimitBucket = 'help';
+      rateLimitSubject = actorId !== 'anonymous' ? actorId : clientIp;
+    } else if (isLlmRoute) {
+      config = RATE_LIMITS.llm;
+      rateLimitBucket = 'llm';
+    }
+
+    const result = checkRateLimit(`${rateLimitSubject}:${rateLimitBucket}`, config);
 
     if (!result.allowed) {
       const response = NextResponse.json(

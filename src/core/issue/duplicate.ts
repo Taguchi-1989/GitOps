@@ -40,7 +40,11 @@ export function canMergeDuplicate(
   }
 
   // 統合先がクローズ済みの場合
-  if (canonicalStatus === 'merged' || canonicalStatus === 'rejected') {
+  if (
+    canonicalStatus === 'merged' ||
+    canonicalStatus === 'rejected' ||
+    canonicalStatus === 'closed-ineffective'
+  ) {
     return { allowed: false, reason: 'Canonical issue is already closed' };
   }
 

@@ -1,7 +1,7 @@
 /**
  * FlowOps - Issue Card Component
  *
- * Issue一覧で使用するカードコンポーネント
+ * 改善カード一覧で使用するカードコンポーネント
  */
 
 'use client';
@@ -12,6 +12,7 @@ import { StatusBadge } from './StatusBadge';
 import { IssueStatus } from '@/core/issue';
 import { FileText, GitBranch, Clock } from 'lucide-react';
 import { formatDate } from '@/lib/format-date';
+import { useDisplayMode } from '@/lib/simple-mode-context';
 
 export interface IssueCardData {
   id: string;
@@ -48,6 +49,7 @@ interface IssueCardProps {
 }
 
 export function IssueCard({ issue, onClick }: IssueCardProps) {
+  const { isTechMode } = useDisplayMode();
   const cardClassName = `
     block w-full text-left
     bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4
@@ -65,7 +67,7 @@ export function IssueCard({ issue, onClick }: IssueCardProps) {
             <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
               {issue.humanId}
             </span>
-            <StatusBadge status={issue.status} size="sm" />
+            <StatusBadge status={issue.status} standardizedAt={issue.standardizedAt} size="sm" />
           </div>
           <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
             {issue.title}
@@ -90,7 +92,7 @@ export function IssueCard({ issue, onClick }: IssueCardProps) {
           </span>
         )}
 
-        {issue.branchName && (
+        {issue.branchName && isTechMode && (
           <span className="flex items-center gap-1">
             <GitBranch className="w-3.5 h-3.5" />
             <span className="font-mono">{issue.branchName}</span>

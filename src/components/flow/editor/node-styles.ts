@@ -10,6 +10,20 @@ export interface NodeStyle {
   shape: 'rounded' | 'diamond' | 'cylinder' | 'hexagon' | 'rectangle';
 }
 
+/**
+ * ノードタイプの日本語表示名。
+ * 画面上で英語の生値(process 等)を見せないための共通語彙。
+ */
+export const NODE_TYPE_LABELS: Record<NodeType, string> = {
+  start: '開始',
+  end: '終了',
+  process: '処理',
+  decision: '判断',
+  database: 'データベース',
+  'llm-task': 'LLMタスク',
+  'human-review': 'ヒューマンレビュー',
+};
+
 export const NODE_STYLE_MAP: Record<NodeType, NodeStyle> = {
   start: {
     bgColor: 'bg-emerald-500',

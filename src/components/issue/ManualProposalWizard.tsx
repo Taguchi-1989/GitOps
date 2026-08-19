@@ -175,7 +175,7 @@ export function ManualProposalWizard({ issueId, onImported }: ManualProposalWiza
           {step === 1 && (
             <div className="mt-3 ml-10">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                課題の内容・業務フロー・AIへの指示をまとめた文章を自動で作ります
+                改善カードの内容・業務フロー・AIへの指示をまとめた文章を自動で作ります
               </p>
               <button
                 onClick={handleCopyPrompt}
