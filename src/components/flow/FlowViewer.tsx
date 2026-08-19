@@ -59,7 +59,7 @@ interface FlowViewerProps {
   onNodeClick?: (nodeId: string) => void;
   onCreateIssue?: (nodeId?: string) => void;
   /** 編集内容を「改善案(Proposal)」として申請する。即時上書きはしない。 */
-  onSave?: (updatedFlow: Flow) => Promise<void>;
+  onSave?: (updatedFlow: Flow, options?: { intent?: string }) => Promise<void>;
 }
 
 const layerLabels: Record<string, string> = {
@@ -656,7 +656,7 @@ export function FlowViewer({
               flow={displayedFlow}
               yamlContent={displayedYaml}
               mermaidContent={mermaidContent}
-              onImportSuccess={() => window.location.reload()}
+              onImportProposal={onSave}
             />
           ) : null}
         </div>

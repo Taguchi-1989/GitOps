@@ -9,6 +9,7 @@
 import React, { useState, useRef } from 'react';
 import { Flow } from '@/core/parser';
 import { MermaidViewer } from './MermaidViewer';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   Copy,
   Check,
@@ -24,7 +25,12 @@ interface FlowExportImportProps {
   flow: Flow;
   yamlContent: string;
   mermaidContent?: string;
-  onImportSuccess?: () => void;
+  /**
+   * インポート内容を「改善案(Proposal)」として申請する。
+   * キャンバス編集・グリッド編集と同じ経路で、確認なしの即時上書きはしない。
+   * 未指定（申請できない状態）のときはインポート操作自体を無効化する。
+   */
+  onImportProposal?: (flow: Flow, options?: { intent?: string }) => Promise<void>;
 }
 
 type CopyStatus = 'idle' | 'yaml-copied' | 'prompt-copied';
@@ -32,6 +38,8 @@ type CopyStatus = 'idle' | 'yaml-copied' | 'prompt-copied';
 interface ValidationResult {
   valid: boolean;
   errors: Array<{ code: string; message: string; path?: string }>;
+  /** 検証に成功したときにサーバが返すパース済みフロー（申請時にそのまま送る） */
+  flow?: Flow;
 }
 
 function buildLlmEditPrompt(yamlContent: string): string {
@@ -110,13 +118,14 @@ export function FlowExportImport({
   flow,
   yamlContent,
   mermaidContent,
-  onImportSuccess,
+  onImportProposal,
 }: FlowExportImportProps) {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
   const [importYaml, setImportYaml] = useState('');
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -172,37 +181,31 @@ export function FlowExportImport({
     }
   };
 
-  const handleImport = async () => {
-    if (!importYaml.trim() || !validationResult?.valid) return;
-    const confirmed = window.confirm(
-      `フロー "${flow.id}" を上書きインポートします。よろしいですか？`
-    );
-    if (!confirmed) return;
+  /** 検証済みYAMLを改善案として申請できる状態か */
+  const canPropose = Boolean(onImportProposal && validationResult?.valid && validationResult.flow);
 
+  const handleImport = async () => {
+    const importedFlow = validationResult?.flow;
+    if (!onImportProposal || !importedFlow) return;
+
+    setIsConfirmOpen(false);
     setIsSaving(true);
     setSaveMessage(null);
     try {
-      const res = await fetch('/api/flows/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          yaml: importYaml,
-          flowId: flow.id,
-          overwrite: true,
-        }),
+      // フローIDは現在開いているフローに固定する(別フローを上書きしない)
+      await onImportProposal(
+        { ...importedFlow, id: flow.id },
+        { intent: 'YAMLインポートによるフロー更新' }
+      );
+      setSaveMessage({
+        type: 'success',
+        text: '改善案として登録しました。反映するには改善カードで操作してください。',
       });
-      const json = await res.json();
-      if (json.ok) {
-        setSaveMessage({
-          type: 'success',
-          text: 'インポートが完了しました。ページを再読み込みして反映します。',
-        });
-        onImportSuccess?.();
-      } else {
-        setSaveMessage({ type: 'error', text: json.details || 'インポートに失敗しました' });
-      }
     } catch (err) {
-      setSaveMessage({ type: 'error', text: 'ネットワークエラーが発生しました' });
+      setSaveMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : '申請に失敗しました',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -268,7 +271,7 @@ export function FlowExportImport({
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
           下のボタンでプロンプトをコピーし、ChatGPTやClaudeに貼り付けてください。
           修正指示を追記すると、LLMが修正済みYAMLを出力します。
-          結果を下の「インポート」欄に貼り付けて保存できます。
+          結果を下の「インポート」欄に貼り付けて、改善案として申請できます。
         </p>
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
@@ -319,7 +322,18 @@ export function FlowExportImport({
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
           修正済みのYAMLを貼り付けるか、ファイルをアップロードしてください。
+          内容は「改善案」として登録され、すぐに上書きされることはありません。
+          反映するかどうかは改善カードで確認して決めます。
         </p>
+        {!onImportProposal && (
+          <div className="mb-3 flex items-start gap-2 p-3 rounded-lg text-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>
+              いまはこの画面から申請できません。ページを再読み込みしてからやり直してください。
+              （YAMLのコピーと検証は利用できます）
+            </span>
+          </div>
+        )}
 
         <div className="space-y-3">
           <textarea
@@ -360,11 +374,11 @@ export function FlowExportImport({
             </button>
             <button
               type="button"
-              onClick={handleImport}
-              disabled={!validationResult?.valid || isSaving}
+              onClick={() => setIsConfirmOpen(true)}
+              disabled={!canPropose || isSaving}
               className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm rounded-md transition-colors"
             >
-              {isSaving ? '保存中...' : 'インポートして保存'}
+              {isSaving ? '申請中...' : '保存して反映を申請'}
             </button>
           </div>
 
@@ -416,6 +430,22 @@ export function FlowExportImport({
           )}
         </div>
       </section>
+
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        onConfirm={handleImport}
+        onCancel={() => setIsConfirmOpen(false)}
+        title="この内容で反映を申請しますか？"
+        description={`フロー「${flow.title}」を、貼り付けたYAMLの内容に更新する改善案を作ります。`}
+        whatHappens={[
+          'いまのフローはまだ変わりません（すぐには上書きされません）',
+          '改善案（改善カード）として登録されます',
+          '改善カードで内容を確認し、「反映する」を押すと図に反映されます',
+        ]}
+        confirmLabel="保存して反映を申請"
+        confirmColor="green"
+        isLoading={isSaving}
+      />
     </div>
   );
 }
