@@ -55,6 +55,22 @@ function readDismissed(key: string): boolean {
   }
 }
 
+/** 閉じた案内をすべて出し直す（設定画面から呼ぶ） */
+export function clearDismissedNextSteps(): void {
+  sessionDismissed.clear();
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(STORAGE_PREFIX)) keys.push(key);
+    }
+    keys.forEach(key => localStorage.removeItem(key));
+  } catch {
+    // localStorage unavailable
+  }
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
 function subscribeDismissed(callback: () => void): () => void {
   window.addEventListener('storage', callback);
   window.addEventListener(CHANGE_EVENT, callback);

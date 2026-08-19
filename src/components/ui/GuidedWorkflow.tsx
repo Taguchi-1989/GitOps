@@ -14,6 +14,7 @@ import { IssueStatus } from '@/core/issue';
 import { useDisplayMode } from '@/lib/simple-mode-context';
 import { getActionLabel, ISSUE_TAB_LABELS } from '@/lib/ui-labels';
 import { NextStepCard } from './NextStepCard';
+import { usePermissions } from '@/lib/use-permissions';
 
 interface GuidedWorkflowProps {
   currentStatus: IssueStatus;
@@ -103,6 +104,7 @@ export function GuidedWorkflow({
   className = '',
 }: GuidedWorkflowProps) {
   const { isSimpleMode } = useDisplayMode();
+  const { canWrite } = usePermissions();
   const guide = getGuideForStatus(
     currentStatus,
     hasProposals,
@@ -111,6 +113,19 @@ export function GuidedWorkflow({
     isStandardized
   );
   if (!guide) return null;
+
+  // 閲覧のみの利用者に「ボタンを押してください」と案内しない（そのボタンは出ていない）
+  if (!canWrite) {
+    return (
+      <NextStepCard
+        icon={Eye}
+        title="この改善カードは見るだけです"
+        description="あなたの権限は閲覧のみです。内容と進み具合は確認できますが、操作はできません。進めたい場合は、権限のある担当者に依頼してください。"
+        dismissKey="issue-detail-readonly"
+        className={className}
+      />
+    );
+  }
 
   return (
     <NextStepCard

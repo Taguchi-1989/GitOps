@@ -23,6 +23,7 @@ import { GateOutcomeBadge, type GateOutcome } from './GateOutcomeBadge';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getFriendlyError, formatFriendlyToast } from '@/lib/friendly-errors';
+import { usePermissions } from '@/lib/use-permissions';
 
 // --------------------------------------------------------
 // 型定義
@@ -143,11 +144,12 @@ export function DecisionCard({ data }: DecisionCardProps) {
   const router = useRouter();
   const { addToast } = useToast();
 
+  const { canWrite } = usePermissions();
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<'approve' | 'reject' | null>(null);
 
-  const canSubmit = comment.trim().length > 0 && !isSubmitting;
+  const canSubmit = canWrite && comment.trim().length > 0 && !isSubmitting;
 
   const submit = async (approved: boolean) => {
     if (!canSubmit) return;
@@ -480,76 +482,85 @@ export function DecisionCard({ data }: DecisionCardProps) {
           </pre>
         </CollapsibleSection>
 
-        {/* 操作エリア */}
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            判断コメント
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            承認・差し戻しのどちらの場合も、コメントを入力してください（必須）。
-          </p>
-          <textarea
-            rows={4}
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            placeholder="承認理由または差し戻し理由を入力してください"
-            className="
+        {/* 操作エリア。閲覧のみの利用者には、押しても403になるボタンを出さない */}
+        {!canWrite ? (
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              あなたの権限は閲覧のみです。内容は確認できますが、承認・差し戻しはできません。
+              判断が必要な場合は、権限のある担当者に依頼してください。
+            </p>
+          </div>
+        ) : (
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              判断コメント
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              承認・差し戻しのどちらの場合も、コメントを入力してください（必須）。
+            </p>
+            <textarea
+              rows={4}
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder="承認理由または差し戻し理由を入力してください"
+              className="
               w-full rounded-lg border border-gray-300 dark:border-gray-600
               bg-white dark:bg-gray-800 px-3 py-2
               text-sm text-gray-900 dark:text-gray-100
               focus:ring-2 focus:ring-blue-500 focus:border-transparent
               placeholder:text-gray-400 dark:placeholder:text-gray-500
             "
-          />
+            />
 
-          <div className="flex items-center gap-3 mt-3">
-            {/* 承認ボタン */}
-            <button
-              type="button"
-              onClick={() => setConfirmDialog('approve')}
-              disabled={!canSubmit}
-              className="
+            <div className="flex items-center gap-3 mt-3">
+              {/* 承認ボタン */}
+              <button
+                type="button"
+                onClick={() => setConfirmDialog('approve')}
+                disabled={!canSubmit}
+                className="
                 flex items-center gap-2 px-4 py-2
                 bg-green-600 text-white rounded-lg
                 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-colors font-medium text-sm
               "
-            >
-              {isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle className="w-4 h-4" />
-              )}
-              承認する
-            </button>
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                承認する
+              </button>
 
-            {/* 差し戻しボタン */}
-            <button
-              type="button"
-              onClick={() => setConfirmDialog('reject')}
-              disabled={!canSubmit}
-              className="
+              {/* 差し戻しボタン */}
+              <button
+                type="button"
+                onClick={() => setConfirmDialog('reject')}
+                disabled={!canSubmit}
+                className="
                 flex items-center gap-2 px-4 py-2
                 bg-red-600 text-white rounded-lg
                 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-colors font-medium text-sm
               "
-            >
-              {isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <XCircle className="w-4 h-4" />
-              )}
-              差し戻す
-            </button>
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )}
+                差し戻す
+              </button>
 
-            {!comment.trim() && (
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                コメントを入力するとボタンが有効になります
-              </p>
-            )}
+              {!comment.trim() && (
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  コメントを入力するとボタンが有効になります
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {currentConfig && (

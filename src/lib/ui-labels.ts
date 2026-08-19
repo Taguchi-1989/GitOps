@@ -86,6 +86,7 @@ export const NAV_LABELS = {
   issues: '改善カード',
   approvals: '承認待ち',
   help: 'ヘルプ',
+  settings: '設定',
   audit: '監査ログ',
   aims: 'AIMS証拠',
   dexpi: 'DeXPI交換',

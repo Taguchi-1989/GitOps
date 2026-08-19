@@ -16,6 +16,7 @@ import { Flow, stringifyFlow } from '@/core/parser';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { NextStepCard } from '@/components/ui/NextStepCard';
+import { usePermissions } from '@/lib/use-permissions';
 import { useDisplayMode } from '@/lib/simple-mode-context';
 import { EDGE_TERM, getNodeTerm } from '@/lib/ui-labels';
 import {
@@ -140,6 +141,8 @@ export function FlowViewer({
   onSave,
 }: FlowViewerProps) {
   const { isTechMode } = useDisplayMode();
+  // 権限の正本はサーバ(proxy.ts)。ここでは押しても403になる操作を出さないためだけに使う
+  const { canWrite } = usePermissions();
   /** 表示モードに応じた「ノード」/「ステップ」の呼び方 */
   const nodeTerm = getNodeTerm(isTechMode);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -189,12 +192,13 @@ export function FlowViewer({
   // 「詳細ツール」メニューの中身(機能は削らず、初期表示から畳むだけ)
   const detailTools = useMemo<DetailTool[]>(() => {
     const tools: DetailTool[] = [];
-    if (baseHash) tools.push({ id: 'grid', label: '表で編集（グリッド）', icon: Table2 });
+    if (baseHash && canWrite)
+      tools.push({ id: 'grid', label: '表で編集（グリッド）', icon: Table2 });
     if (yamlContent)
       tools.push({ id: 'export-import', label: '入出力（エクスポート/インポート）', icon: Upload });
     if (isTechMode) tools.push({ id: 'data', label: '生データ', icon: Code });
     return tools;
-  }, [baseHash, yamlContent, isTechMode]);
+  }, [baseHash, yamlContent, isTechMode, canWrite]);
 
   // 詳細モードを切ると「生データ」タブが消えるため、ダイアグラム表示に戻す
   const activeTab: TabId = selectedTab === 'data' && !isTechMode ? 'diagram' : selectedTab;
@@ -431,7 +435,7 @@ export function FlowViewer({
 
           <div className="flex items-center gap-2">
             {/* 初期状態の主ボタン(1): 編集へ入る */}
-            {activeTab === 'diagram' && !editable && (
+            {activeTab === 'diagram' && !editable && canWrite && (
               <button
                 type="button"
                 onClick={handleToggleEditable}
@@ -447,7 +451,7 @@ export function FlowViewer({
             )}
 
             {/* 初期状態の主ボタン(2): 困りごとの報告(Issue作成) */}
-            {onCreateIssue && (
+            {onCreateIssue && canWrite && (
               <button
                 type="button"
                 onClick={() => handleCreateIssue(selectedNode || undefined)}
@@ -616,7 +620,15 @@ export function FlowViewer({
           {activeTab === 'diagram' ? (
             <div className="h-full flex flex-col">
               {/* 「次にすること」は常に1つだけ。閲覧中と編集中で内容を切り替える */}
-              {editable ? (
+              {!canWrite ? (
+                <NextStepCard
+                  icon={Eye}
+                  title="この画面は見るだけです"
+                  description="あなたの権限は閲覧のみです。図の内容は確認できますが、編集や困りごとの報告はできません。必要な場合は管理者に権限の変更を依頼してください。"
+                  dismissKey="flow-detail-readonly"
+                  className="mb-3"
+                />
+              ) : editable ? (
                 <NextStepCard
                   icon={Save}
                   title={
@@ -681,7 +693,7 @@ export function FlowViewer({
               flow={displayedFlow}
               yamlContent={displayedYaml}
               mermaidContent={mermaidContent}
-              onImportProposal={onSave}
+              onImportProposal={canWrite ? onSave : undefined}
             />
           ) : null}
         </div>

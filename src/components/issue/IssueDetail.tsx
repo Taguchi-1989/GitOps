@@ -39,6 +39,7 @@ import { useDisplayMode } from '@/lib/simple-mode-context';
 import { GuidedWorkflow } from '@/components/ui/GuidedWorkflow';
 import { formatDateWithYear as formatDate } from '@/lib/format-date';
 import { getActionLabel, ISSUE_TAB_LABELS } from '@/lib/ui-labels';
+import { usePermissions } from '@/lib/use-permissions';
 
 interface IssueDetailProps {
   issue: IssueCardData & {
@@ -154,6 +155,8 @@ export function IssueDetail({
   const [checkSaveError, setCheckSaveError] = useState(false);
 
   const { isSimpleMode } = useDisplayMode();
+  // 権限の正本はサーバ(proxy.ts)。ここでは押しても403になる操作を出さないためだけに使う
+  const { canWrite } = usePermissions();
   const router = useRouter();
 
   const fetchAuditLogs = useCallback(async () => {
@@ -237,11 +240,11 @@ export function IssueDetail({
     }
   };
 
-  const canStart = issue.status === 'new' || issue.status === 'triage';
-  const canGenerateProposal = issue.status === 'in-progress';
-  const canMergeOrReject = issue.status === 'proposed';
+  const canStart = canWrite && (issue.status === 'new' || issue.status === 'triage');
+  const canGenerateProposal = canWrite && issue.status === 'in-progress';
+  const canMergeOrReject = canWrite && issue.status === 'proposed';
   /** Check フェーズから改善カードを閉じられる状態か（どの結果でも終端に進めるようにする） */
-  const canCloseFromCheck = issue.status === 'merged' && !issue.standardizedAt;
+  const canCloseFromCheck = canWrite && issue.status === 'merged' && !issue.standardizedAt;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -767,7 +770,13 @@ export function IssueDetail({
               </div>
             </details>
 
-            <div className="flex items-center gap-3">
+            {!canWrite && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                あなたの権限は閲覧のみです。記録の保存や完了の操作はできません。
+              </p>
+            )}
+
+            <div className={`flex items-center gap-3 ${canWrite ? '' : 'hidden'}`}>
               <button
                 onClick={() => void saveCheck()}
                 disabled={checkSaving}

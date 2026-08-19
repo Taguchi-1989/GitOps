@@ -12,6 +12,7 @@ import { FileText, Eye, ArrowRight, Plus, MousePointerClick } from 'lucide-react
 import { useDisplayMode } from '@/lib/simple-mode-context';
 import { EDGE_TERM, getNodeTerm } from '@/lib/ui-labels';
 import { NextStepCard } from '@/components/ui/NextStepCard';
+import { usePermissions } from '@/lib/use-permissions';
 
 interface FlowSummary {
   id: string;
@@ -111,6 +112,8 @@ function FlowCardSkeleton() {
 }
 
 export function FlowList({ flows, isLoading = false }: FlowListProps) {
+  const { canWrite } = usePermissions();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -120,17 +123,19 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
             業務フローの一覧（{flows.length}件）
           </p>
         </div>
-        <Link
-          href="/flows/new"
-          className="
-            inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2
-            text-sm font-medium text-white hover:bg-blue-700
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-          "
-        >
-          <Plus className="w-4 h-4" />
-          新しいフローを作る
-        </Link>
+        {canWrite && (
+          <Link
+            href="/flows/new"
+            className="
+              inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2
+              text-sm font-medium text-white hover:bg-blue-700
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+            "
+          >
+            <Plus className="w-4 h-4" />
+            新しいフローを作る
+          </Link>
+        )}
       </div>
 
       {/* 「次にすること」は常に1つだけ出す（読み込み中は状態が確定しないので出さない） */}
@@ -138,16 +143,28 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
         (flows.length === 0 ? (
           <NextStepCard
             icon={Plus}
-            title="「新しいフローを作る」を押して、最初の業務フローを作りましょう"
-            description="テンプレートを選ぶと、よくある業務の流れが入った状態から始められます。"
-            action={{ label: '新しいフローを作る', href: '/flows/new' }}
+            title={
+              canWrite
+                ? '「新しいフローを作る」を押して、最初の業務フローを作りましょう'
+                : 'まだ業務フローがありません'
+            }
+            description={
+              canWrite
+                ? 'テンプレートを選ぶと、よくある業務の流れが入った状態から始められます。'
+                : 'あなたの権限は閲覧のみです。フローを作るには、管理者に権限の変更を依頼してください。'
+            }
+            action={canWrite ? { label: '新しいフローを作る', href: '/flows/new' } : undefined}
             dismissKey="flow-list-empty"
           />
         ) : (
           <NextStepCard
             icon={MousePointerClick}
             title="見たい業務フローを選んで開いてください"
-            description="図で流れを確認できます。おかしいところや困っていることがあれば、フローの画面で「困りごとを報告」を押すと改善カードを作れます。"
+            description={
+              canWrite
+                ? '図で流れを確認できます。おかしいところや困っていることがあれば、フローの画面で「困りごとを報告」を押すと改善カードを作れます。'
+                : '図で流れを確認できます。あなたの権限は閲覧のみなので、報告や編集はできません。'
+            }
             hint="下の一覧から、フローの名前をクリックしてください"
             dismissKey="flow-list"
           />
@@ -160,19 +177,23 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
           <div className="text-center py-12">
             <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
             <div className="text-gray-500 dark:text-gray-400">
-              まだフローがありません。テンプレートから作成できます
+              {canWrite
+                ? 'まだフローがありません。テンプレートから作成できます'
+                : 'まだフローがありません'}
             </div>
-            <Link
-              href="/flows/new"
-              className="
-                mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2
-                text-sm font-medium text-white hover:bg-blue-700
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-              "
-            >
-              <Plus className="w-4 h-4" />
-              新しいフローを作る
-            </Link>
+            {canWrite && (
+              <Link
+                href="/flows/new"
+                className="
+                  mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2
+                  text-sm font-medium text-white hover:bg-blue-700
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                "
+              >
+                <Plus className="w-4 h-4" />
+                新しいフローを作る
+              </Link>
+            )}
           </div>
         ) : (
           flows.map(flow => <FlowCard key={flow.id} flow={flow} />)
