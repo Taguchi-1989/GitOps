@@ -8,9 +8,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FileText, Eye, ArrowRight, Plus } from 'lucide-react';
+import { FileText, Eye, ArrowRight, Plus, MousePointerClick } from 'lucide-react';
 import { useDisplayMode } from '@/lib/simple-mode-context';
 import { EDGE_TERM, getNodeTerm } from '@/lib/ui-labels';
+import { NextStepCard } from '@/components/ui/NextStepCard';
 
 interface FlowSummary {
   id: string;
@@ -131,6 +132,26 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
           新しいフローを作る
         </Link>
       </div>
+
+      {/* 「次にすること」は常に1つだけ出す（読み込み中は状態が確定しないので出さない） */}
+      {!isLoading &&
+        (flows.length === 0 ? (
+          <NextStepCard
+            icon={Plus}
+            title="「新しいフローを作る」を押して、最初の業務フローを作りましょう"
+            description="テンプレートを選ぶと、よくある業務の流れが入った状態から始められます。"
+            action={{ label: '新しいフローを作る', href: '/flows/new' }}
+            dismissKey="flow-list-empty"
+          />
+        ) : (
+          <NextStepCard
+            icon={MousePointerClick}
+            title="見たい業務フローを選んで開いてください"
+            description="図で流れを確認できます。おかしいところや困っていることがあれば、フローの画面で「困りごとを報告」を押すと改善カードを作れます。"
+            hint="下の一覧から、フローの名前をクリックしてください"
+            dismissKey="flow-list"
+          />
+        ))}
 
       <div className="space-y-3">
         {isLoading ? (

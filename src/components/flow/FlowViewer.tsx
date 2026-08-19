@@ -15,6 +15,7 @@ import { FlowGridEditor } from './grid/FlowGridEditor';
 import { Flow, stringifyFlow } from '@/core/parser';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { NextStepCard } from '@/components/ui/NextStepCard';
 import { useDisplayMode } from '@/lib/simple-mode-context';
 import { EDGE_TERM, getNodeTerm } from '@/lib/ui-labels';
 import {
@@ -614,6 +615,30 @@ export function FlowViewer({
         <div className="flex-1 p-4 overflow-auto bg-gray-50 dark:bg-gray-900">
           {activeTab === 'diagram' ? (
             <div className="h-full flex flex-col">
+              {/* 「次にすること」は常に1つだけ。閲覧中と編集中で内容を切り替える */}
+              {editable ? (
+                <NextStepCard
+                  icon={Save}
+                  title={
+                    editor.isDirty
+                      ? '直し終えたら「保存して反映を申請」を押してください'
+                      : `図を直してから「保存して反映を申請」を押します`
+                  }
+                  description="申請するとこの内容が改善案になります。押すまで、みんなが見ているフローは変わりません。"
+                  hint="「保存して反映を申請」ボタンは画面上部にあります"
+                  dismissKey="flow-detail-edit"
+                  className="mb-3"
+                />
+              ) : (
+                <NextStepCard
+                  icon={AlertCircle}
+                  title="図を見て、困っていることがあれば「困りごとを報告」を押してください"
+                  description={`直したい${nodeTerm}をクリックしてから押すと、その場所に紐づいた改善カードになります。自分で図を直したいときは「この図を編集」です。`}
+                  hint="どちらのボタンも画面上部にあります"
+                  dismissKey="flow-detail-view"
+                  className="mb-3"
+                />
+              )}
               {!editable && !selectedNode && (
                 <p className="text-sm text-gray-400 dark:text-gray-500 mb-3 text-center">
                   {nodeTerm}をクリックすると詳細が表示されます

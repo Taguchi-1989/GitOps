@@ -9,8 +9,9 @@
 
 import React, { useState } from 'react';
 import { IssueCard, IssueCardData, IssueCardSkeleton } from './IssueCard';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, MousePointerClick, Sparkles } from 'lucide-react';
 import { getIssueTab, ISSUE_TAB_CONFIG, IssueTabValue } from '@/lib/issue-status-ui';
+import { NextStepCard } from '@/components/ui/NextStepCard';
 
 interface IssueListProps {
   issues: IssueCardData[];
@@ -80,6 +81,34 @@ export function IssueList({
           </button>
         )}
       </div>
+
+      {/* 「次にすること」は常に1つだけ出す（読み込み中は状態が確定しないので出さない） */}
+      {!isLoading &&
+        (issues.length === 0 ? (
+          <NextStepCard
+            icon={Plus}
+            title="「新規作成」を押して、最初の改善カードを作りましょう"
+            description="いま困っていること・やりにくいことを書くだけで大丈夫です。あとからAIが改善案を考えてくれます。"
+            action={onCreateClick ? { label: '新規作成', onClick: onCreateClick } : undefined}
+            dismissKey="issue-list-empty"
+          />
+        ) : counts.open > 0 || counts.checking > 0 ? (
+          <NextStepCard
+            icon={MousePointerClick}
+            title="対応中の改善カードを開いて、次の作業を進めてください"
+            description={`「${ISSUE_TAB_CONFIG.open.label}」と「${ISSUE_TAB_CONFIG.checking.label}」のカードには、まだやることが残っています。開くと「次にすること」が表示されます。`}
+            hint="下の一覧から、カードの見出しをクリックしてください"
+            dismissKey="issue-list"
+          />
+        ) : (
+          <NextStepCard
+            icon={Sparkles}
+            title="やることは残っていません。次の困りごとがあれば「新規作成」へ"
+            description="すべての改善カードが完了・見送りになりました。気づいたことがあれば、また改善カードを作りましょう。"
+            action={onCreateClick ? { label: '新規作成', onClick: onCreateClick } : undefined}
+            dismissKey="issue-list-done"
+          />
+        ))}
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
