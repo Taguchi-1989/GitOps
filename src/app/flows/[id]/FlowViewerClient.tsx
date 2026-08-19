@@ -15,7 +15,7 @@ import { Flow } from '@/core/parser';
 interface ToastState {
   message: string;
   type: 'success' | 'error';
-  /** 成功時に必ず示す行き先(承認待ち一覧など) */
+  /** 成功時に必ず示す行き先(作成された改善カードなど) */
   action?: { label: string; href: string };
 }
 
@@ -117,10 +117,17 @@ export function FlowViewerClient({
         );
       }
 
+      // 改善案は Issue(改善カード)に紐づく。承認待ち一覧(ApprovalRequest)には
+      // 出ないので、作成された改善カードの詳細へ直接誘導する。
+      const body = (await res.json().catch(() => null)) as { data?: { issueId?: string } } | null;
+      const issueId = body?.data?.issueId;
+
       showToast({
-        message: '改善案として登録しました。承認されると反映されます。',
+        message: '改善案として登録しました。反映するには改善カードで操作してください。',
         type: 'success',
-        action: { label: '承認待ちを見る', href: '/approvals' },
+        action: issueId
+          ? { label: '改善カードを開いて反映する', href: `/issues/${issueId}` }
+          : { label: '改善カードの一覧を見る', href: '/issues' },
       });
       router.refresh();
     },

@@ -265,7 +265,8 @@ export function FlowGridEditor({ flow, baseHash, onDirtyChange }: FlowGridEditor
 
       const proposalId: string | undefined = json.data?.proposal?.id;
       setDirty(false);
-      addToast('success', '改善案を作成しました。承認待ち一覧から確認できます。');
+      // 改善案は Issue(改善カード)に紐づく。承認待ち一覧(ApprovalRequest)には出ない。
+      addToast('success', '改善案を作成しました。改善カードの一覧から確認できます。');
 
       if (proposalId) {
         setPendingApplyId(proposalId);
@@ -286,10 +287,10 @@ export function FlowGridEditor({ flow, baseHash, onDirtyChange }: FlowGridEditor
         addToast('success', '反映しました。');
         window.location.reload();
       } else {
-        addToast('error', '反映に失敗しました。承認待ち一覧から再試行してください。');
+        addToast('error', '反映に失敗しました。改善カードから再試行してください。');
       }
     } catch {
-      addToast('error', '反映に失敗しました。承認待ち一覧から再試行してください。');
+      addToast('error', '反映に失敗しました。改善カードから再試行してください。');
     }
   };
 
@@ -380,7 +381,7 @@ export function FlowGridEditor({ flow, baseHash, onDirtyChange }: FlowGridEditor
       <p className="text-xs text-gray-500 dark:text-gray-400">
         {isTechMode
           ? '正本は YAML/Git です。保存すると改善案(Proposal)が作成され、適用時に Git コミットされます。CSVは Excel で編集できます(UTF-8 BOM付き)。'
-          : '保存すると承認待ちに改善案として登録されます。CSVは Excel で編集できます。'}
+          : '保存すると改善カードに改善案として登録されます。CSVは Excel で編集できます。'}
       </p>
 
       {/* 警告 / エラー件数 */}
@@ -456,7 +457,7 @@ export function FlowGridEditor({ flow, baseHash, onDirtyChange }: FlowGridEditor
         title="今すぐ反映しますか？"
         description="改善案を作成しました。承認を待たずに今すぐ反映することもできます。"
         whatHappens={[
-          '「あとで」を選ぶと、承認待ち一覧に残ります',
+          '「あとで」を選ぶと、改善カードに未反映のまま残ります',
           '「今すぐ反映」を選ぶと、この場でフローが更新されます',
         ]}
         confirmLabel="今すぐ反映"

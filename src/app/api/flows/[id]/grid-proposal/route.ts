@@ -38,7 +38,8 @@ import {
   flowToNodeRows,
   flowToEdgeRows,
 } from '@/core/grid';
-import { generateHumanId } from '@/core/issue/humanId';
+import { generateHumanId, generateBranchName, titleToSlug } from '@/core/issue/humanId';
+import { getGitManager } from '@/core/git';
 import { auditLog } from '@/core/audit';
 import { logger } from '@/lib/logger';
 import type { Flow, Node, Edge } from '@/core/parser/schema';
@@ -321,14 +322,47 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-/** フロー編集(グリッド/キャンバス)用の軽量Issueを humanId 重複リトライ付きで作成する。 */
+/**
+ * フロー編集(グリッド/キャンバス)用の軽量Issueを humanId 重複リトライ付きで作成する。
+ *
+ * 作成後は POST /api/issues/[id]/start と同じ手順でブランチを切る。
+ * ブランチが無いと適用後の merge-close が「Issue has no branch to merge」で
+ * 弾かれ、キャンバス/グリッド発の改善が完了できないため必須。
+ * 順序も start と同じ Git-first(ブランチ作成が成功してから DB に branchName を記録)。
+ * ブランチ作成に失敗した場合、Issue は status='new' のまま残るので、
+ * 通常の「作業を開始」からやり直せる。
+ */
 async function createFlowEditIssue(
   flowId: string,
   flowTitle: string,
   origin: { source: string; nodeCount: number; edgeCount: number },
   actor: string | undefined
-): Promise<{ id: string; humanId: string }> {
+): Promise<{ id: string; humanId: string; branchName: string }> {
   const editorLabel = origin.source === 'canvas-editor' ? '図の編集' : 'グリッド編集';
+  const issue = await createIssueRecord(flowId, flowTitle, editorLabel, origin, actor);
+
+  const branchName = generateBranchName(issue.humanId, titleToSlug(issue.title));
+  await getGitManager().createBranch(branchName);
+
+  await prisma.issue.update({
+    where: { id: issue.id },
+    data: { status: 'in-progress', branchName },
+  });
+
+  await auditLog.logGitAction('GIT_BRANCH_CREATE', issue.id, { branchName }, actor);
+  await auditLog.logIssueAction('ISSUE_START', issue.id, { branchName }, actor);
+
+  return { id: issue.id, humanId: issue.humanId, branchName };
+}
+
+/** humanId の採番と Issue レコード作成(重複時は最大3回リトライ)。 */
+async function createIssueRecord(
+  flowId: string,
+  flowTitle: string,
+  editorLabel: string,
+  origin: { source: string; nodeCount: number; edgeCount: number },
+  actor: string | undefined
+): Promise<{ id: string; humanId: string; title: string }> {
   const MAX_RETRIES = 3;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
@@ -349,7 +383,7 @@ async function createFlowEditIssue(
             title: `${editorLabel}: ${flowTitle}`,
             description: `${editorLabel}によるフロー更新 (ノード${origin.nodeCount}件 / エッジ${origin.edgeCount}件)`,
             targetFlowId: flowId,
-            status: 'in-progress',
+            status: 'new',
           },
         });
       });
@@ -362,7 +396,7 @@ async function createFlowEditIssue(
         payload: { humanId: issue.humanId, source: origin.source, targetFlowId: flowId },
       });
 
-      return { id: issue.id, humanId: issue.humanId };
+      return { id: issue.id, humanId: issue.humanId, title: issue.title };
     } catch (e: unknown) {
       const isUniqueViolation =
         e instanceof Error && 'code' in e && (e as { code: string }).code === 'P2002';
