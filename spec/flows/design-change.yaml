@@ -1,0 +1,389 @@
+id: design-change
+title: 設計変更管理フロー（ガバナンス運用例）
+layer: L1
+updatedAt: '2026-09-14T00:00:00+09:00'
+businessPurpose: >-
+  製造業の設計変更で、図面・BOM・工程・検査基準・仕入先への変更漏れと品質影響の見落としを防ぐ。
+  申請→影響分析→条件に応じたレビュー→変更承認→図面・BOM更新→試作検証→発効→証跡保管→標準化までを一本の流れで管理し、
+  「なぜ変えたか・どこに影響するか・誰がどの条件で承認したか」を後から説明できる状態にする。
+ownerOrg: design
+sensitivityLevel: L3
+
+nodes:
+  start_design_change:
+    id: start_design_change
+    type: start
+    label: 設計変更の申請開始
+    role: designer
+    meta:
+      description: 不具合対策・コスト改善・仕入先都合・顧客要求などで、既存の図面やBOMを変える必要が生じた時点が起点
+      governance:
+        applicant: 設計者（変更を必要とする担当）
+        ownerDepartment: 設計部
+        reviewers:
+          [設計リーダー, 品質保証（安全部品時）, 生産技術（工程変更時）, 調達（仕入先変更時）]
+        approvers: [設計リーダー]
+        targetData: 図面・BOM・工程・検査基準
+        risks: [安全部品の品質低下, 工程変更の反映漏れ, 仕入先への通知漏れ, 旧版図面の誤使用]
+        effectivenessReviewAfterDays: 90
+
+  submit_design_change:
+    id: submit_design_change
+    type: process
+    label: 設計変更申請
+    role: designer
+    system: pdm
+    dataClassification:
+      sensitivityLevel: L4
+      aiUsageAllowed: true
+      abstractionRequired: true
+      exportPolicy: abstracted-only
+    meta:
+      description: 変更理由・対象品番・変更区分（安全部品/工程変更/仕入先変更の有無）を記入し、変更前後の図面を添付して申請する
+      requiredEvidence: [変更理由, 対象品番, 変更前後の図面, 変更区分]
+
+  evidence_check:
+    id: evidence_check
+    type: decision
+    label: 必須証跡はそろっているか
+    role: design-leader
+    meta:
+      description: 変更理由・対象品番・変更前後の図面・変更区分がそろっているかを確認する。確認できない場合は差し戻す（既定＝差し戻し）
+
+  return_to_requester:
+    id: return_to_requester
+    type: process
+    label: 差し戻し（不足証跡の追加依頼）
+    role: design-leader
+    meta:
+      description: 不足している証跡を明示して申請者へ差し戻す。差し戻し理由は証跡として残す
+
+  impact_analysis:
+    id: impact_analysis
+    type: process
+    label: 影響分析
+    role: designer
+    system: plm
+    meta:
+      description: 変更が及ぶ図面・BOM・工程・検査基準・仕入先・在庫品を洗い出し、リスクと対策を記録する
+      requiredEvidence: [影響範囲一覧, リスクと対策]
+
+  bom_review:
+    id: bom_review
+    type: process
+    label: BOM影響レビュー
+    role: design-leader
+    system: pdm
+    meta:
+      description: 変更対象を使っている上位品目・派生品番をBOMから逆引きし、影響分析の漏れを確認する
+      requiredEvidence: [BOM逆引き結果]
+
+  safety_part_check:
+    id: safety_part_check
+    type: decision
+    label: 安全部品を含まないか
+    role: quality-engineer
+    meta:
+      description: 安全部品・重要保安部品を含まないと確認できた場合のみ品質レビューを省略する。含む・不明は品質レビューへ（既定＝品質レビュー）
+
+  quality_review:
+    id: quality_review
+    type: human-review
+    label: 品質レビュー（安全部品）
+    role: quality-engineer
+    meta:
+      description: 安全性・信頼性への影響、検査基準の変更要否を確認する。確認結果なしに変更承認へは進めない
+      requiredEvidence: [品質レビュー記録, 検査基準の変更要否]
+
+  process_change_check:
+    id: process_change_check
+    type: decision
+    label: 工程変更を含まないか
+    role: manufacturing-engineer
+    meta:
+      description: 工程・治具・作業手順が変わらないと確認できた場合のみ生産技術レビューを省略する。含む・不明は生産技術レビューへ（既定＝レビュー）
+
+  production_engineering_review:
+    id: production_engineering_review
+    type: human-review
+    label: 生産技術レビュー（工程変更）
+    role: manufacturing-engineer
+    meta:
+      description: 工程・治具・作業標準への影響と切り替え時期を確認する
+      requiredEvidence: [工程影響の確認記録, 切り替え計画]
+
+  supplier_change_check:
+    id: supplier_change_check
+    type: decision
+    label: 仕入先変更を含まないか
+    role: procurement-engineer
+    meta:
+      description: 仕入先・購入仕様が変わらないと確認できた場合のみ購買レビューを省略する。含む・不明は仕入先影響レビューへ（既定＝レビュー）
+
+  supplier_impact_review:
+    id: supplier_impact_review
+    type: human-review
+    label: 仕入先影響レビュー（購買）
+    role: procurement-engineer
+    system: procurement-system
+    meta:
+      description: 仕入先への変更通知、購入仕様書の改訂、旧仕様品の在庫・発注残の扱いを確認する
+      requiredEvidence: [仕入先への通知記録, 旧仕様品の在庫処置]
+
+  approval:
+    id: approval
+    type: human-review
+    label: 変更承認
+    role: design-leader
+    system: plm
+    meta:
+      description: 影響分析と各レビュー結果を確認して変更を承認する。申請者本人は承認しない（職務分掌）
+      approvalCondition: 影響分析・BOM逆引き結果・（該当時）品質/生産技術/仕入先影響レビュー記録がそろっていること
+
+  approval_result:
+    id: approval_result
+    type: decision
+    label: 変更は承認されたか
+    role: design-leader
+    meta:
+      description: 承認された場合のみ図面・BOM更新へ進む。却下・保留・判断不明は変更しない（既定＝変更しない）
+
+  update_drawings_bom:
+    id: update_drawings_bom
+    type: process
+    label: 図面・BOM更新
+    role: designer
+    system: pdm
+    dataClassification:
+      sensitivityLevel: L4
+      aiUsageAllowed: true
+      abstractionRequired: true
+      exportPolicy: abstracted-only
+    meta:
+      description: 承認された内容だけを図面・BOMへ反映し、版数を上げる。変更前の版は履歴として残す
+      requiredEvidence: [改訂後の図面, 改訂後のBOM, 版数]
+
+  trial_validation:
+    id: trial_validation
+    type: process
+    label: 試作・検証
+    role: manufacturing-engineer
+    system: plm
+    meta:
+      description: 改訂後の図面で試作し、寸法・機能・（該当時）安全性を検証する
+      requiredEvidence: [試作評価結果, 検査記録]
+
+  validation_result:
+    id: validation_result
+    type: decision
+    label: 検証は合格したか
+    role: quality-engineer
+    meta:
+      description: >-
+        合格と確認できた場合のみ発効へ進む。不合格は変更内容を見直して再申請する。
+        検証が未完了・結果不明のうちは発効も標準化もしない（既定＝検証を続ける）
+
+  release_change:
+    id: release_change
+    type: process
+    label: 変更の発効（新版配布・旧版回収）
+    role: design-leader
+    system: pdm
+    meta:
+      description: 新版の図面・BOMを製造・購買・品質へ配布し、旧版を回収して誤使用を防ぐ。発効日と切り替えロットを記録する
+      requiredEvidence: [発効日, 切り替えロット, 旧版回収記録]
+
+  evidence_archive:
+    id: evidence_archive
+    type: process
+    label: 証跡の保管
+    role: design-leader
+    system: plm
+    meta:
+      description: 申請・影響分析・レビュー・承認・検証・発効の証跡を変更番号ごとにまとめて保管する（改ざんできない監査ログへ記録）
+      auditTrail: append-only
+      completionCondition: 必須証跡がすべて保管され、承認者と検証結果が記録されていること
+
+  standardize:
+    id: standardize
+    type: process
+    label: 運用ルールの見直し（標準化）
+    role: design-leader
+    meta:
+      description: >-
+        差し戻し理由・検証不合格・発効後の不具合を振り返り、レビュー条件や必須証跡の見直しを改善カードとして起票する。
+        例:「安全部品の変更時は品質レビューを必須にする」「仕入先変更時は購買の承認者を追加する」「試作評価結果を証跡として必須にする」
+      standardizationCondition: 同じ理由の差し戻しや検証不合格が繰り返し発生していること
+
+  end_released:
+    id: end_released
+    type: end
+    label: 変更完了
+    role: design-leader
+    meta:
+      description: 承認・検証済みの変更が発効し、証跡が保管された状態
+
+  end_rejected:
+    id: end_rejected
+    type: end
+    label: 変更しない（却下）
+    role: design-leader
+    meta:
+      description: 変更承認が得られず、現行の図面・BOMを維持すると決定した状態。判断根拠は証跡として保管する
+
+edges:
+  e1:
+    id: e1
+    from: start_design_change
+    to: submit_design_change
+
+  e2:
+    id: e2
+    from: submit_design_change
+    to: evidence_check
+
+  e3:
+    id: e3
+    from: evidence_check
+    to: impact_analysis
+    label: 証跡がそろっている
+    condition: evidence_complete == true
+
+  e4:
+    id: e4
+    from: evidence_check
+    to: return_to_requester
+    label: 不足あり・確認できない（差し戻し）
+
+  e5:
+    id: e5
+    from: return_to_requester
+    to: submit_design_change
+    label: 再申請
+
+  e6:
+    id: e6
+    from: impact_analysis
+    to: bom_review
+
+  e7:
+    id: e7
+    from: bom_review
+    to: safety_part_check
+
+  e8:
+    id: e8
+    from: safety_part_check
+    to: process_change_check
+    label: 安全部品を含まない
+    condition: is_safety_part == false
+
+  e9:
+    id: e9
+    from: safety_part_check
+    to: quality_review
+    label: 安全部品を含む・不明（品質レビュー）
+
+  e10:
+    id: e10
+    from: quality_review
+    to: process_change_check
+
+  e11:
+    id: e11
+    from: process_change_check
+    to: supplier_change_check
+    label: 工程変更を含まない
+    condition: has_process_change == false
+
+  e12:
+    id: e12
+    from: process_change_check
+    to: production_engineering_review
+    label: 工程変更を含む・不明（生産技術レビュー）
+
+  e13:
+    id: e13
+    from: production_engineering_review
+    to: supplier_change_check
+
+  e14:
+    id: e14
+    from: supplier_change_check
+    to: approval
+    label: 仕入先変更を含まない
+    condition: has_supplier_change == false
+
+  e15:
+    id: e15
+    from: supplier_change_check
+    to: supplier_impact_review
+    label: 仕入先変更を含む・不明（仕入先影響レビュー）
+
+  e16:
+    id: e16
+    from: supplier_impact_review
+    to: approval
+
+  e17:
+    id: e17
+    from: approval
+    to: approval_result
+
+  e18:
+    id: e18
+    from: approval_result
+    to: update_drawings_bom
+    label: 承認
+    condition: change_approved == true
+
+  e19:
+    id: e19
+    from: approval_result
+    to: end_rejected
+    label: 却下・保留（変更しない）
+
+  e20:
+    id: e20
+    from: update_drawings_bom
+    to: trial_validation
+
+  e21:
+    id: e21
+    from: trial_validation
+    to: validation_result
+
+  e22:
+    id: e22
+    from: validation_result
+    to: release_change
+    label: 合格
+    condition: validation_status == passed
+
+  e23:
+    id: e23
+    from: validation_result
+    to: submit_design_change
+    label: 不合格（変更内容を見直して再申請）
+    condition: validation_status == failed
+
+  e24:
+    id: e24
+    from: validation_result
+    to: trial_validation
+    label: 未完了・不明（検証を続ける）
+
+  e25:
+    id: e25
+    from: release_change
+    to: evidence_archive
+
+  e26:
+    id: e26
+    from: evidence_archive
+    to: standardize
+
+  e27:
+    id: e27
+    from: standardize
+    to: end_released
