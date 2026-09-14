@@ -121,7 +121,12 @@ describe('vendor-registration（新規取引先・口座登録）', () => {
       annual_amount: 1_000_000,
     });
     expect(path.at(-1)).toBe('end_registered');
-    for (const id of ['anti_social_check', 'department_approval', 'evidence_archive', 'standardize']) {
+    for (const id of [
+      'anti_social_check',
+      'department_approval',
+      'evidence_archive',
+      'standardize',
+    ]) {
       expect(path).toContain(id);
     }
     expect(path).not.toContain('credit_check');
