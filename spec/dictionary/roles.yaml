@@ -98,3 +98,24 @@ work-supervisor:
   description: 現場作業の計画・実施・監督を担当し、作業許可を発行する作業責任者
   department: 製造部
   contact: work-supervisor@example.com
+
+requester:
+  id: requester
+  name: 申請部門担当
+  description: 業務上の必要から取引先登録や変更を申請する部門の担当者
+  department: 各部門
+  contact: requester@example.com
+
+legal:
+  id: legal
+  name: 法務担当
+  description: 反社チェック・契約審査・輸出管理などの法的確認を担当する法務部門スタッフ
+  department: 法務部
+  contact: legal@example.com
+
+master-data-admin:
+  id: master-data-admin
+  name: マスタ管理者
+  description: 承認済みの内容に基づき取引先・品目などのマスタデータを登録・更新する管理者
+  department: 情報システム部
+  contact: master-data@example.com

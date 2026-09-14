@@ -1,0 +1,383 @@
+id: vendor-registration
+title: 新規取引先・口座登録フロー（ガバナンス運用例）
+layer: L1
+updatedAt: '2026-09-14T00:00:00+09:00'
+businessPurpose: >-
+  製造業の新規取引先登録・振込口座変更で、不正口座登録・反社チェック漏れ・与信確認漏れ・マスタ登録ミスを防ぐ。
+  申請→証跡確認→審査→承認→マスタ登録→初回取引制御→証跡保管→標準化までを一本の流れで管理し、
+  「誰が・何を根拠に・どの条件で承認したか」を後から説明できる状態にする。
+ownerOrg: purchasing
+sensitivityLevel: L2
+
+nodes:
+  start_request:
+    id: start_request
+    type: start
+    label: 取引先登録の申請開始
+    role: requester
+    meta:
+      description: 新しい取引先との取引開始、または既存取引先の振込口座変更が必要になった時点が起点
+      governance:
+        applicant: 申請部門（取引を必要とする部門）
+        ownerDepartment: 購買部
+        reviewers: [購買, 法務, 経理]
+        approvers: [部門長, 経理（口座変更時）]
+        targetData: 取引先マスタ（会社情報・振込口座・与信枠）
+        risks: [不正口座への振込, 反社会的勢力との取引, 与信超過, マスタ登録ミス]
+        effectivenessReviewAfterDays: 90
+
+  request_vendor_registration:
+    id: request_vendor_registration
+    type: process
+    label: 取引先登録申請
+    role: requester
+    system: procurement-system
+    meta:
+      description: 申請理由・取引予定額・取引区分（新規/口座変更）を記入し、必須証跡を添付して申請する
+      requiredEvidence: [申請理由, 取引予定額（年間）, 会社情報（登記事項）, 振込口座情報]
+
+  evidence_check:
+    id: evidence_check
+    type: decision
+    label: 必須証跡はそろっているか
+    role: purchasing
+    meta:
+      description: 必須証跡がすべて添付されているかを購買が確認する。確認できない場合は差し戻す（既定＝差し戻し）
+
+  return_to_requester:
+    id: return_to_requester
+    type: process
+    label: 差し戻し（不足証跡の追加依頼）
+    role: purchasing
+    meta:
+      description: 不足している証跡を明示して申請者へ差し戻す。差し戻し理由は証跡として残す
+
+  request_type_check:
+    id: request_type_check
+    type: decision
+    label: 申請区分は口座変更か
+    role: purchasing
+    meta:
+      description: 口座変更なら経理の本人確認・承認経路へ。それ以外（新規・区分不明）はすべての審査を行う経路へ進む
+
+  collect_company_info:
+    id: collect_company_info
+    type: process
+    label: 会社情報の確認
+    role: purchasing
+    system: procurement-system
+    meta:
+      description: 登記事項・所在地・代表者・事業内容を確認し、申請内容と一致するかを照合する
+
+  anti_social_check:
+    id: anti_social_check
+    type: process
+    label: 反社チェック
+    role: legal
+    dataClassification:
+      sensitivityLevel: L3
+      aiUsageAllowed: false
+      abstractionRequired: false
+      exportPolicy: prohibited
+    meta:
+      description: 反社会的勢力データベース照会と風評確認を行い、結果と照会日を記録する
+      requiredEvidence: [照会結果, 照会日, 確認者]
+
+  anti_social_result:
+    id: anti_social_result
+    type: decision
+    label: 反社チェックは問題なしか
+    role: legal
+    meta:
+      description: 問題なしと確認できた場合のみ先へ進む。該当・判定不能は取引不可とする（既定＝取引不可）
+
+  overseas_check:
+    id: overseas_check
+    type: decision
+    label: 国内の取引先か
+    role: purchasing
+    meta:
+      description: 国内取引先と確認できた場合のみ追加確認を省略する。海外・所在地不明は追加確認へ（既定＝追加確認）
+
+  overseas_additional_check:
+    id: overseas_additional_check
+    type: process
+    label: 海外取引先の追加確認
+    role: legal
+    meta:
+      description: 輸出管理・制裁リスト該非、送金規制、現地法人の実在性を確認する
+      requiredEvidence: [制裁リスト照会結果, 輸出管理該非判定]
+
+  credit_required:
+    id: credit_required
+    type: decision
+    label: 取引予定額はしきい値未満か
+    role: purchasing
+    meta:
+      description: 年間取引予定額が1,000万円未満と確認できた場合のみ与信確認を省略する。以上・金額不明は与信確認へ（既定＝与信確認）
+      threshold: 10000000
+
+  credit_check:
+    id: credit_check
+    type: process
+    label: 与信確認
+    role: accounting
+    system: erp
+    meta:
+      description: 信用調査結果をもとに与信枠と支払条件を設定する
+      requiredEvidence: [信用調査結果, 設定した与信枠]
+
+  verify_bank_change:
+    id: verify_bank_change
+    type: process
+    label: 口座変更の本人確認
+    role: accounting
+    dataClassification:
+      sensitivityLevel: L3
+      aiUsageAllowed: false
+      abstractionRequired: false
+      exportPolicy: prohibited
+    meta:
+      description: >-
+        変更依頼の連絡先ではなく、登録済みの連絡先へ折り返して変更の事実を確認する（なりすまし対策）。
+        確認日時と確認相手を記録する
+      requiredEvidence: [折り返し確認記録, 変更依頼書]
+      scopeNote: >-
+        既存取引先の反社チェック再確認は本フローでは行わず、定期的な再確認で扱う前提とする。
+        口座変更時にも再確認を必須にする場合は、改善カードで反社チェックへの分岐を追加する
+
+  accounting_approval:
+    id: accounting_approval
+    type: human-review
+    label: 経理承認（口座変更）
+    role: accounting
+    meta:
+      description: 口座変更は経理承認と部門承認の二重承認とする。本人確認記録がない場合は承認しない
+      approvalCondition: 折り返し確認記録と変更依頼書がそろっていること
+
+  validate_bank_account:
+    id: validate_bank_account
+    type: process
+    label: 振込口座の確認
+    role: accounting
+    system: erp
+    dataClassification:
+      sensitivityLevel: L3
+      aiUsageAllowed: false
+      abstractionRequired: false
+      exportPolicy: prohibited
+    meta:
+      description: 口座名義と取引先名の一致、金融機関・支店の実在を確認する
+      requiredEvidence: [口座名義確認結果]
+
+  department_approval:
+    id: department_approval
+    type: human-review
+    label: 部門承認
+    role: supervisor
+    meta:
+      description: ここまでの審査結果と証跡を確認して登録を承認する。承認なしにマスタ登録へは進めない
+      approvalCondition: 必須証跡・反社チェック結果・（該当時）与信確認結果がそろっていること
+
+  master_data_registration:
+    id: master_data_registration
+    type: process
+    label: 取引先マスタ登録
+    role: master-data-admin
+    system: erp
+    dataClassification:
+      sensitivityLevel: L3
+      aiUsageAllowed: false
+      abstractionRequired: false
+      exportPolicy: prohibited
+    meta:
+      description: 承認済みの内容だけを取引先マスタへ登録する。申請者本人は登録作業を行わない（職務分掌）
+      requiredEvidence: [登録内容, 登録者, 登録日時]
+
+  first_transaction_control:
+    id: first_transaction_control
+    type: process
+    label: 初回取引の支払確認
+    role: accounting
+    system: erp
+    meta:
+      description: 初回支払の前に、請求書の振込先と登録口座が一致するかを照合する。不一致なら支払を保留する
+
+  evidence_archive:
+    id: evidence_archive
+    type: process
+    label: 証跡の保管
+    role: purchasing
+    meta:
+      description: 申請・審査・承認・登録の証跡を取引先ごとにまとめて保管する（改ざんできない監査ログへ記録）
+      auditTrail: append-only
+      completionCondition: 必須証跡がすべて保管され、承認者と登録者が記録されていること
+
+  standardize:
+    id: standardize
+    type: process
+    label: 運用ルールの見直し（標準化）
+    role: supervisor
+    meta:
+      description: >-
+        差し戻し理由・例外承認・初回取引での不一致を振り返り、しきい値や必須証跡の見直しを改善カードとして起票する。
+        例:「高額取引先は与信確認を必須にする」「口座変更時は二重承認にする」
+      standardizationCondition: 同じ理由の差し戻しや例外が繰り返し発生していること
+
+  end_registered:
+    id: end_registered
+    type: end
+    label: 登録完了
+    role: purchasing
+    meta:
+      description: 承認済みの取引先が登録され、証跡が保管された状態
+
+  end_rejected:
+    id: end_rejected
+    type: end
+    label: 取引不可
+    role: legal
+    meta:
+      description: 反社チェックで問題あり・判定不能のため取引しないと決定した状態。判断根拠は証跡として保管する
+
+edges:
+  e1:
+    id: e1
+    from: start_request
+    to: request_vendor_registration
+
+  e2:
+    id: e2
+    from: request_vendor_registration
+    to: evidence_check
+
+  e3:
+    id: e3
+    from: evidence_check
+    to: request_type_check
+    label: 証跡がそろっている
+    condition: evidence_complete == true
+
+  e4:
+    id: e4
+    from: evidence_check
+    to: return_to_requester
+    label: 不足あり・確認できない（差し戻し）
+
+  e5:
+    id: e5
+    from: return_to_requester
+    to: request_vendor_registration
+    label: 再申請
+
+  e6:
+    id: e6
+    from: request_type_check
+    to: verify_bank_change
+    label: 口座変更
+    condition: request_type == bank_change
+
+  e7:
+    id: e7
+    from: request_type_check
+    to: collect_company_info
+    label: 新規登録（区分不明を含む）
+
+  e8:
+    id: e8
+    from: collect_company_info
+    to: anti_social_check
+
+  e9:
+    id: e9
+    from: anti_social_check
+    to: anti_social_result
+
+  e10:
+    id: e10
+    from: anti_social_result
+    to: overseas_check
+    label: 問題なし
+    condition: anti_social_clear == true
+
+  e11:
+    id: e11
+    from: anti_social_result
+    to: end_rejected
+    label: 該当・判定不能（取引不可）
+
+  e12:
+    id: e12
+    from: overseas_check
+    to: credit_required
+    label: 国内
+    condition: is_overseas == false
+
+  e13:
+    id: e13
+    from: overseas_check
+    to: overseas_additional_check
+    label: 海外・不明（追加確認）
+
+  e14:
+    id: e14
+    from: overseas_additional_check
+    to: credit_required
+
+  e15:
+    id: e15
+    from: credit_required
+    to: validate_bank_account
+    label: 1,000万円未満
+    condition: annual_amount < 10000000
+
+  e16:
+    id: e16
+    from: credit_required
+    to: credit_check
+    label: 1,000万円以上・不明（与信確認）
+
+  e17:
+    id: e17
+    from: credit_check
+    to: validate_bank_account
+
+  e18:
+    id: e18
+    from: verify_bank_change
+    to: accounting_approval
+
+  e19:
+    id: e19
+    from: accounting_approval
+    to: validate_bank_account
+
+  e20:
+    id: e20
+    from: validate_bank_account
+    to: department_approval
+
+  e21:
+    id: e21
+    from: department_approval
+    to: master_data_registration
+
+  e22:
+    id: e22
+    from: master_data_registration
+    to: first_transaction_control
+
+  e23:
+    id: e23
+    from: first_transaction_control
+    to: evidence_archive
+
+  e24:
+    id: e24
+    from: evidence_archive
+    to: standardize
+
+  e25:
+    id: e25
+    from: standardize
+    to: end_registered
