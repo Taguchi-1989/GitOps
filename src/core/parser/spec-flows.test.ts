@@ -2,7 +2,8 @@
  * spec/flows 実ファイルの検証
  *
  * - 同梱フローがすべてパース・辞書参照・構造検証を通ること
- * - 新規取引先・口座登録フローのガバナンス上の約束（承認・証跡・フェイルセーフ分岐）が崩れていないこと
+ * - 製造業ガバナンス例フロー（新規取引先・口座登録 / 設計変更管理）の約束
+ *   （承認・証跡・フェイルセーフ分岐）が崩れていないこと
  */
 
 import fs from 'fs';
@@ -160,6 +161,103 @@ describe('vendor-registration（新規取引先・口座登録）', () => {
       expect(flow.nodes[id].dataClassification).toMatchObject({
         aiUsageAllowed: false,
         exportPolicy: 'prohibited',
+      });
+    }
+  });
+});
+
+describe('design-change（設計変更管理）', () => {
+  const dictionary = loadDictionary();
+  const flow = loadFlow('design-change.yaml');
+
+  /** 条件付きレビューをすべて省略できる変更（承認済み・検証合格） */
+  const minorChange = {
+    evidence_complete: true,
+    is_safety_part: false,
+    has_process_change: false,
+    has_supplier_change: false,
+    change_approved: true,
+    validation_status: 'passed',
+  };
+
+  it('構造上の警告がなく、条件式はすべてエンジンが評価できる形式', () => {
+    const structural = analyzeFlowStructure(flow, dictionary);
+    expect(structural.findings.filter(f => f.severity === 'warning')).toEqual([]);
+    for (const edge of Object.values(flow.edges)) {
+      if (edge.condition) expect(isSupportedConditionExpression(edge.condition)).toBe(true);
+    }
+  });
+
+  it('判断材料が不明なときは、より厳しい側へ進む（フェイルセーフ）', () => {
+    expect(nextNode(flow, 'evidence_check', {})).toBe('return_to_requester');
+    expect(nextNode(flow, 'safety_part_check', {})).toBe('quality_review');
+    expect(nextNode(flow, 'process_change_check', {})).toBe('production_engineering_review');
+    expect(nextNode(flow, 'supplier_change_check', {})).toBe('supplier_impact_review');
+    expect(nextNode(flow, 'approval_result', {})).toBe('end_rejected');
+    expect(nextNode(flow, 'validation_result', {})).toBe('trial_validation');
+  });
+
+  it('条件に該当しない変更でも、BOMレビュー・承認・検証・証跡保管・標準化は省略しない', () => {
+    const path = walk(flow, minorChange);
+    expect(path.at(-1)).toBe('end_released');
+    for (const id of [
+      'impact_analysis',
+      'bom_review',
+      'approval',
+      'trial_validation',
+      'release_change',
+      'evidence_archive',
+      'standardize',
+    ]) {
+      expect(path).toContain(id);
+    }
+    for (const id of [
+      'quality_review',
+      'production_engineering_review',
+      'supplier_impact_review',
+    ]) {
+      expect(path).not.toContain(id);
+    }
+  });
+
+  it.each([
+    ['is_safety_part', 'quality_review'],
+    ['has_process_change', 'production_engineering_review'],
+    ['has_supplier_change', 'supplier_impact_review'],
+  ])('%s に該当すると %s が承認より前に必須になる', (flag, review) => {
+    const path = walk(flow, { ...minorChange, [flag]: true });
+    expect(path.at(-1)).toBe('end_released');
+    expect(flow.nodes[review].type).toBe('human-review');
+    expect(path).toContain(review);
+    expect(path.indexOf(review)).toBeLessThan(path.indexOf('approval'));
+  });
+
+  it('どの経路でも変更承認を経ずに図面・BOM更新へは到達できず、却下なら変更しない', () => {
+    expect(reachableAvoiding(flow, 'update_drawings_bom', 'approval')).toBe(false);
+    const rejected = walk(flow, { ...minorChange, change_approved: false });
+    expect(rejected.at(-1)).toBe('end_rejected');
+    expect(rejected).not.toContain('update_drawings_bom');
+  });
+
+  it('検証が合格しない限り発効・標準化へは進めない', () => {
+    expect(reachableAvoiding(flow, 'standardize', 'validation_result')).toBe(false);
+    expect(nextNode(flow, 'validation_result', { validation_status: 'in_progress' })).toBe(
+      'trial_validation'
+    );
+    expect(nextNode(flow, 'validation_result', { validation_status: 'failed' })).toBe(
+      'submit_design_change'
+    );
+    expect(nextNode(flow, 'validation_result', { validation_status: 'passed' })).toBe(
+      'release_change'
+    );
+  });
+
+  it('図面・BOMを扱うノードはAI利用時に抽象化必須', () => {
+    for (const id of ['submit_design_change', 'update_drawings_bom']) {
+      expect(flow.nodes[id].dataClassification).toMatchObject({
+        sensitivityLevel: 'L4',
+        abstractionRequired: true,
+        exportPolicy: 'abstracted-only',
       });
     }
   });
