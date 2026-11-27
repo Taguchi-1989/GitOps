@@ -179,23 +179,11 @@ export function MainLayout({ children }: MainLayoutProps) {
 
     return (
       <li key={item.name}>
-        <Link
-          href={item.href}
-          aria-current={isActive ? 'page' : undefined}
-          className={`
-            flex items-center gap-3 px-3 py-2.5 rounded-lg
-            transition-colors group
-            ${isActive ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}
-          `}
-        >
+        <Link href={item.href} aria-current={isActive ? 'page' : undefined} className="fo-nav-item">
           <item.icon className="w-5 h-5" />
           <div className="flex flex-col">
             <span className="text-sm font-medium">{item.name}</span>
-            <span
-              className={`text-xs ${isActive ? 'text-gray-400' : 'text-gray-600 group-hover:text-gray-400'}`}
-            >
-              {item.description}
-            </span>
+            <span className="fo-nav-description">{item.description}</span>
           </div>
         </Link>
       </li>
@@ -208,15 +196,15 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 md:flex">
+    <div className="fo-shell">
       {/* Welcome Guide (初回表示) */}
       <WelcomeGuide />
 
       {/* Sidebar */}
-      <aside className="bg-gray-900 text-white md:fixed md:inset-y-0 md:left-0 md:w-64 md:overflow-y-auto">
+      <aside className="fo-rail">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-800">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+        <div className="fo-brand">
+          <div className="fo-brand-mark">
             <GitBranch className="w-5 h-5" />
           </div>
           <div>
@@ -225,16 +213,13 @@ export function MainLayout({ children }: MainLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="px-4 py-6">
+        <nav className="fo-nav">
           {/* 横断検索（Ctrl+K でも開く） */}
           <div className="mb-4">
             <GlobalSearch />
           </div>
 
-          <p className="px-3 mb-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
-            メニュー
-          </p>
-          <ul className="space-y-1">{navigation.map(renderNavItem)}</ul>
+          <ul className="fo-nav-list">{navigation.map(renderNavItem)}</ul>
 
           {/* 管理・専門ツール（設定でONにした人だけ。既定では丸ごと出ない） */}
           {visibleAdvancedNavigation.length > 0 && (
@@ -267,11 +252,12 @@ export function MainLayout({ children }: MainLayoutProps) {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-gray-800 p-4 space-y-2 md:absolute md:bottom-0 md:left-0 md:right-0">
+        <div className="fo-rail-tools">
           {/* ダークモード トグル */}
           <button
             type="button"
             onClick={toggleTheme}
+            aria-pressed={isDark}
             className="flex min-h-11 items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-800"
           >
             {isDark ? (
@@ -280,22 +266,13 @@ export function MainLayout({ children }: MainLayoutProps) {
               <Moon className="w-4 h-4 text-gray-500" />
             )}
             <span className={isDark ? 'text-yellow-400' : 'text-gray-400'}>ダークモード</span>
-            <div
-              className={`ml-auto w-8 h-4 rounded-full transition-colors relative ${
-                isDark ? 'bg-yellow-500' : 'bg-gray-600'
-              }`}
-            >
-              <div
-                className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
-                  isDark ? 'translate-x-4' : 'translate-x-0.5'
-                }`}
-              />
-            </div>
+            <span className="fo-toggle-indicator" aria-hidden="true" />
           </button>
           {/* 詳細モード トグル（ONで技術情報を表示） */}
           <button
             type="button"
             onClick={toggleTechMode}
+            aria-pressed={isTechMode}
             title="技術情報を表示"
             className="flex min-h-11 items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-800"
           >
@@ -308,19 +285,9 @@ export function MainLayout({ children }: MainLayoutProps) {
               <span className={isTechMode ? 'text-blue-400 font-medium' : 'text-gray-400'}>
                 詳細モード
               </span>
-              <span className="text-xs text-gray-600">技術情報を表示</span>
+              <span className="text-xs text-gray-400">技術情報を表示</span>
             </span>
-            <div
-              className={`ml-auto w-8 h-4 rounded-full transition-colors relative ${
-                isTechMode ? 'bg-blue-500' : 'bg-gray-600'
-              }`}
-            >
-              <div
-                className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
-                  isTechMode ? 'translate-x-4' : 'translate-x-0.5'
-                }`}
-              />
-            </div>
+            <span className="fo-toggle-indicator" aria-hidden="true" />
           </button>
           <WelcomeGuideButton />
           <Link
@@ -358,7 +325,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="min-h-screen w-full md:ml-64">{children}</main>
+      <main className="fo-main">{children}</main>
     </div>
   );
 }

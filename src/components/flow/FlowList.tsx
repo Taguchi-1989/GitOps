@@ -44,18 +44,10 @@ function FlowCard({ flow }: { flow: FlowSummary }) {
   const { isTechMode } = useDisplayMode();
 
   return (
-    <Link
-      href={`/flows/${flow.id}`}
-      className="
-        block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4
-        hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md dark:shadow-gray-900/50
-        transition-all duration-200
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-      "
-    >
+    <Link href={`/flows/${flow.id}`} className="fo-flow-record">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
             <FileText className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             {/* ファイル名は技術情報。詳細モードのときだけ見せる */}
             {isTechMode && (
@@ -75,7 +67,7 @@ function FlowCard({ flow }: { flow: FlowSummary }) {
         <ArrowRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
       </div>
 
-      <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
         <span className="flex items-center gap-1">
           <Eye className="w-3.5 h-3.5" />
           {`${flow.nodeCount} ${getNodeTerm(isTechMode)}`}
@@ -94,7 +86,7 @@ function FlowCardSkeleton() {
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 animate-pulse">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
             <div className="h-4 w-4 bg-gray-200 dark:bg-gray-600 rounded" />
             <div className="h-4 w-24 bg-gray-200 dark:bg-gray-600 rounded" />
             <div className="h-5 w-10 bg-gray-200 dark:bg-gray-600 rounded-full" />
@@ -116,7 +108,7 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="fo-page-head">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">フロー</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
@@ -124,14 +116,7 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
           </p>
         </div>
         {canWrite && (
-          <Link
-            href="/flows/new"
-            className="
-              inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2
-              text-sm font-medium text-white hover:bg-blue-700
-              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-            "
-          >
+          <Link href="/flows/new" className="fo-action fo-action--primary">
             <Plus className="w-4 h-4" />
             新しいフローを作る
           </Link>
@@ -153,7 +138,6 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
                 ? 'テンプレートを選ぶと、よくある業務の流れが入った状態から始められます。'
                 : 'あなたの権限は閲覧のみです。フローを作るには、管理者に権限の変更を依頼してください。'
             }
-            action={canWrite ? { label: '新しいフローを作る', href: '/flows/new' } : undefined}
             dismissKey="flow-list-empty"
           />
         ) : (
@@ -181,19 +165,6 @@ export function FlowList({ flows, isLoading = false }: FlowListProps) {
                 ? 'まだフローがありません。テンプレートから作成できます'
                 : 'まだフローがありません'}
             </div>
-            {canWrite && (
-              <Link
-                href="/flows/new"
-                className="
-                  mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2
-                  text-sm font-medium text-white hover:bg-blue-700
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                "
-              >
-                <Plus className="w-4 h-4" />
-                新しいフローを作る
-              </Link>
-            )}
           </div>
         ) : (
           flows.map(flow => <FlowCard key={flow.id} flow={flow} />)
