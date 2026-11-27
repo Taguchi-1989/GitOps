@@ -17,7 +17,6 @@ import { getActionLabel, NAV_LABELS } from '@/lib/ui-labels';
 import {
   FileText,
   AlertCircle,
-  GitBranch,
   CheckCircle,
   Clock,
   ArrowRight,
@@ -27,7 +26,6 @@ import {
   Eye,
   Plus,
   Search,
-  Star,
   AlertTriangle,
 } from 'lucide-react';
 
@@ -118,43 +116,13 @@ async function getDashboardStats() {
   return { stats, recentIssues, flows, checkDueSoon, staleIssues };
 }
 
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  color,
-  href,
-}: {
-  title: string;
-  value: number;
-  icon: React.ElementType;
-  color: string;
-  href?: string;
-}) {
-  const content = (
-    <div
-      className={`
-      bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6
-      hover:shadow-lg dark:shadow-gray-900/50 hover:border-gray-300 dark:hover:border-gray-600 transition-all
-      ${href ? 'cursor-pointer' : ''}
-    `}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${color}`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-      </div>
-    </div>
+function StatCard({ title, value, href }: { title: string; value: number; href: string }) {
+  return (
+    <Link href={href} className="fo-stat-cell">
+      <span className="text-sm font-medium">{title}</span>
+      <strong className="block text-2xl font-semibold tabular-nums">{value}</strong>
+    </Link>
   );
-
-  if (href) {
-    return <Link href={href}>{content}</Link>;
-  }
-  return content;
 }
 
 /**
@@ -224,8 +192,8 @@ function GettingStartedChecklist({
   if (allDone) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30">
+    <div className="fo-panel overflow-hidden">
+      <div className="fo-panel-heading">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -236,7 +204,7 @@ function GettingStartedChecklist({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-32 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+            <div className="w-12 sm:w-24 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full transition-all duration-500"
                 style={{ width: `${(completedCount / steps.length) * 100}%` }}
@@ -320,16 +288,16 @@ function WorkflowOverview() {
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+    <div className="fo-panel p-4 sm:p-6">
       <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">
         FlowOps ワークフロー
       </h3>
-      <div className="flex items-center justify-between gap-1">
+      <div className="grid gap-3 sm:flex sm:items-center sm:justify-between sm:gap-1">
         {steps.map((step, i) => {
           const Icon = step.icon;
           return (
             <div key={step.label} className="flex items-center gap-1 flex-1">
-              <div className="flex flex-col items-center gap-1.5 flex-1">
+              <div className="flex items-center gap-2 flex-1 sm:flex-col sm:gap-1.5">
                 <div
                   className={`w-10 h-10 ${step.color} rounded-xl flex items-center justify-center`}
                 >
@@ -341,7 +309,7 @@ function WorkflowOverview() {
                 <span className="text-xs text-gray-400 dark:text-gray-500">{step.description}</span>
               </div>
               {i < steps.length - 1 && (
-                <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mb-8" />
+                <ArrowRight className="hidden sm:block w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mb-8" />
               )}
             </div>
           );
@@ -364,23 +332,17 @@ export default async function DashboardPage() {
   const isNewUser = !hasFlows && !hasIssues;
 
   return (
-    <div className="p-6 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          {NAV_LABELS.dashboard}
-        </h1>
-        <p className="mt-1 text-gray-500 dark:text-gray-400">FlowOps プロジェクトの概要</p>
-      </div>
-
-      {/* はじめてガイド（チェックリスト） */}
-      <GettingStartedChecklist
-        hasFlows={hasFlows}
-        hasIssues={hasIssues}
-        hasInProgress={hasInProgress}
-        hasProposed={hasProposed}
-        hasMerged={hasMerged}
-      />
+    <div className="fo-workbench">
+      <header className="fo-page-head">
+        <div>
+          <h1>{NAV_LABELS.dashboard}</h1>
+          <p>改善カードと業務フローの現在地</p>
+        </div>
+        <Link href="/issues/new" className="fo-action fo-action--primary">
+          <Plus aria-hidden="true" className="size-4" />
+          改善カードを作る
+        </Link>
+      </header>
 
       {/* やることリスト */}
       <TaskQueue
@@ -397,43 +359,14 @@ export default async function DashboardPage() {
         }}
       />
 
-      {/* ワークフロー概要図 - 新規ユーザーの場合に表示 */}
-      {isNewUser && <WorkflowOverview />}
-
       {/* 改善カードの状況（語彙は @/lib/issue-status-ui と揃える） */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-          改善カードの状況
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="📋 起票済み"
-            value={stats.plan}
-            icon={AlertCircle}
-            color="bg-red-500"
-            href="/issues?tab=open"
-          />
-          <StatCard
-            title="▶️ 対応中"
-            value={stats.do}
-            icon={Play}
-            color="bg-blue-500"
-            href="/issues?tab=open"
-          />
-          <StatCard
-            title="🔍 効果確認中"
-            value={stats.check}
-            icon={Search}
-            color="bg-teal-500"
-            href="/issues?tab=checking"
-          />
-          <StatCard
-            title="⭐ 完了"
-            value={stats.standardized}
-            icon={Star}
-            color="bg-purple-500"
-            href="/issues?tab=closed"
-          />
+        <h2 className="fo-section-title">改善カードの状況</h2>
+        <div className="fo-stat-grid">
+          <StatCard title="起票済み" value={stats.plan} href="/issues?tab=open" />
+          <StatCard title="対応中" value={stats.do} href="/issues?tab=open" />
+          <StatCard title="効果確認中" value={stats.check} href="/issues?tab=checking" />
+          <StatCard title="完了" value={stats.standardized} href="/issues?tab=closed" />
         </div>
       </div>
 
@@ -505,7 +438,7 @@ export default async function DashboardPage() {
         )}
 
         {/* Today's Issues - 今週の改善カード */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="fo-panel overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               今週の改善カード
@@ -561,7 +494,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Flows */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="fo-panel overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">フロー</h2>
             <Link
@@ -609,23 +542,17 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold">現場の困りごとを改善カードにしましょう</h2>
-            <p className="mt-1 text-blue-100">
-              5分で書けるテンプレートで、PDCAサイクルをスタートできます
-            </p>
-          </div>
-          <Link
-            href="/issues/new"
-            className="px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-          >
-            改善カードを作る
-          </Link>
-        </div>
-      </div>
+      {/* はじめてガイド（チェックリスト） */}
+      <GettingStartedChecklist
+        hasFlows={hasFlows}
+        hasIssues={hasIssues}
+        hasInProgress={hasInProgress}
+        hasProposed={hasProposed}
+        hasMerged={hasMerged}
+      />
+
+      {/* ワークフロー概要図 - 新規ユーザーの場合に表示 */}
+      {isNewUser && <WorkflowOverview />}
     </div>
   );
 }

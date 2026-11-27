@@ -16,7 +16,7 @@ export default async function FlowsPage() {
   const flows = await listFlows();
 
   return (
-    <div className="p-6">
+    <div className="fo-workbench">
       <FlowList flows={flows} />
     </div>
   );

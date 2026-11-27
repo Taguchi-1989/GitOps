@@ -10,7 +10,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Eye, Sparkles, Plus, ArrowRight, ListChecks } from 'lucide-react';
+import { Eye, FileEdit, Plus, ListChecks } from 'lucide-react';
 
 interface TaskQueueItem {
   id: string;
@@ -42,7 +42,7 @@ interface TaskAction {
 export function TaskQueue({ recentIssues, stats }: TaskQueueProps) {
   const actions: TaskAction[] = [];
 
-  // 優先度1: 改善案を確認してください（proposed状態）
+  // 優先度1: 改善案を確認する（proposed状態）
   const proposedIssues = recentIssues.filter(i => i.status === 'proposed');
   proposedIssues.forEach(issue => {
     actions.push({
@@ -50,7 +50,7 @@ export function TaskQueue({ recentIssues, stats }: TaskQueueProps) {
       icon: Eye,
       iconColor: 'text-yellow-600 dark:text-yellow-400',
       bgColor: 'bg-yellow-50 dark:bg-yellow-900/30',
-      label: '改善案を確認してください',
+      label: '改善案を確認する',
       description: `${issue.humanId}: ${issue.title}`,
       href: `/issues/${issue.id}`,
       actionLabel: '確認する',
@@ -62,10 +62,10 @@ export function TaskQueue({ recentIssues, stats }: TaskQueueProps) {
   inProgressIssues.forEach(issue => {
     actions.push({
       priority: 2,
-      icon: Sparkles,
+      icon: FileEdit,
       iconColor: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-50 dark:bg-purple-900/30',
-      label: 'AIに改善案を依頼しましょう',
+      label: '改善案の作成へ進む',
       description: `${issue.humanId}: ${issue.title}`,
       href: `/issues/${issue.id}`,
       actionLabel: '開く',
@@ -79,7 +79,7 @@ export function TaskQueue({ recentIssues, stats }: TaskQueueProps) {
       icon: Plus,
       iconColor: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-50 dark:bg-blue-900/30',
-      label: '新しい改善カードを作りましょう',
+      label: '改善カードを作る',
       description: '業務フローの困りごとを記録して、改善を始めましょう',
       href: '/issues/new',
       actionLabel: '作る',
@@ -89,21 +89,19 @@ export function TaskQueue({ recentIssues, stats }: TaskQueueProps) {
   if (actions.length === 0) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30">
+    <div className="fo-panel fo-queue overflow-hidden">
+      <div className="fo-panel-heading">
         <div className="flex items-center gap-2">
-          <ListChecks className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          <ListChecks className="w-5 h-5" />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">やることリスト</h2>
-          <span className="ml-auto px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-            {actions.length}件
-          </span>
+          <span className="ml-auto text-xs font-medium tabular-nums">{actions.length}件</span>
         </div>
       </div>
       <div className="divide-y divide-gray-50 dark:divide-gray-700">
         {actions.slice(0, 5).map((action, i) => {
           const Icon = action.icon;
           return (
-            <div key={i} className="px-6 py-4 flex items-center gap-4">
+            <div key={i} className="px-4 sm:px-6 py-3 flex items-center gap-3">
               <div
                 className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${action.bgColor}`}
               >
@@ -117,12 +115,8 @@ export function TaskQueue({ recentIssues, stats }: TaskQueueProps) {
                   {action.description}
                 </p>
               </div>
-              <Link
-                href={action.href}
-                className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg font-medium transition-colors"
-              >
+              <Link href={action.href} className="fo-action">
                 {action.actionLabel}
-                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           );
