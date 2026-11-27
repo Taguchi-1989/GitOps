@@ -138,6 +138,8 @@ nodes:
     system: plm
     meta:
       description: 影響分析と各レビュー結果を確認して変更を承認する。申請者本人は承認しない（職務分掌）
+      approvalOutputKey: change_approved
+      disallowSelfApproval: true
       approvalCondition: 影響分析・BOM逆引き結果・（該当時）品質/生産技術/仕入先影響レビュー記録がそろっていること
 
   approval_result:

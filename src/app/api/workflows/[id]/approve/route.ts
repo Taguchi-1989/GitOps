@@ -64,9 +64,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
     const decision = { ...data, decidedBy };
 
-    // 承認/否認を記録
-    await humanLoopManager.submitDecision(pendingRequest.id, decision, execution.traceId);
-
     // 承認された場合、ワークフローを再開
     if (decision.approved) {
       const flowYaml = await getFlowYaml(execution.flowId);
@@ -83,55 +80,74 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
       // 承認されたノードの次のノードを取得
       const currentNode = compiled.nodes.get(execution.currentNodeId);
-      const nextEdge = currentNode?.outgoingEdges[0];
-
-      if (nextEdge) {
-        const state = {
-          executionId: execution.id,
-          flowId: execution.flowId,
-          traceId: execution.traceId,
-          status: execution.status as 'paused-human-review',
-          currentNodeId: execution.currentNodeId,
-          stateData: (typeof execution.stateData === 'string'
-            ? JSON.parse(execution.stateData)
-            : execution.stateData) as Record<string, unknown>,
-          initiatorId: execution.initiatorId,
-        };
-
-        const updatedState = await workflowEngine.resumeExecution(compiled, state, nextEdge.to);
-
-        return successResponse({
-          executionId: execution.id,
-          decision: decision.approved ? 'approved' : 'rejected',
-          reason: decision.reason,
-          workflowStatus: updatedState.status,
-          currentNodeId: updatedState.currentNodeId,
-        });
+      if (currentNode?.meta?.disallowSelfApproval === true && execution.initiatorId === decidedBy) {
+        return errorResponse(
+          API_ERROR_CODES.ACCESS_DENIED,
+          'Initiators cannot approve this step',
+          403
+        );
       }
-    }
 
-    // 否認された場合、ワークフローを失敗に遷移
-    if (!decision.approved) {
-      await prisma.workflowExecution.update({
-        where: { id },
-        data: {
-          status: 'failed',
-          stateData: JSON.stringify({
-            ...(typeof execution.stateData === 'string'
-              ? JSON.parse(execution.stateData)
-              : execution.stateData),
-            rejectionReason: decision.reason,
-            rejectedBy: decision.decidedBy,
-          }),
-        },
+      const nextEdge = currentNode?.outgoingEdges[0];
+      if (!nextEdge) {
+        return errorResponse(
+          API_ERROR_CODES.INVALID_STATUS_TRANSITION,
+          'No continuation after approval'
+        );
+      }
+
+      const stateData = (
+        typeof execution.stateData === 'string'
+          ? JSON.parse(execution.stateData)
+          : execution.stateData
+      ) as Record<string, unknown>;
+      const outputKey = currentNode?.meta?.approvalOutputKey;
+      const state = {
+        executionId: execution.id,
+        flowId: execution.flowId,
+        traceId: execution.traceId,
+        status: execution.status as 'paused-human-review',
+        currentNodeId: execution.currentNodeId,
+        stateData:
+          typeof outputKey === 'string' && outputKey
+            ? { ...stateData, [outputKey]: decision.approved }
+            : stateData,
+        initiatorId: execution.initiatorId,
+      };
+
+      await humanLoopManager.submitDecision(pendingRequest.id, decision, execution.traceId);
+      const updatedState = await workflowEngine.resumeExecution(compiled, state, nextEdge.to);
+      return successResponse({
+        executionId: execution.id,
+        decision: 'approved',
+        reason: decision.reason,
+        workflowStatus: updatedState.status,
+        currentNodeId: updatedState.currentNodeId,
       });
     }
 
+    await humanLoopManager.submitDecision(pendingRequest.id, decision, execution.traceId);
+
+    // 否認された場合、ワークフローを失敗に遷移
+    await prisma.workflowExecution.update({
+      where: { id },
+      data: {
+        status: 'failed',
+        stateData: JSON.stringify({
+          ...(typeof execution.stateData === 'string'
+            ? JSON.parse(execution.stateData)
+            : execution.stateData),
+          rejectionReason: decision.reason,
+          rejectedBy: decision.decidedBy,
+        }),
+      },
+    });
+
     return successResponse({
       executionId: execution.id,
-      decision: decision.approved ? 'approved' : 'rejected',
+      decision: 'rejected',
       reason: decision.reason,
-      workflowStatus: decision.approved ? 'running' : 'failed',
+      workflowStatus: 'failed',
     });
   } catch (error) {
     return internalErrorResponse(error);
